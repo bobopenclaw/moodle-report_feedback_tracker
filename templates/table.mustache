@@ -1,0 +1,83 @@
+{{!
+    This file is part the Local Analytics plugin for Moodle
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template report_feedback_tracker/dummy
+
+    Template for displaying the site log of rollovers by status.
+
+    Classes required for JS:
+    * none
+
+    Data attributes required for JS:
+    * none
+
+    Context variables required for this template:
+    * rollovers - An array of failedrollovers
+        *rows
+            * issuid - ID of the issue in the database table used to acknowledge it via jQuery/AJAX
+            * fullname - Fullname of the old course
+            * id - ID of the old course
+            * timescheduled - Timestamp for when the rollover was scheduled
+            * timeupdated - Timestamp for when the rollover record was updated
+            * info - Info returned for failed rollovers
+
+    Example context (json):
+   "rollovers":{
+      "rows":[
+         {
+            "issueid" : "12345",
+            "fullname" : "GEOG0152: Introduction to Citizen Science & Scientific Crowdsourcing (21/22)",
+            "id":"23880",
+            "timescheduled":"1653650579",
+            "timeupdated":"1653651580",
+            "info":"Fault Code: invaliddata",
+         }
+      ]
+   }
+
+}}
+<table class="table">
+    <thead>
+        <tr>
+            <th scope="col">{{#str}} course, report_feedback_tracker {{/str}}</th>
+            <th scope="col">{{#str}} assessment, report_feedback_tracker {{/str}}</th>
+            <th scope="col">{{#str}} type, report_feedback_tracker {{/str}}</th>
+            <th scope="col">{{#str}} summative, report_feedback_tracker {{/str}}</th>
+            <th scope="col">{{#str}} duedate, report_feedback_tracker {{/str}}</th>
+            <th scope="col">{{#str}} submissiondate, report_feedback_tracker {{/str}}</th>
+            <th scope="col">{{#str}} feedbackduedate, report_feedback_tracker {{/str}}</th>
+            <th scope="col">{{#str}} fullfeedback, report_feedback_tracker {{/str}}</th>
+            <th scope="col">{{#str}} grade, report_feedback_tracker {{/str}}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#records}}
+            <tr>
+                <td>{{course}}</td>
+                <td>{{assessment}}</td>
+                <td>{{type}}</td>
+                <td>{{summative}}</td>
+                <td>{{duedate}}</td>
+                <td>{{submissiondate}}</td>
+                <td>{{feedbackduedate}}</td>
+                <td>{{fullfeedback}}</td>
+                <td>{{grade}}</td>
+            </tr>
+        {{/records}}
+    </tbody>
+</table>
+
+<hr>
