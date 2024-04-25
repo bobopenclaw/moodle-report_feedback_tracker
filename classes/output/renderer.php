@@ -38,11 +38,11 @@ class renderer extends plugin_renderer_base {
      * @return string
      * @throws \moodle_exception
      */
-    public function render_table() : string {
+    public function render_feedback_tracker_table(): string {
         global $USER;
 
-        $data = get_data($USER);
-        return $this->output->render_from_template('report_feedback_tracker/table', $data);
+        $feedbacktrackerdata = get_feedback_tracker_data($USER);
+        return $this->output->render_from_template('report_feedback_tracker/table', $feedbacktrackerdata);
     }
 
 }

@@ -15,179 +15,37 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Display user feedback tracker report
+ * Display a list of activites with their current feedback status.
  *
  * @package    report_feedback_tracker
  * @copyright  2024 UCL <m.opitz@ucl.ac.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core\report_helper;
+
 require('../../config.php');
 require_once($CFG->dirroot.'/report/feedback_tracker/locallib.php');
-require_once($CFG->dirroot.'/report/feedback_tracker/lib.php');
 
-$userid   = required_param('id', PARAM_INT);
-$courseid = required_param('course', PARAM_INT);
-$mode     = optional_param('mode', 'outline', PARAM_ALPHA);
+$course = $COURSE;
 
-if ($mode !== 'complete' and $mode !== 'outline') {
-    $mode = 'outline';
-}
-
-$user = $DB->get_record('user', array('id'=>$userid, 'deleted'=>0), '*', MUST_EXIST);
-$course = $DB->get_record('course', array('id'=>$courseid), '*', MUST_EXIST);
-
-$coursecontext   = context_course::instance($course->id);
-$personalcontext = context_user::instance($user->id);
-
-if ($courseid == SITEID) {
-    $PAGE->set_context($personalcontext);
-}
-
-if ($USER->id != $user->id and has_capability('moodle/user:viewuseractivitiesreport', $personalcontext)
-        and !is_enrolled($coursecontext, $USER) and is_enrolled($coursecontext, $user)) {
-    //TODO: do not require parents to be enrolled in courses - this is a hack!
-    require_login();
-    $PAGE->set_course($course);
-} else {
-    require_login($course);
-}
-$PAGE->set_url('/report/feedback_tracker/user.php', array('id'=>$userid, 'course'=>$courseid, 'mode'=>$mode));
-
-if (!report_feedback_tracker_can_access_user_report($user, $course)) {
-    throw new \moodle_exception('nocapability', 'report_feedback_tracker');
-}
-
-$stractivityreport = get_string('activityreport');
-
+$pageparams = ['id' => $course->id];
+$PAGE->set_url('/report/feedback_tracker/index.php', $pageparams);
 $PAGE->set_pagelayout('report');
-$PAGE->set_url('/report/feedback_tracker/user.php', array('id'=>$user->id, 'course'=>$course->id, 'mode'=>$mode));
-$PAGE->navigation->extend_for_user($user);
-$PAGE->navigation->set_userid_for_parent_checks($user->id); // see MDL-25805 for reasons and for full commit reference for reversal when fixed.
-$PAGE->set_title("$course->shortname: $stractivityreport");
 
-// Create the appropriate breadcrumb.
-$navigationnode = array(
-        'url' => new moodle_url('/report/feedback_tracker/user.php', array('id' => $user->id, 'course' => $course->id, 'mode' => $mode))
-    );
-if ($mode === 'complete') {
-    $navigationnode['name'] = get_string('completereport');
-} else {
-    $navigationnode['name'] = get_string('outlinereport');
-}
-$PAGE->add_report_nodes($user->id, $navigationnode);
+require_login($course);
 
-if ($courseid == SITEID) {
-    $PAGE->set_heading(fullname($user));
-} else {
-    $PAGE->set_heading($course->fullname);
-}
-
-// Trigger a report viewed event.
-$event = \report_feedback_tracker\event\report_viewed::create(array('context' => context_course::instance($course->id),
-        'relateduserid' => $userid, 'other' => array('mode' => $mode)));
-$event->trigger();
-
+// Set the header and print it.
+$PAGE->set_title($course->shortname .':' . get_string('pluginname', 'report_feedback_tracker'));
+$PAGE->set_heading($course->fullname);
 echo $OUTPUT->header();
-if ($courseid != SITEID) {
-    $backurl = new moodle_url('/user/view.php', ['id' => $userid, 'course' => $courseid]);
-    echo $OUTPUT->single_button($backurl, get_string('back'), 'get', ['class' => 'mb-3']);
-    echo $OUTPUT->context_header(
-            array(
-            'heading' => fullname($user),
-            'user' => $user,
-            'usercontext' => $personalcontext
-        ), 2);
-    if ($mode === 'outline') {
-        echo $OUTPUT->heading(get_string('outlinereport', 'moodle'), 2, 'main mt-4 mb-4');
-    } else {
-        echo $OUTPUT->heading(get_string('completereport', 'moodle'), 2, 'main mt-4 mb-4');
-    }
-}
 
-$modinfo = get_fast_modinfo($course, $user->id);
-$sections = $modinfo->get_section_info_all();
-$itemsprinted = false;
+// Print selector drop down.
+$pluginname = get_string('pluginname', 'report_feedback_tracker');
+report_helper::print_report_selector($pluginname);
 
-foreach ($sections as $i => $section) {
-
-        if ($section->uservisible) { // prevent hidden sections in user activity. Thanks to Geoff Wilbert!
-            // Check the section has modules/resources, if not there is nothing to display.
-            if (!empty($modinfo->sections[$i])) {
-                $itemsprinted = true;
-                echo '<div class="section">';
-                echo '<h2>';
-                echo get_section_name($course, $section);
-                echo "</h2>";
-
-                echo '<div class="content">';
-
-                if ($mode == "outline") {
-                    echo "<table cellpadding=\"4\" cellspacing=\"0\">";
-                }
-
-                foreach ($modinfo->sections[$i] as $cmid) {
-                    $mod = $modinfo->cms[$cmid];
-
-                    if (empty($mod->uservisible)) {
-                        continue;
-                    }
-
-                    $instance = $DB->get_record("$mod->modname", array("id"=>$mod->instance));
-                    $libfile = "$CFG->dirroot/mod/$mod->modname/lib.php";
-
-                    if (file_exists($libfile)) {
-                        require_once($libfile);
-
-                        switch ($mode) {
-                            case "outline":
-                                $user_outline = $mod->modname."_user_outline";
-                                if (function_exists($user_outline)) {
-                                    $output = $user_outline($course, $user, $mod, $instance);
-                                } else {
-                                    $output = report_feedback_tracker_user_outline($user->id, $cmid, $mod->modname, $instance->id);
-                                }
-                                report_feedback_tracker_print_row($mod, $instance, $output);
-                                break;
-                            case "complete":
-                                $user_complete = $mod->modname."_user_complete";
-                                $image = $OUTPUT->pix_icon('monologo', $mod->modfullname, 'mod_'.$mod->modname, array('class'=>'icon'));
-                                echo "<h4>$image $mod->modfullname: ".
-                                     "<a href=\"$CFG->wwwroot/mod/$mod->modname/view.php?id=$mod->id\">".
-                                     format_string($instance->name,true)."</a></h4>";
-
-                                ob_start();
-
-                                echo "<ul>";
-                                if (function_exists($user_complete)) {
-                                    $user_complete($course, $user, $mod, $instance);
-                                } else {
-                                    echo report_feedback_tracker_user_complete($user->id, $cmid, $mod->modname, $instance->id);
-                                }
-                                echo "</ul>";
-
-                                $output = ob_get_contents();
-                                ob_end_clean();
-
-                                if (str_replace(' ', '', $output) != '<ul></ul>') {
-                                    echo $output;
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                if ($mode == "outline") {
-                    echo "</table>";
-                }
-                echo '</div>';  // content
-                echo '</div>';  // section
-            }
-        }
-}
-
-if (!$itemsprinted) {
-    echo $OUTPUT->notification(get_string('nothingtodisplay'), 'info', false);
-}
+// Get the renderer and use it.
+$renderer = $PAGE->get_renderer('report_feedback_tracker');
+echo $renderer->render_feedback_tracker_table();
 
 echo $OUTPUT->footer();

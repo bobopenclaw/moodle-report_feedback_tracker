@@ -22,8 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
-
 /**
  * This function extends the course navigation with the report items
  *
@@ -33,15 +31,71 @@ defined('MOODLE_INTERNAL') || die;
  */
 function report_feedback_tracker_extend_navigation_course($navigation, $course, $context) {
     if (has_capability('report/feedback_tracker:view', $context)) {
-        $url = new moodle_url('/report/feedback_tracker/index.php', array('id'=>$course->id));
-        $navigation->add(get_string('pluginname', 'report_feedback_tracker'), $url, navigation_node::TYPE_SETTING, null, null, new pix_icon('i/report', ''));
+        $url = new moodle_url('/report/feedback_tracker/index.php', ['id' => $course->id]);
+        $navigation->add(get_string('pluginname', 'report_feedback_tracker'),
+            $url, navigation_node::TYPE_SETTING, null, null, new pix_icon('i/report', ''));
     }
 }
 
 /**
- * Is current user allowed to access this report
+ * This function extends the course navigation with the report items
  *
- * @private defined in lib.php for performance reasons
+ * @param navigation_node $navigation The navigation node to extend
+ * @param stdClass $user
+ * @param stdClass $course The course to object for the report
+ */
+function report_feedback_tracker_extend_navigation_user($navigation, $user, $course) {
+    global $USER;
+
+    if (isguestuser() || !isloggedin()) {
+        return;
+    }
+
+    if (\core\session\manager::is_loggedinas() || $USER->id != $user->id) {
+        // No peeking at somebody else's sessions!
+        return;
+    }
+
+    $context = context_course::instance($course->id);
+    if (has_capability('report/feedback_tracker:view', $context) || true) {
+        $navigation->add(get_string('navigationlink', 'report_feedback_tracker'),
+            new moodle_url('/report/feedback_tracker/user.php'), $navigation::TYPE_SETTING);
+    }
+}
+
+/**
+ * Add nodes to myprofile page.
+ *
+ * @param \core_user\output\myprofile\tree $tree Tree object
+ * @param stdClass $user user object
+ * @param bool $iscurrentuser
+ * @param stdClass $course Course object
+ *
+ * @return bool
+ */
+function report_feedback_tracker_myprofile_navigation(core_user\output\myprofile\tree $tree, $user, $iscurrentuser, $course) {
+    global $COURSE, $USER;
+
+    if (isguestuser() || !isloggedin()) {
+        return;
+    }
+
+    if (\core\session\manager::is_loggedinas() || $USER->id != $user->id) {
+        // No peeking at somebody else's sessions!
+        return;
+    }
+
+    $context = context_course::instance($COURSE->id);
+    if (has_capability('report/feedback_tracker:view', $context) || true) {
+        $node = new core_user\output\myprofile\node('reports', 'feedback_tracker',
+            get_string('navigationlink', 'report_feedback_tracker'), null, new moodle_url('/report/feedback_tracker/user.php'));
+        $tree->add_node($node);
+    }
+    return true;
+}
+
+/**
+ * Is current user allowed to access this report
  *
  * @param stdClass $user
  * @param stdClass $course
@@ -54,11 +108,11 @@ function report_feedback_tracker_can_access_user_report($user, $course) {
     $personalcontext = context_user::instance($user->id);
 
     if ($user->id == $USER->id) {
-        if ($course->showreports and (is_viewing($coursecontext, $USER) or is_enrolled($coursecontext, $USER))) {
+        if ($course->showreports && (is_viewing($coursecontext, $USER) || is_enrolled($coursecontext, $USER))) {
             return true;
         }
     } else if (has_capability('moodle/user:viewuseractivitiesreport', $personalcontext)) {
-        if ($course->showreports and (is_viewing($coursecontext, $user) or is_enrolled($coursecontext, $user))) {
+        if ($course->showreports && (is_viewing($coursecontext, $user) || is_enrolled($coursecontext, $user))) {
             return true;
         }
 
@@ -90,46 +144,69 @@ function report_feedback_tracker_supports_logstore($instance) {
     return false;
 }
 
-function get_data($user) {
+/**
+ * Get the Feedback tracker data for a given user.
+ *
+ * @param stdClass $user
+ * @return stdClass
+ */
+function get_feedback_tracker_data($user) {
 
     $data = new stdClass();
     $data->records = [];
 
-    $one_day = 24 * 60 * 60; // Number of seconds in a day.
-    $one_week = 7 * $one_day; // Number of seconds in a week.
-    $two_weeks = 2 * $one_week; // Number of seconds in two weeks.
+    $oneday = 24 * 60 * 60; // Number of seconds in a day.
+    $oneweek = 7 * $oneday; // Number of seconds in a week.
+    $twoweeks = 2 * $oneweek; // Number of seconds in two weeks.
 
-    // Retrieve enrolled courses for the user
-    $enrolled_courses = enrol_get_users_courses($user->id);
+    // Retrieve enrolled courses for the user.
+    $enrolledcourses = enrol_get_users_courses($user->id);
 
-    foreach ($enrolled_courses as $enrolled_course) {
-        $course_modules = get_course_mods($enrolled_course->id);
+    foreach ($enrolledcourses as $enrolledcourse) {
+        // Retrieve all modules (activities/resources) in the course.
+        $coursemodules = get_course_mods($enrolledcourse->id);
 
-        foreach ($course_modules as $cm) {
+        // Prepare the report data for each module.
+        foreach ($coursemodules as $cm) {
             $module = get_module($cm);
+
+            $duedate = isset($module->duedate) && date("Y-m-d", $module->duedate) != '1970-01-01' ?
+                date("Y-m-d", $module->duedate) : '--';
+            $duedate = $module->duedate;
+            $feedbackduedate = $duedate ? $duedate + $twoweeks : $duedate;
+
             $record = new stdClass();
-            $record->course = $enrolled_course->shortname;
+            $record->course = $enrolledcourse->shortname;
             $record->assessment = $module->name;
             $record->type = $cm->modname;
-            $record->duedate = isset($module->duedate) &&  date("Y-m-d", $module->duedate) != '1970-01-01' ?
-                date("Y-m-d", $module->duedate) : '--';
-
+            $record->duedate = $duedate == 0 ? '--' : date("Y-m-d", $duedate);
+            $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
             $data->records[] = $record;
         }
     }
-    // Retrieve all modules (activities/resources) in the course
-
-
-//    $data = get_dummy_data();
 
     return $data;
 }
 
+/**
+ * Get information about the module instance.
+ *
+ * @param stdClass $cm
+ * @return false|mixed|stdClass
+ * @throws dml_exception
+ */
 function get_module($cm) {
     global $DB;
 
     // Handle special cases of module types here where needed.
     switch ($cm->modname) {
+        case 'assign':
+            $tablename = $cm->modname;
+            break;
+        case 'quiz':
+            $tablename = $cm->modname;
+            $replacements = ['timeclose' => 'duedate'];
+            break;
         case 'special':
             // Do something specific here.
             break;
@@ -139,20 +216,32 @@ function get_module($cm) {
     }
 
     $module = $DB->get_record($tablename, ['id' => $cm->instance]);
+
+    if (isset($replacements)) {
+        foreach ($replacements as $from => $to) {
+            $module->$to = $module->$from;
+        }
+        unset($replacement);
+    }
+
     return $module;
 }
 
+/**
+ * Return some dummy data.
+ *
+ * @return stdClass
+ */
 function get_dummy_data() {
     // Get 10 lines of dummy data.
     $data = new stdClass();
     $data->records = [];
 
-    $one_day = 24 * 60 * 60; // Number of seconds in a day.
-    $one_week = 7 * $one_day; // Number of seconds in a week.
-    $two_weeks = 2 * $one_week; // Number of seconds in two weeks.
+    $oneday = 24 * 60 * 60; // Number of seconds in a day.
+    $oneweek = 7 * $oneday; // Number of seconds in a week.
+    $twoweeks = 2 * $oneweek; // Number of seconds in two weeks.
 
-
-    for ($i=1; $i <= 10; $i++) {
+    for ($i = 1; $i <= 10; $i++) {
         $record = new stdClass();
         $record->course = "Dummy Course";
         $record->assessment = "Dummy Assessment";
@@ -160,8 +249,8 @@ function get_dummy_data() {
         $record->summative = "yes";
         $duedate = strtotime("-14 days");
         $record->duedate = date("Y-m-d", $duedate);
-        $record->submissiondate = date("Y-m-d", $duedate - $one_day);
-        $feedbackduedate = $duedate + $two_weeks;
+        $record->submissiondate = date("Y-m-d", $duedate - $oneday);
+        $feedbackduedate = $duedate + $twoweeks;
         $record->feedbackduedate = date("Y-m-d", $feedbackduedate);
         $record->fullfeedback = "Full feedback here";
         $record->grade = "80/100";

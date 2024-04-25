@@ -24,8 +24,6 @@
 
 namespace report_feedback_tracker\privacy;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Privacy Subsystem for report_feedback_tracker implementing null_provider.
  *

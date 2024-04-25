@@ -24,33 +24,33 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$capabilities = array(
+$capabilities = [
 
-    'report/feedback_tracker:view' => array(
+    'report/feedback_tracker:view' => [
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,
-        'archetypes' => array(
+        'archetypes' => [
             'teacher' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
-            'manager' => CAP_ALLOW
-        ),
+            'manager' => CAP_ALLOW,
+        ],
 
-        'clonepermissionsfrom' => 'coursereport/feedback_tracker:view',
-    ),
+        'clonepermissionsfrom' => 'coursereport/outline:view',
+    ],
 
-    'report/feedback_tracker:viewuserreport' => array(
+    'report/feedback_tracker:viewuserreport' => [
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,
-        'archetypes' => array(
+        'archetypes' => [
             'teacher' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
-            'manager' => CAP_ALLOW
-        ),
+            'manager' => CAP_ALLOW,
+        ],
 
         'clonepermissionsfrom' => 'report/feedback_tracker:view',
-    )
-);
+    ],
+];
 
 

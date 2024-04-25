@@ -22,17 +22,16 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['pluginname'] = 'Feedback tracker report';
-$string['privacy:metadata'] = 'The Feedback tracker report plugin does not store any personal data.';
-
-$string['dummy'] = 'dummy';
-
-$string['course'] = 'Course';
 $string['assessment'] = 'Assessment';
-$string['type'] = 'Type';
-$string['summative'] = 'Summative';
+$string['course'] = 'Course';
 $string['duedate'] = 'Due date';
-$string['submissiondate'] = 'Submission date';
 $string['feedbackduedate'] = 'Feedback due date';
 $string['fullfeedback'] = 'Full feedback';
 $string['grade'] = 'Grade';
+$string['navigationlink'] = 'Feedback tracker';
+$string['pluginname'] = 'Feedback tracker report';
+$string['privacy:metadata'] = 'The Feedback tracker report plugin does not store any personal data.';
+$string['submissiondate'] = 'Submission date';
+$string['summative'] = 'Summative';
+$string['type'] = 'Type';
+

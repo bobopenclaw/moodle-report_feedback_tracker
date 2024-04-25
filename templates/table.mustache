@@ -25,28 +25,24 @@
     * none
 
     Context variables required for this template:
-    * rollovers - An array of failedrollovers
-        *rows
-            * issuid - ID of the issue in the database table used to acknowledge it via jQuery/AJAX
-            * fullname - Fullname of the old course
-            * id - ID of the old course
-            * timescheduled - Timestamp for when the rollover was scheduled
-            * timeupdated - Timestamp for when the rollover record was updated
-            * info - Info returned for failed rollovers
+    * none
 
     Example context (json):
-   "rollovers":{
-      "rows":[
-         {
-            "issueid" : "12345",
-            "fullname" : "GEOG0152: Introduction to Citizen Science & Scientific Crowdsourcing (21/22)",
-            "id":"23880",
-            "timescheduled":"1653650579",
-            "timeupdated":"1653651580",
-            "info":"Fault Code: invaliddata",
-         }
-      ]
-   }
+    {
+        "records": [
+            {
+                "course": "",
+                "assessment": "",
+                "type": "",
+                "summative": "",
+                "duedate": "",
+                "submissiondate": "",
+                "feedbackduedate": "",
+                "fullfeedback": "",
+                "grade": ""
+            }
+        ]
+    }
 
 }}
 <table class="table">

@@ -22,36 +22,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use core\report_helper;
+require(__DIR__ . '/../../config.php');
 
-require('../../config.php');
-require_once($CFG->dirroot.'/report/feedback_tracker/locallib.php');
-
-$id = required_param('id',PARAM_INT);       // Course ID.
-
-$course = $DB->get_record('course', array('id'=>$id), '*', MUST_EXIST);
-
-$pageparams = array('id' => $id);
-$PAGE->set_url('/report/feedback_tracker/index.php', $pageparams);
-$PAGE->set_pagelayout('report');
+$course = $COURSE;
 
 require_login($course);
-$context = context_course::instance($course->id);
-require_capability('report/feedback_tracker:view', $context);
 
-// Set the header and print it.
-$PAGE->set_title($course->shortname .': dummy');
-$PAGE->set_heading($course->fullname);
-echo $OUTPUT->header();
-
-// Print selector drop down.
-$pluginname = get_string('pluginname', 'report_feedback_tracker');
-report_helper::print_report_selector($pluginname);
-
-// Get the renderer and use it.
-$renderer = $PAGE->get_renderer('report_feedback_tracker');
-echo $renderer->render_table();
-
-echo $OUTPUT->footer();
-
+// Just redirect to the user view - for now?
+redirect(new moodle_url('/report/feedback_tracker/user.php'));
 
