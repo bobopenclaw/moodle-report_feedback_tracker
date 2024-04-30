@@ -145,57 +145,203 @@ function report_feedback_tracker_supports_logstore($instance) {
 }
 
 /**
- * Get the Feedback tracker data for a given user.
+ * Get the Feedback tracker data for all courses of a given user.
  *
  * @param stdClass $user
  * @return stdClass
  */
-function get_feedback_tracker_data($user) {
+function get_feedback_tracker_data($courseid, $user) {
+    global $COURSE;
 
     $data = new stdClass();
     $data->records = [];
+
+    if ($courseid) { // Show only grade items for the given course.
+        $course = get_course($courseid);
+        // Check if the user can edit the course.
+        $data->iscourseeditor = is_course_editor($course, $user);
+        get_course_gradings($course, $user, $data);
+    } else { // Show all grade items of all enrolled courses.
+        // Check if the user can edit a course.
+        $data->iscourseeditor = is_course_editor($COURSE, $user);
+
+        // Retrieve enrolled courses for the user.
+        $enrolledcourses = enrol_get_users_courses($user->id);
+
+        foreach ($enrolledcourses as $course) {
+            get_course_gradings($course, $user, $data);
+        }
+    }
+    return $data;
+}
+
+/**
+ * Get the gradings for a course and amend the data with the findings.
+ *
+ * @param stdClass $course
+ * @param stdClass $user
+ * @param stdClass $data
+ * @return void
+ * @throws dml_exception
+ */
+function get_course_gradings($course, $user, &$data) {
+    global $DB;
 
     $oneday = 24 * 60 * 60; // Number of seconds in a day.
     $oneweek = 7 * $oneday; // Number of seconds in a week.
     $twoweeks = 2 * $oneweek; // Number of seconds in two weeks.
 
-    // Retrieve enrolled courses for the user.
-    $enrolledcourses = enrol_get_users_courses($user->id);
+    $gradingitems = $DB->get_records('grade_items', ['courseid' => $course->id, 'itemtype' => 'mod']);
 
-    foreach ($enrolledcourses as $enrolledcourse) {
-        // Retrieve all modules (activities/resources) in the course.
-        $coursemodules = get_course_mods($enrolledcourse->id);
+    foreach ($gradingitems as $gi) {
+        $module = get_module($gi);
 
-        // Prepare the report data for each module.
-        foreach ($coursemodules as $cm) {
-            $module = get_module($cm);
+        // Get/make the dates.
+        $duedate = isset($module->duedate) ? $module->duedate : 0;
+        $feedbackduedate = $duedate ? $duedate + $twoweeks : 0;
 
-            $duedate = isset($module->duedate) && date("Y-m-d", $module->duedate) != '1970-01-01' ?
-                date("Y-m-d", $module->duedate) : '--';
-            $duedate = $module->duedate;
-            $feedbackduedate = $duedate ? $duedate + $twoweeks : $duedate;
+        // Get the gradings.
+        if ($data->iscourseeditor) {
+            $ggparams = ['itemid' => $gi->id];                          // Get items for all students.
+        } else {
+            $ggparams = ['itemid' => $gi->id, 'userid' => $user->id];   // Get items for current student user only.
+        }
+        $gradegrades = $DB->get_records('grade_grades', $ggparams);
 
+        foreach ($gradegrades as $gg) {
+            $itemuser = $DB->get_record('user', ['id' => $gg->userid]);
             $record = new stdClass();
-            $record->course = $enrolledcourse->shortname;
-            $record->assessment = $module->name;
-            $record->type = $cm->modname;
+            $record->course = $course->shortname;
+            $record->assessment = $gi->itemname;
+            $record->type = $gi->itemmodule;
             $record->duedate = $duedate == 0 ? '--' : date("Y-m-d", $duedate);
+            $record->duedatestatusclass = get_date_status_class($duedate, $twoweeks);
             $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
+            $record->feedbackduedatestatusclass = get_date_status_class($feedbackduedate, $twoweeks);
+            $record->grade = ($gg->finalgrade ? $gg->finalgrade * 100 : '--') . '/' . (int)$gi->grademax;
+            $record->user = $itemuser->username;
             $data->records[] = $record;
         }
+
     }
 
-    return $data;
 }
+
+/**
+ * Return the ability of a user to edit a course.
+ *
+ * @param stdClass $course
+ * @param stdClass $user
+ * @return bool
+ * @throws coding_exception
+ */
+function is_course_editor($course, $user) {
+    $coursecontext = context_course::instance($course->id);
+    if (has_capability('moodle/course:update', $coursecontext, $user->id)) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Check due date and return bootstrap class for background colour when date limits have been reached.
+ *
+ * @param int $duedate  // The due date in seconds since 1.1.1970.
+ * @param int $difftime // The time difference in seconds for a warning period.
+ * @return string
+ */
+function get_date_status_class($duedate, $difftime) {
+    if ($duedate) {
+        switch ($duedate) {
+            case $duedate < time(): // Overdue.
+                return "bg-danger";
+            case $duedate < (time() + $difftime): // Due within difftime.
+                return "bg-warning";
+        }
+    }
+    return "";
+}
+
+function get_grade($course, $cm, $user) {
+    global $DB;
+    $gradeitems = $DB->get_records('grade_items', []);
+    $grade = new stdClass();
+
+    $grade->state = 'finished';
+    $grade->grade = 0.9;
+
+
+    return $grade;
+}
+function get_grade0($course, $cm, $user) {
+    global $DB;
+    if (!$gradeitems = $DB->get_records('grade_items',
+        ['iteminstance' => $cm->instance, 'itemmodule' => $cm->modname, 'courseid' => $course->id])) {
+        return false;
+    }
+    $grade = new stdClass();
+
+    $grade->state = 'finished';
+    $grade->grade = 0.9;
+
+
+    return $grade;
+}
+
+
 
 /**
  * Get information about the module instance.
  *
- * @param stdClass $cm
+ * @param stdClass $gi
  * @return false|mixed|stdClass
  * @throws dml_exception
  */
-function get_module($cm) {
+function get_module($gi) {
+    global $DB;
+
+    // Handle cases of module types here where needed.
+    switch ($gi->itemmodule) {
+        case 'assign':
+            $tablename = $gi->itemmodule;
+            break;
+        case 'lesson':
+            $tablename = $gi->itemmodule;
+            $replacements = ['deadline' => 'duedate'];
+            break;
+        case 'quiz':
+            $tablename = $gi->itemmodule;
+            $replacements = ['timeclose' => 'duedate'];
+            break;
+        case 'scorm':
+            $tablename = $gi->itemmodule;
+            $replacements = ['timeclose' => 'duedate'];
+            break;
+        case 'workshop':
+            $tablename = $gi->itemmodule;
+            $replacements = ['submissionend' => 'duedate'];
+            break;
+        case 'special':
+            // Do something specific here.
+            break;
+        default:
+            $tablename = $gi->itemmodule;
+            break;
+    }
+
+    $module = $DB->get_record($tablename, ['id' => $gi->iteminstance]);
+
+    // Compute replacement values.
+    if (isset($replacements)) {
+        foreach ($replacements as $from => $to) {
+            $module->$to = $module->$from;
+        }
+        unset($replacement);
+    }
+
+    return $module;
+}
+function get_module0($cm) {
     global $DB;
 
     // Handle special cases of module types here where needed.

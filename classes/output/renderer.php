@@ -38,10 +38,18 @@ class renderer extends plugin_renderer_base {
      * @return string
      * @throws \moodle_exception
      */
-    public function render_feedback_tracker_table(): string {
+    public function render_feedback_tracker_table($courseid): string {
         global $USER;
 
-        $feedbacktrackerdata = get_feedback_tracker_data($USER);
+        $feedbacktrackerdata = get_feedback_tracker_data($courseid, $USER);
+
+        /*
+        if (isset($courseid) && $courseid > 0) {
+            $feedbacktrackerdata = get_course_feedback_tracker_data($courseid, $USER);
+        } else {
+            $feedbacktrackerdata = get_feedback_tracker_data($courseid, $USER);
+        }
+        */
         return $this->output->render_from_template('report_feedback_tracker/table', $feedbacktrackerdata);
     }
 

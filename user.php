@@ -27,7 +27,8 @@ use core\report_helper;
 require('../../config.php');
 require_once($CFG->dirroot.'/report/feedback_tracker/locallib.php');
 
-$course = $COURSE;
+$courseid = optional_param('id', null, PARAM_INT); // The optional course ID.
+$course = isset($courseid) ? get_course($courseid) : $COURSE;
 
 $pageparams = ['id' => $course->id];
 $PAGE->set_url('/report/feedback_tracker/index.php', $pageparams);
@@ -46,6 +47,6 @@ report_helper::print_report_selector($pluginname);
 
 // Get the renderer and use it.
 $renderer = $PAGE->get_renderer('report_feedback_tracker');
-echo $renderer->render_feedback_tracker_table();
+echo $renderer->render_feedback_tracker_table($courseid);
 
 echo $OUTPUT->footer();

@@ -28,6 +28,10 @@ $course = $COURSE;
 
 require_login($course);
 
+$courseid = optional_param('id', null, PARAM_INT); // The optional course ID.
+
 // Just redirect to the user view - for now?
-redirect(new moodle_url('/report/feedback_tracker/user.php'));
+
+$url = '/report/feedback_tracker/user.php' . (isset($courseid) ? "?id=$courseid" : '');
+redirect(new moodle_url($url));
 

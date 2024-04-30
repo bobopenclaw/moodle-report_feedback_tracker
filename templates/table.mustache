@@ -34,6 +34,7 @@
                 "course": "",
                 "assessment": "",
                 "type": "",
+                "user": "",
                 "summative": "",
                 "duedate": "",
                 "submissiondate": "",
@@ -51,6 +52,7 @@
             <th scope="col">{{#str}} course, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} assessment, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} type, report_feedback_tracker {{/str}}</th>
+            {{#iscourseeditor}}<th scope="col">{{#str}} user, report_feedback_tracker {{/str}}</th>{{/iscourseeditor}}
             <th scope="col">{{#str}} summative, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} duedate, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} submissiondate, report_feedback_tracker {{/str}}</th>
@@ -65,10 +67,11 @@
                 <td>{{course}}</td>
                 <td>{{assessment}}</td>
                 <td>{{type}}</td>
+                {{#iscourseeditor}}<td>{{user}}</td>{{/iscourseeditor}}
                 <td>{{summative}}</td>
-                <td>{{duedate}}</td>
+                <td class="{{duedatestatusclass}}">{{duedate}}</td>
                 <td>{{submissiondate}}</td>
-                <td>{{feedbackduedate}}</td>
+                <td class="{{feedbackduedatestatusclass}}">{{feedbackduedate}}</td>
                 <td>{{fullfeedback}}</td>
                 <td>{{grade}}</td>
             </tr>

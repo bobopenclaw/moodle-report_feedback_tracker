@@ -34,4 +34,5 @@ $string['privacy:metadata'] = 'The Feedback tracker report plugin does not store
 $string['submissiondate'] = 'Submission date';
 $string['summative'] = 'Summative';
 $string['type'] = 'Type';
+$string['user'] = 'User';
 
