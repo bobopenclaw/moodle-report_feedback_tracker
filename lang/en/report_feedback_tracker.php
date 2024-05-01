@@ -35,4 +35,5 @@ $string['submissiondate'] = 'Submission date';
 $string['summative'] = 'Summative';
 $string['type'] = 'Type';
 $string['user'] = 'User';
+$string['student'] = 'Student';
 

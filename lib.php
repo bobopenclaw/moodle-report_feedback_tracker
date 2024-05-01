@@ -85,10 +85,15 @@ function report_feedback_tracker_myprofile_navigation(core_user\output\myprofile
         return;
     }
 
+    $url = new moodle_url('/report/feedback_tracker/user.php', [
+        'userid' => $user->id,
+        'sesskey' => sesskey(),
+    ]);
+
     $context = context_course::instance($COURSE->id);
     if (has_capability('report/feedback_tracker:view', $context) || true) {
         $node = new core_user\output\myprofile\node('reports', 'feedback_tracker',
-            get_string('navigationlink', 'report_feedback_tracker'), null, new moodle_url('/report/feedback_tracker/user.php'));
+            get_string('navigationlink', 'report_feedback_tracker'), null, new moodle_url($url));
         $tree->add_node($node);
     }
     return true;
@@ -150,26 +155,21 @@ function report_feedback_tracker_supports_logstore($instance) {
  * @param stdClass $user
  * @return stdClass
  */
-function get_feedback_tracker_data($courseid, $user) {
-    global $COURSE;
-
+function get_feedback_tracker_data($courseid, $userid) {
     $data = new stdClass();
     $data->records = [];
+    // Check if the user can edit a course.
+    $data->showstudents = ($userid === null || is_course_editor($courseid, $userid)) ? true : false;
 
     if ($courseid) { // Show only grade items for the given course.
         $course = get_course($courseid);
-        // Check if the user can edit the course.
-        $data->iscourseeditor = is_course_editor($course, $user);
-        get_course_gradings($course, $user, $data);
+        get_course_gradings($course, $userid, $data);
     } else { // Show all grade items of all enrolled courses.
-        // Check if the user can edit a course.
-        $data->iscourseeditor = is_course_editor($COURSE, $user);
-
         // Retrieve enrolled courses for the user.
-        $enrolledcourses = enrol_get_users_courses($user->id);
+        $enrolledcourses = enrol_get_users_courses($userid);
 
         foreach ($enrolledcourses as $course) {
-            get_course_gradings($course, $user, $data);
+            get_course_gradings($course, $userid, $data);
         }
     }
     return $data;
@@ -184,7 +184,7 @@ function get_feedback_tracker_data($courseid, $user) {
  * @return void
  * @throws dml_exception
  */
-function get_course_gradings($course, $user, &$data) {
+function get_course_gradings($course, $userid, &$data) {
     global $DB;
 
     $oneday = 24 * 60 * 60; // Number of seconds in a day.
@@ -200,17 +200,24 @@ function get_course_gradings($course, $user, &$data) {
         $duedate = isset($module->duedate) ? $module->duedate : 0;
         $feedbackduedate = $duedate ? $duedate + $twoweeks : 0;
 
+        // Get the submission date if any.
+        $submissiondate = get_submissiondate($userid, $gi);
+
+
+
         // Get the gradings.
-        if ($data->iscourseeditor) {
+        if ($data->showstudents && $userid === null) {
             $ggparams = ['itemid' => $gi->id];                          // Get items for all students.
         } else {
-            $ggparams = ['itemid' => $gi->id, 'userid' => $user->id];   // Get items for current student user only.
+            $ggparams = ['itemid' => $gi->id, 'userid' => $userid];   // Get items for current student user only.
         }
         $gradegrades = $DB->get_records('grade_grades', $ggparams);
 
         foreach ($gradegrades as $gg) {
-            $itemuser = $DB->get_record('user', ['id' => $gg->userid]);
+            $student = $DB->get_record('user', ['id' => $gg->userid]);
+
             $record = new stdClass();
+            $record->submissiondate = $submissiondate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
             $record->course = $course->shortname;
             $record->assessment = $gi->itemname;
             $record->type = $gi->itemmodule;
@@ -218,8 +225,9 @@ function get_course_gradings($course, $user, &$data) {
             $record->duedatestatusclass = get_date_status_class($duedate, $twoweeks);
             $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
             $record->feedbackduedatestatusclass = get_date_status_class($feedbackduedate, $twoweeks);
-            $record->grade = ($gg->finalgrade ? $gg->finalgrade * 100 : '--') . '/' . (int)$gi->grademax;
-            $record->user = $itemuser->username;
+            $record->grade = ($gg->finalgrade ? (int)$gg->finalgrade : '--') . '/' . (int)$gi->grademax;
+            $record->student = $student->username;
+
             $data->records[] = $record;
         }
 
@@ -227,17 +235,88 @@ function get_course_gradings($course, $user, &$data) {
 
 }
 
+function get_submissiondate($userid, $gradeitem) {
+    global $DB;
+
+    $submissiondate = 0;
+
+    if($gradeitem) {
+        switch ($gradeitem->itemmodule) {
+            case 'assign':
+                $details = [
+                    'table' => 'assign_submission',
+                    'index' => 'assignment',
+                    'user' => 'userid',
+                    'date' => 'timemodified',
+                    'status' => 'status',
+                    ];
+//                $submission = $DB->get_record('assign_submission', ['userid' => $userid, 'assignment' => $gradeitem->iteminstance]);
+                break;
+            case 'lesson':
+                $details = [
+                    'table' => 'lesson_attempts',
+                    'index' => 'lessonid',
+                    'user' => 'userid',
+                    'date' => 'timeseen',
+                    'status' => 'correct',
+                    ];
+                break;
+            case 'quiz':
+                $details = [
+                    'table' => 'quiz_attempts',
+                    'index' => 'quiz',
+                    'user' => 'userid',
+                    'date' => 'timefinish',
+                    'status' => 'state',
+                    ];
+                break;
+            case 'scorm':
+                break;
+            case 'workshop':
+                $details = [
+                    'table' => 'workshop_submissions',
+                    'index' => 'workshopid',
+                    'user' => 'authorid',
+                    'date' => 'timemodified',
+                    'status' => ''
+                ];
+                break;
+            default:
+                break;
+        }
+    }
+
+    // Compute details.
+    if (isset($details)) {
+        if ($submissionrecord = $DB->get_record($details['table'],
+            [$details['user'] => $userid, $details['index'] => $gradeitem->iteminstance]
+        )) {
+            $datefield = $details['date'];
+            $submissiondate = $submissionrecord->$datefield;
+        }
+
+        unset($details);
+    }
+
+
+    return $submissiondate; // In seconds since 1.1.1970.
+}
+
+
 /**
  * Return the ability of a user to edit a course.
  *
  * @param stdClass $course
- * @param stdClass $user
+ * @param int $userid
  * @return bool
  * @throws coding_exception
  */
-function is_course_editor($course, $user) {
-    $coursecontext = context_course::instance($course->id);
-    if (has_capability('moodle/course:update', $coursecontext, $user->id)) {
+function is_course_editor($courseid, $userid) {
+    if (!isset($courseid)) {
+        return false;
+    }
+    $coursecontext = context_course::instance($courseid);
+    if (has_capability('moodle/course:update', $coursecontext, $userid)) {
         return true;
     }
     return false;
