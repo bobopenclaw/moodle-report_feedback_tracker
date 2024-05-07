@@ -187,12 +187,11 @@ function get_feedback_tracker_data($courseid, $userid) {
 function get_course_gradings($course, $userid, &$data) {
     global $DB;
 
-    $warningdays = 14; // The days before a date when a warning is shown. TODO: Make an admin option.
-    $feedbackdeadlinedays = 30; // The days to provide feedback after the activity due date. TODO: Make an admin option.
-    $feedbackextenddays = 7; // The days to provide feedback after the activity due date. TODO: Make an admin option.
+    $warningdays = 14; // Number of days before a date when a warning is shown. TODO: Make an admin option.
+    $feedbackdeadlinedays = 30; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
+    $feedbackextenddays = 7; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
     $oneday = 24 * 60 * 60; // Number of seconds in a day.
-    $oneweek = 7 * $oneday; // Number of seconds in a week.
-    $twoweeks = 2 * $oneweek; // Number of seconds in two weeks.
+
     $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
     $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
     $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
@@ -242,9 +241,10 @@ function get_course_gradings($course, $userid, &$data) {
         // If a user is given check if the user is allowed to access the grade item.
         if ($userid) {
             $capability = 'mod/' . $gradeitem->itemmodule . ':view';
-            if (!has_capability($capability, context_module::instance($gradeitem->itemid))) {
+            if (!has_capability($capability, context_module::instance($gradeitem->iteminstance))) {
                 continue;
             }
+            // Only show the users grade items.
             if($gradeitem->studentid && $gradeitem->studentid != $userid) {
                 continue;
             }
@@ -302,7 +302,7 @@ function get_submission_status($submissiondate, $duedate, $warningperiod) {
     }
 
     // NO submission and the due date has passed.
-    if (!$submissiondate && time() > $duedate ) {
+    if ($duedate && !$submissiondate && time() > $duedate ) {
         return ' <i class="fa fa-exclamation-circle text-danger"></i>';
     }
 
@@ -354,7 +354,7 @@ function module_is_supported($gradeitem) {
     $supportedmodules = [
         'assign',
 #        'lesson',
-        'turnitin',
+        'turnitintooltwo',
         'quiz',
 #        'workshop',
     ];
@@ -405,7 +405,16 @@ function get_submissiondate($userid, $gradeitem) {
                     'user' => 'userid',
                     'date' => 'timefinish',
                     'status' => 'state',
-                    ];
+                ];
+                break;
+            case 'turnitintooltwo':
+                $details = [
+                    'table' => 'turnitintooltwo_submissions',
+                    'index' => 'turnitintooltwoid',
+                    'user' => 'userid',
+                    'date' => 'submission_modified',
+                    'status' => '',
+                ];
                 break;
             case 'scorm':
                 break;
