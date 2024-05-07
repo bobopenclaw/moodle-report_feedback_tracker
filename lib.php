@@ -271,15 +271,12 @@ function get_course_gradings($course, $userid, &$data) {
         $record = new stdClass();
         $record->submissiondate = $submissiondate == 0 ? '--' : date("Y-m-d", $submissiondate);
         $record->submissionstatus = get_submission_status($submissiondate, $duedate, $warningperiod);
-        $record->submissiondatestatusclass = get_date_status_class($submissiondate, $warningperiod);
         $record->course = $course->shortname;
         $record->assessment = $gradeitem->itemname;
         $record->type = $gradeitem->itemmodule;
         $record->duedate = $duedate == 0 ? '--' : date("Y-m-d", $duedate);
-        $record->duedatestatusclass = get_date_status_class($duedate, $warningperiod);
         $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
         $record->feedbackstatus = $feedbackduedate == 0 ? '' : get_feedback_status($feedbackduedate, $feedbackperiod, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
-        $record->feedbackstatusclass = get_feedback_status_class($feedbackduedate, $warningperiod, $link);
         $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
         $record->student = $gradeitem->student;
         $record->grader = $gradeitem->grader;
@@ -466,68 +463,6 @@ function is_course_editor($courseid, $userid) {
 }
 
 /**
- * Check due date and return bootstrap class for background colour when date limits have been reached.
- *
- * @param int $duedate  // The due date in seconds since 1.1.1970.
- * @param int $difftime // The time difference in seconds for a warning period.
- * @return string
- */
-function get_date_status_class($duedate, $difftime) {
-    if ($duedate) {
-        switch ($duedate) {
-            case $duedate < time(): // Overdue.
-                return "bg-danger";
-            case $duedate < (time() + $difftime): // Due within difftime.
-                return "bg-warning";
-        }
-    }
-    return "";
-}
-
-function get_feedback_status_class($duedate, $difftime, $link = '') {
-    if ($link != '') {
-        return "bg-success";
-    }
-    if ($duedate) {
-        switch ($duedate) {
-            case $duedate < time(): // Overdue.
-                return "bg-danger";
-            case $duedate < (time() + $difftime): // Due within difftime.
-                return "bg-warning";
-        }
-    }
-    return "";
-}
-
-function get_grade($course, $cm, $user) {
-    global $DB;
-    $gradeitems = $DB->get_records('grade_items', []);
-    $grade = new stdClass();
-
-    $grade->state = 'finished';
-    $grade->grade = 0.9;
-
-
-    return $grade;
-}
-function get_grade0($course, $cm, $user) {
-    global $DB;
-    if (!$gradeitems = $DB->get_records('grade_items',
-        ['iteminstance' => $cm->instance, 'itemmodule' => $cm->modname, 'courseid' => $course->id])) {
-        return false;
-    }
-    $grade = new stdClass();
-
-    $grade->state = 'finished';
-    $grade->grade = 0.9;
-
-
-    return $grade;
-}
-
-
-
-/**
  * Get information about the module instance.
  *
  * @param stdClass $gi
@@ -577,69 +512,4 @@ function get_module($gi) {
     }
 
     return $module;
-}
-function get_module0($cm) {
-    global $DB;
-
-    // Handle special cases of module types here where needed.
-    switch ($cm->modname) {
-        case 'assign':
-            $tablename = $cm->modname;
-            break;
-        case 'quiz':
-            $tablename = $cm->modname;
-            $replacements = ['timeclose' => 'duedate'];
-            break;
-        case 'special':
-            // Do something specific here.
-            break;
-        default:
-            $tablename = $cm->modname;
-            break;
-    }
-
-    $module = $DB->get_record($tablename, ['id' => $cm->instance]);
-
-    if (isset($replacements)) {
-        foreach ($replacements as $from => $to) {
-            $module->$to = $module->$from;
-        }
-        unset($replacement);
-    }
-
-    return $module;
-}
-
-/**
- * Return some dummy data.
- *
- * @return stdClass
- */
-function get_dummy_data() {
-    // Get 10 lines of dummy data.
-    $data = new stdClass();
-    $data->records = [];
-
-    $oneday = 24 * 60 * 60; // Number of seconds in a day.
-    $oneweek = 7 * $oneday; // Number of seconds in a week.
-    $twoweeks = 2 * $oneweek; // Number of seconds in two weeks.
-
-    for ($i = 1; $i <= 10; $i++) {
-        $record = new stdClass();
-        $record->course = "Dummy Course";
-        $record->assessment = "Dummy Assessment";
-        $record->type = "dummy";
-        $record->summative = "yes";
-        $duedate = strtotime("-14 days");
-        $record->duedate = date("Y-m-d", $duedate);
-        $record->submissiondate = date("Y-m-d", $duedate - $oneday);
-        $feedbackduedate = $duedate + $twoweeks;
-        $record->feedbackduedate = date("Y-m-d", $feedbackduedate);
-        $record->fullfeedback = "Full feedback here";
-        $record->grade = "80/100";
-
-        $data->records[] = $record;
-    }
-
-    return $data;
 }
