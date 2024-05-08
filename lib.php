@@ -158,14 +158,15 @@ function report_feedback_tracker_supports_logstore($instance) {
 function get_feedback_tracker_data($courseid, $userid) {
     $data = new stdClass();
     $data->records = [];
-    // Check if the user can edit a course.
-    $data->showstudents = ($userid === null || is_course_editor($courseid, $userid)) ? true : false;
+
+    // Check if the report is called by a course editor.
+    $data->iseditor = ($userid === null && $courseid) ? true : false;
 
     if ($courseid) { // Show only grade items for the given course.
         $course = get_course($courseid);
+        $data->singlecourse = $course->shortname; // Template header for single course report.
         get_course_gradings($course, $userid, $data);
-    } else { // Show all grade items of all enrolled courses.
-        // Retrieve enrolled courses for the user.
+    } else { // Show all grade items of all enrolled courses of a user.
         $enrolledcourses = enrol_get_users_courses($userid);
 
         foreach ($enrolledcourses as $course) {
@@ -226,9 +227,6 @@ function get_course_gradings($course, $userid, &$data) {
     and gi.itemtype = 'mod'
 ";
 
-    if ($userid) {
-//        $sql .= "and gg.userid = $userid";
-    }
     $gradeitems = $DB->get_records_sql($sql);
 
     foreach ($gradeitems as $gradeitem) {
@@ -286,6 +284,14 @@ function get_course_gradings($course, $userid, &$data) {
     }
 }
 
+/**
+ * Get a submission status icon.
+ *
+ * @param int $submissiondate
+ * @param int $duedate
+ * @param int $warningperiod
+ * @return string
+ */
 function get_submission_status($submissiondate, $duedate, $warningperiod) {
 
     // Submission was in time.
@@ -307,7 +313,16 @@ function get_submission_status($submissiondate, $duedate, $warningperiod) {
     return '';
 }
 
-function get_feedback_status($feedbackduedate, $feedbackperiod, $feedbackextendperiod, $feedbackdate, $finalgrade) {
+/**
+ * Get a feedback status icon.
+ *
+ * @param int $feedbackduedate
+ * @param int $feedbackextendperiod
+ * @param int $feedbackdate
+ * @param float $finalgrade
+ * @return string
+ */
+function get_feedback_status($feedbackduedate, $feedbackextendperiod, $feedbackdate, $finalgrade) {
 
     // Feedback was given in time.
     if (isset($finalgrade) && $feedbackdate <= $feedbackduedate) {
@@ -442,7 +457,6 @@ function get_submissiondate($userid, $gradeitem) {
     return $submissiondate; // In seconds since 1.1.1970.
 }
 
-
 /**
  * Return the ability of a user to edit a course.
  *
@@ -488,6 +502,10 @@ function get_module($gi) {
         case 'scorm':
             $tablename = $gi->itemmodule;
             $replacements = ['timeclose' => 'duedate'];
+            break;
+        case 'turnitintooltwo':
+            $tablename = $gi->itemmodule;
+            // ToDo: Check source of due date.
             break;
         case 'workshop':
             $tablename = $gi->itemmodule;

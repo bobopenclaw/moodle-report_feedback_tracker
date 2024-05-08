@@ -46,13 +46,14 @@
     }
 
 }}
+{{#singlecourse}}<h4>&nbsp;&nbsp;{{#str}} course, report_feedback_tracker {{/str}}: {{singlecourse}}</h4>{{/singlecourse}}
 <table class="table">
     <thead>
         <tr>
-            <th scope="col">{{#str}} course, report_feedback_tracker {{/str}}</th>
+            {{^iseditor}}<th scope="col">{{#str}} course, report_feedback_tracker {{/str}}</th>{{/iseditor}}
             <th scope="col">{{#str}} assessment, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} type, report_feedback_tracker {{/str}}</th>
-            {{#showstudents}}<th scope="col">{{#str}} student, report_feedback_tracker {{/str}}</th>{{/showstudents}}
+            {{#iseditor}}<th scope="col">{{#str}} student, report_feedback_tracker {{/str}}</th>{{/iseditor}}
             <th scope="col">{{#str}} summative, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} duedate, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} submissiondate, report_feedback_tracker {{/str}}</th>
@@ -60,17 +61,17 @@
             <th scope="col">{{#str}} feedbackduedate, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} feedback, report_feedback_tracker {{/str}}</th>
             <th scope="col"></th>
-            <th scope="col">{{#str}} grade, report_feedback_tracker {{/str}}</th>
-            <th scope="col">{{#str}} grader, report_feedback_tracker {{/str}}</th>
+            {{#iseditor}}<th scope="col">{{#str}} grade, report_feedback_tracker {{/str}}</th>{{/iseditor}}
+            {{#iseditor}}<th scope="col">{{#str}} grader, report_feedback_tracker {{/str}}</th>{{/iseditor}}
         </tr>
     </thead>
     <tbody>
         {{#records}}
             <tr>
-                <td>{{course}}</td>
+                {{^iseditor}}<td>{{course}}</td>{{/iseditor}}
                 <td>{{assessment}}</td>
                 <td>{{type}}</td>
-                {{#showstudents}}<td>{{student}}</td>{{/showstudents}}
+                {{#iseditor}}<td>{{student}}</td>{{/iseditor}}
                 <td>{{summative}}</td>
                 <td>{{duedate}}</td>
                 <td>{{submissiondate}}</td>
@@ -78,8 +79,8 @@
                 <td>{{{feedbackduedate}}}</td>
                 <td>{{{feedback}}}</td>
                 <td>{{{feedbackstatus}}}</td>
-                <td>{{grade}}</td>
-                <td>{{{grader}}}</td>
+                {{#iseditor}}<td>{{grade}}</td>{{/iseditor}}
+                {{#iseditor}}<td>{{{grader}}}</td>{{/iseditor}}
             </tr>
         {{/records}}
     </tbody>
