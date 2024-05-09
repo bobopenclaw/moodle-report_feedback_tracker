@@ -120,7 +120,6 @@ function report_feedback_tracker_can_access_user_report($user, $course) {
         if ($course->showreports && (is_viewing($coursecontext, $user) || is_enrolled($coursecontext, $user))) {
             return true;
         }
-
     }
 
     // Check if $USER shares group with $user (in case separated groups are enabled and 'moodle/site:accessallgroups' is disabled).
@@ -150,27 +149,38 @@ function report_feedback_tracker_supports_logstore($instance) {
 }
 
 /**
- * Get the Feedback tracker data for all courses of a given user.
+ * Get the Feedback Tracker data for all courses of a given user.
  *
- * @param stdClass $user
+ * @param int $userid
  * @return stdClass
  */
-function get_feedback_tracker_data($courseid, $userid) {
+function get_feedback_tracker_user_data($userid) {
     $data = new stdClass();
     $data->records = [];
 
-    // Check if the report is called by a course editor.
-    $data->iseditor = ($userid === null && $courseid) ? true : false;
-
-    if ($courseid) { // Show only grade items for the given course.
-        $course = get_course($courseid);
+    $enrolledcourses = enrol_get_users_courses($userid);
+    foreach ($enrolledcourses as $course) {
         get_course_gradings($course, $userid, $data);
-    } else { // Show all grade items of all enrolled courses of a user.
-        $enrolledcourses = enrol_get_users_courses($userid);
-        foreach ($enrolledcourses as $course) {
-            get_course_gradings($course, $userid, $data);
-        }
     }
+
+    return $data;
+}
+
+/**
+ * Get the Feedback Tracker data for all enrolled users of a given course.
+ *
+ * @param int $courseid
+ * @return stdClass
+ */
+function get_feedback_tracker_admin_data($courseid) {
+    $data = new stdClass();
+    $data->records = [];
+
+    // This is a course editor.
+    $data->iseditor = true;
+
+    $course = get_course($courseid);
+    get_course_gradings($course, null, $data);
     return $data;
 }
 

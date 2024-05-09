@@ -22,16 +22,35 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require(__DIR__ . '/../../config.php');
+use core\report_helper;
 
-$course = $COURSE;
+require('../../config.php');
+require_once($CFG->dirroot.'/report/feedback_tracker/locallib.php');
+
+// If there is no course ID redirect to the user report.
+if (!$courseid = optional_param('id', null, PARAM_INT)) {
+    redirect(new moodle_url("$CFG->wwwroot/report/feedback_tracker/user.php"));
+}
+$userid = optional_param('userid', null, PARAM_INT); // The optional user ID.
+$course = isset($courseid) ? get_course($courseid) : $COURSE;
+
+$pageparams = ['id' => $course->id];
+$PAGE->set_url('/report/feedback_tracker/index.php', $pageparams);
+$PAGE->set_pagelayout('report');
 
 require_login($course);
 
-$courseid = optional_param('id', null, PARAM_INT); // The optional course ID.
+// Set the header and print it.
+$PAGE->set_title($course->shortname .':' . get_string('pluginname', 'report_feedback_tracker'));
+$PAGE->set_heading($course->fullname);
+echo $OUTPUT->header();
 
-// Just redirect to the user view - for now?
+// Print selector drop down.
+$pluginname = get_string('pluginname', 'report_feedback_tracker');
+report_helper::print_report_selector($pluginname);
 
-$url = '/report/feedback_tracker/user.php' . (isset($courseid) ? "?id=$courseid" : '');
-redirect(new moodle_url($url));
+// Get the renderer and use it.
+$renderer = $PAGE->get_renderer('report_feedback_tracker');
+echo $renderer->render_feedback_tracker_admin_table($courseid);
 
+echo $OUTPUT->footer();
