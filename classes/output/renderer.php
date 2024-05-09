@@ -39,18 +39,9 @@ class renderer extends plugin_renderer_base {
      * @throws \moodle_exception
      */
     public function render_feedback_tracker_table($courseid, $userid = null): string {
-        global $USER;
-
-//        $userid = (isset($userid) && $userid > 0) ? $userid : $USER->id;
+        // Get the table data.
         $feedbacktrackerdata = get_feedback_tracker_data($courseid, $userid);
-
-        /*
-        if (isset($courseid) && $courseid > 0) {
-            $feedbacktrackerdata = get_course_feedback_tracker_data($courseid, $USER);
-        } else {
-            $feedbacktrackerdata = get_feedback_tracker_data($courseid, $USER);
-        }
-        */
+        // Render the table data.
         return $this->output->render_from_template('report_feedback_tracker/table', $feedbacktrackerdata);
     }
 

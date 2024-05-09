@@ -215,7 +215,7 @@ function get_course_gradings($course, $userid, &$data) {
     cm.id as assignmentid,
     um.username as grader,
     gg.timemodified
-    from {grade_items} gi 
+    from {grade_items} gi
     left JOIN {modules} m on m.name = gi.itemmodule
     left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
     left join {grade_grades} gg on gi.id = gg.itemid ".($userid ? 'and gg.userid = '. $userid : '' )."
@@ -274,12 +274,11 @@ function get_course_gradings($course, $userid, &$data) {
         $record->type = $gradeitem->itemmodule;
         $record->duedate = $duedate == 0 ? '--' : date("Y-m-d", $duedate);
         $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
-        $record->feedbackstatus = $feedbackduedate == 0 ? '' : get_feedback_status($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
         $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
         $record->student = $gradeitem->student;
         $record->grader = $gradeitem->grader;
-#        $record->feedback = $feedbacklink;
-        $record->feedback = $feedbackduedate == 0 ? '' : get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
+        $record->feedback = ($feedbackduedate == 0 || $submissiondate == 0) ? '' :
+            get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
 
         $data->records[] = $record;
     }
@@ -340,49 +339,7 @@ function get_submission_status($submissiondate, $duedate, $warningperiod) {
 }
 
 /**
- * Get a feedback status icon.
- *
- * @param int $feedbackduedate
- * @param int $feedbackextendperiod
- * @param int $feedbackdate
- * @param float $finalgrade
- * @return string
- */
-function get_feedback_status($feedbackduedate, $feedbackextendperiod, $feedbackdate, $finalgrade) {
-
-    // Feedback was given in time.
-    if (isset($finalgrade) && $feedbackdate <= $feedbackduedate) {
-        return ' <i class="fa fa-check-square text-success"></i>';
-    }
-
-    $warningduedate = $feedbackduedate + $feedbackextendperiod;
-
-    // Feedback was given within the extend period.
-    if (isset($finalgrade) && $feedbackdate <= $warningduedate) {
-        return ' <i class="fa fa-exclamation-triangle text-warning"></i>';
-    }
-
-    // Feedback was given outside the extend period.
-    if (isset($finalgrade) && $feedbackdate > $warningduedate) {
-        return ' <i class="fa fa-exclamation-circle text-danger"></i>';
-    }
-
-    // NO feedback was given but it's still within the extend period.
-    if (!isset($finalgrade) && $feedbackduedate < time() && $warningduedate >= time() ) {
-        return ' <i class="fa fa-exclamation-triangle text-warning"></i>';
-    }
-
-    // NO feedback was given, and it is beyond the extend period.
-    if (!isset($finalgrade) && $warningduedate < time()) {
-        return ' <i class="fa fa-exclamation-circle text-danger"></i>';
-    }
-
-    // The feedback is due within the due time - so do nothing.
-    return '';
-}
-
-/**
- * Get a feedback status icon.
+ * Get a feedback badge.
  *
  * @param int $feedbackduedate
  * @param int $feedbackextendperiod
@@ -417,7 +374,6 @@ function get_feedback_badge($feedbackduedate, $feedbackextendperiod, $feedbackda
     // NO feedback was given, and it is beyond the extend period.
     if (!isset($finalgrade) && $warningduedate < time()) {
         return '<span class="badge badge-pill badge-danger">Feedback overdue</span>';
-        return ' <i class="fa fa-exclamation-circle text-danger"></i>';
     }
 
     // The feedback is due within the due time - so do nothing.
@@ -444,13 +400,13 @@ function module_is_supported($gradeitem) {
     // Todo: make an admin option.
     $supportedmodules = [
         'assign',
-#        'lesson',
+//        'lesson',
         'turnitintooltwo',
         'quiz',
-#        'workshop',
+//        'workshop',
     ];
 
-    if(in_array($gradeitem->itemmodule, $supportedmodules)) {
+    if (in_array($gradeitem->itemmodule, $supportedmodules)) {
         return true;
     }
     return false;
@@ -470,7 +426,7 @@ function get_submissiondate($userid, $gradeitem) {
     $submissiondate = 0;
     $validstatus = '';
 
-    if($gradeitem) {
+    if ($gradeitem) {
         switch ($gradeitem->itemmodule) {
             case 'assign':
                 $details = [
@@ -517,7 +473,7 @@ function get_submissiondate($userid, $gradeitem) {
                     'index' => 'workshopid',
                     'user' => 'authorid',
                     'date' => 'timemodified',
-                    'status' => ''
+                    'status' => '',
                 ];
                 break;
             default:
