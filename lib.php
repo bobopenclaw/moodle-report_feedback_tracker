@@ -271,7 +271,7 @@ function get_course_gradings($course, $userid, &$data) {
         $record->submissionstatus = get_submission_status($submissiondate, $duedate, $warningperiod);
         $record->course = get_course_link($course);
         $record->assessment = get_item_link($gradeitem);
-        $record->type = $gradeitem->itemmodule;
+        $record->type = get_item_type($gradeitem);
         $record->duedate = $duedate == 0 ? '--' : date("Y-m-d", $duedate);
         $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
         $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
@@ -282,6 +282,50 @@ function get_course_gradings($course, $userid, &$data) {
 
         $data->records[] = $record;
     }
+}
+
+/**
+ * Return an icon for a module type where available.
+ *
+ * @param stdClass $gradeitem
+ * @return mixed|string
+ */
+function get_item_type($gradeitem) {
+    global $CFG;
+
+    $path = '';
+    switch ($gradeitem->itemmodule) {
+        case 'assign':
+            $path = "$CFG->wwwroot/mod/assign/pix/monologo.svg";
+            $title = get_string('pluginname', 'mod_assign');
+            break;
+        case 'lesson':
+            $path = "$CFG->wwwroot/mod/lesson/pix/monologo.svg";
+            $title = get_string('pluginname', 'mod_lesson');
+            break;
+        case 'quiz':
+            $path = "$CFG->wwwroot/mod/quiz/pix/monologo.svg";
+            $title = get_string('pluginname', 'mod_quiz');
+            break;
+        case 'turnitintooltwo':
+            $path = "$CFG->wwwroot/mod/turnitintooltwo/pix/icon.png";
+            $title = get_string('pluginname', 'mod_turnitintooltwo');
+            break;
+        case 'scorm':
+            $path = "$CFG->wwwroot/mod/scorm/pix/monologo.svg";
+            $title = get_string('pluginname', 'mod_scorm');
+            break;
+        case 'workshop':
+            $path = "$CFG->wwwroot/mod/workshop/pix/monologo.svg";
+            $title = get_string('pluginname', 'mod_workshop');
+             break;
+        default:
+            return $gradeitem->itemmodule;
+            break;
+    }
+
+    return "<img src='$path' alt='$gradeitem->itemmodule' title=$title>";
+
 }
 
 /**
