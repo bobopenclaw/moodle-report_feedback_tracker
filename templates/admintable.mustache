@@ -51,32 +51,27 @@
     <thead>
         <tr>
             <th scope="col">{{#str}} assessment, report_feedback_tracker {{/str}}</th>
-            <th scope="col">{{#str}} type, report_feedback_tracker {{/str}}</th>
-            <th scope="col">{{#str}} student, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} summative, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} duedate, report_feedback_tracker {{/str}}</th>
-            <th scope="col">{{#str}} submissiondate, report_feedback_tracker {{/str}}</th>
-            <th scope="col"></th>
             <th scope="col">{{#str}} feedbackduedate, report_feedback_tracker {{/str}}</th>
-            <th scope="col">{{#str}} feedback, report_feedback_tracker {{/str}}</th>
-            <th scope="col">{{#str}} grade, report_feedback_tracker {{/str}}</th>
-            <th scope="col">{{#str}} grader, report_feedback_tracker {{/str}}</th>
+            <th scope="col">{{#str}} feedbacks, report_feedback_tracker {{/str}}</th>
         </tr>
     </thead>
     <tbody>
+        <tr>
+            <td>Filterdummy</td>
+            <td>Filterdummy</td>
+            <td>Filterdummy</td>
+            <td>Filterdummy</td>
+            <td>Filterdummy</td>
+        </tr>
         {{#records}}
             <tr>
-                <td>{{{assessment}}}</td>
-                <td>{{{type}}}</td>
-                <td>{{student}}</td>
+                <td>{{{type}}} {{{assessment}}}</td>
                 <td>{{summative}}</td>
                 <td>{{duedate}}</td>
-                <td>{{submissiondate}}</td>
-                <td>{{{submissionstatus}}}</td>
                 <td>{{{feedbackduedate}}}</td>
-                <td>{{{feedback}}}</td>
-                <td>{{grade}}</td>
-                <td>{{{grader}}}</td>
+                <td>{{{feedbacks}}}</td>
             </tr>
         {{/records}}
     </tbody>

@@ -49,7 +49,6 @@
         <tr>
             <th scope="col">{{#str}} course, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} assessment, report_feedback_tracker {{/str}}</th>
-            <th scope="col">{{#str}} type, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} summative, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} duedate, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} submissiondate, report_feedback_tracker {{/str}}</th>
@@ -62,8 +61,7 @@
         {{#records}}
             <tr>
                 <td>{{{course}}}</td>
-                <td>{{{assessment}}}</td>
-                <td>{{{type}}}</td>
+                <td>{{{type}}} {{{assessment}}}</td>
                 <td>{{summative}}</td>
                 <td>{{duedate}}</td>
                 <td>{{submissiondate}}</td>

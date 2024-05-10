@@ -175,9 +175,6 @@ function get_feedback_tracker_admin_data($courseid) {
     $data = new stdClass();
     $data->records = [];
 
-    // This is a course editor.
-    $data->iseditor = true;
-
     $course = get_course($courseid);
     get_admin_course_gradings($course, $data);
     return $data;
@@ -192,6 +189,43 @@ function get_feedback_tracker_admin_data($courseid) {
  * @throws dml_exception
  */
 function get_admin_course_gradings($course, &$data) {
+    global $DB;
+
+    $sql = "
+    select
+    #gi.*,
+    ROW_NUMBER() OVER (ORDER BY gi.id) AS unique_id,
+    gi.courseid,
+    gi.id as itemid,
+    gi.itemname,
+    gi.itemtype,
+    gi.itemmodule,
+    gi.iteminstance,
+    gi.gradepass,
+    gi.grademax,
+    (select count(distinct gg.userid) from mdl_grade_grades gg where gg.itemid = gi.id and gg.finalgrade != '') as feedbacks
+
+    from {grade_items} gi
+    left JOIN {modules} m on m.name = gi.itemmodule
+    left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
+    where 1
+    and gi.courseid = $course->id
+";
+
+    $gradeitems = $DB->get_records_sql($sql);
+
+    foreach ($gradeitems as $gradeitem) {
+        // Check if the gradeitem module is supported.
+        if (!module_is_supported($gradeitem)) {
+            continue;
+        }
+
+        // All good - now get and store the feedback record.
+        $record = get_admin_feedback_record($course, $gradeitem);
+        $data->records[] = $record;
+    }
+}
+function get_admin_course_gradings0($course, &$data) {
     global $DB;
 
     $sql = "
@@ -316,13 +350,9 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
 function get_admin_feedback_record ($course, $gradeitem) {
 
     $oneday = 24 * 60 * 60; // Number of seconds in a day.
-    $warningdays = 14; // Number of days before a date when a warning is shown. TODO: Make an admin option.
     $feedbackdeadlinedays = 30; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
-    $feedbackextenddays = 7; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
 
-    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
     $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
-    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
 
     // If the grade item is related to a module check and get it.
     if ($gradeitem->itemmodule) {
@@ -333,22 +363,14 @@ function get_admin_feedback_record ($course, $gradeitem) {
 
     // Calculate the feedback due date from the submission due date if there is one.
     $feedbackduedate = $duedate ? $duedate + $feedbackperiod : 0;
-    // Get the submission date if any.
-    $submissiondate = get_submissiondate($gradeitem->studentid, $gradeitem);
 
     $record = new stdClass();
-    $record->submissiondate = $submissiondate == 0 ? '--' : date("Y-m-d", $submissiondate);
-    $record->submissionstatus = get_submission_status($submissiondate, $duedate, $warningperiod);
     $record->course = get_course_link($course);
     $record->assessment = get_item_link($gradeitem);
     $record->type = get_item_type($gradeitem);
     $record->duedate = $duedate == 0 ? '--' : date("Y-m-d", $duedate);
     $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
-    $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
-    $record->student = $gradeitem->student;
-    $record->grader = $gradeitem->grader;
-    $record->feedback = ($feedbackduedate == 0 || $submissiondate == 0) ? '' :
-        get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
+    $record->feedbacks = $gradeitem->feedbacks;
 
     return $record;
 }
