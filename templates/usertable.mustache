@@ -14,9 +14,9 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template report_feedback_tracker/dummy
+    @template report_feedback_tracker/usertable
 
-    Template for displaying the site log of rollovers by status.
+    Template for displaying the feedback records to users/students.
 
     Classes required for JS:
     * none
@@ -34,13 +34,11 @@
                 "course": "",
                 "assessment": "",
                 "type": "",
-                "user": "",
                 "summative": "",
                 "duedate": "",
                 "submissiondate": "",
                 "feedbackduedate": "",
-                "fullfeedback": "",
-                "grade": ""
+                "feedback": "",
             }
         ]
     }
@@ -49,18 +47,15 @@
 <table class="table">
     <thead>
         <tr>
-            {{^iseditor}}<th scope="col">{{#str}} course, report_feedback_tracker {{/str}}</th>{{/iseditor}}
+            <th scope="col">{{#str}} course, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} assessment, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} type, report_feedback_tracker {{/str}}</th>
-            {{#iseditor}}<th scope="col">{{#str}} student, report_feedback_tracker {{/str}}</th>{{/iseditor}}
             <th scope="col">{{#str}} summative, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} duedate, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} submissiondate, report_feedback_tracker {{/str}}</th>
             <th scope="col"></th>
             <th scope="col">{{#str}} feedbackduedate, report_feedback_tracker {{/str}}</th>
             <th scope="col">{{#str}} feedback, report_feedback_tracker {{/str}}</th>
-            {{#iseditor}}<th scope="col">{{#str}} grade, report_feedback_tracker {{/str}}</th>{{/iseditor}}
-            {{#iseditor}}<th scope="col">{{#str}} grader, report_feedback_tracker {{/str}}</th>{{/iseditor}}
         </tr>
     </thead>
     <tbody>
@@ -69,15 +64,12 @@
                 {{^iseditor}}<td>{{{course}}}</td>{{/iseditor}}
                 <td>{{{assessment}}}</td>
                 <td>{{{type}}}</td>
-                {{#iseditor}}<td>{{student}}</td>{{/iseditor}}
                 <td>{{summative}}</td>
                 <td>{{duedate}}</td>
                 <td>{{submissiondate}}</td>
                 <td>{{{submissionstatus}}}</td>
                 <td>{{{feedbackduedate}}}</td>
                 <td>{{{feedback}}}</td>
-                {{#iseditor}}<td>{{grade}}</td>{{/iseditor}}
-                {{#iseditor}}<td>{{{grader}}}</td>{{/iseditor}}
             </tr>
         {{/records}}
     </tbody>

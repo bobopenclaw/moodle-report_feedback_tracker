@@ -42,7 +42,7 @@ class renderer extends plugin_renderer_base {
         // Get the table data.
         $feedbacktrackerdata = get_feedback_tracker_user_data($userid);
         // Render the table data.
-        return $this->output->render_from_template('report_feedback_tracker/table', $feedbacktrackerdata);
+        return $this->output->render_from_template('report_feedback_tracker/usertable', $feedbacktrackerdata);
     }
 
     /**

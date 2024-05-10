@@ -160,9 +160,8 @@ function get_feedback_tracker_user_data($userid) {
 
     $enrolledcourses = enrol_get_users_courses($userid);
     foreach ($enrolledcourses as $course) {
-        get_course_gradings($course, $userid, $data);
+        get_user_course_gradings($course, $userid, $data);
     }
-
     return $data;
 }
 
@@ -180,30 +179,20 @@ function get_feedback_tracker_admin_data($courseid) {
     $data->iseditor = true;
 
     $course = get_course($courseid);
-    get_course_gradings($course, null, $data);
+    get_admin_course_gradings($course, $data);
     return $data;
 }
 
 /**
- * Get the gradings for a course and amend the data with the findings.
+ * Get the gradings for all users of a course and amend the data with the findings.
  *
  * @param stdClass $course
- * @param stdClass $user
  * @param stdClass $data
  * @return void
  * @throws dml_exception
  */
-function get_course_gradings($course, $userid, &$data) {
+function get_admin_course_gradings($course, &$data) {
     global $DB;
-
-    $warningdays = 14; // Number of days before a date when a warning is shown. TODO: Make an admin option.
-    $feedbackdeadlinedays = 30; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
-    $feedbackextenddays = 7; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
-    $oneday = 24 * 60 * 60; // Number of seconds in a day.
-
-    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
-    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
-    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
 
     $sql = "
     select
@@ -228,7 +217,7 @@ function get_course_gradings($course, $userid, &$data) {
     from {grade_items} gi
     left JOIN {modules} m on m.name = gi.itemmodule
     left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
-    left join {grade_grades} gg on gi.id = gg.itemid ".($userid ? 'and gg.userid = '. $userid : '' )."
+    left join {grade_grades} gg on gi.id = gg.itemid
     left join {user} u on u.id = gg.userid
     left join {user} um on um.id = gg.usermodified
     where 1
@@ -238,13 +227,69 @@ function get_course_gradings($course, $userid, &$data) {
     $gradeitems = $DB->get_records_sql($sql);
 
     foreach ($gradeitems as $gradeitem) {
-
         // Check if the gradeitem module is supported.
         if (!module_is_supported($gradeitem)) {
             continue;
         }
 
-        // If a user is given check if the user is allowed to access the grade item.
+        // All good - now get and store the feedback record.
+        $record = get_admin_feedback_record($course, $gradeitem);
+        $data->records[] = $record;
+    }
+}
+
+/**
+ * Get the gradings for a single course user and amend the data with the findings.
+ *
+ * @param $course
+ * @param $userid
+ * @param $data
+ * @return void
+ * @throws coding_exception
+ * @throws dml_exception
+ */
+function get_user_course_gradings($course, $userid, &$data) {
+    global $DB;
+
+    $sql = "
+    select
+    #gi.*,
+    ROW_NUMBER() OVER (ORDER BY gi.id) AS unique_id,
+    gi.courseid,
+    gi.id as itemid,
+    gi.itemname,
+    gi.itemtype,
+    gi.itemmodule,
+    gi.iteminstance,
+    u.id as studentid,
+    u.username as student,
+    gi.gradepass,
+    gi.grademax,
+    gg.finalgrade,
+    gg.feedback,
+    gg.timemodified as feedbackdate,
+    cm.id as assignmentid,
+    um.username as grader,
+    gg.timemodified
+    from {grade_items} gi
+    left JOIN {modules} m on m.name = gi.itemmodule
+    left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
+    left join {grade_grades} gg on gi.id = gg.itemid and gg.userid = $userid
+    left join {user} u on u.id = gg.userid
+    left join {user} um on um.id = gg.usermodified
+    where 1
+    and gi.courseid = $course->id
+";
+
+    $gradeitems = $DB->get_records_sql($sql);
+
+    foreach ($gradeitems as $gradeitem) {
+        // Check if the gradeitem module is supported.
+        if (!module_is_supported($gradeitem)) {
+            continue;
+        }
+
+        // Check if a user is allowed to access the grade item.
         if ($userid) {
             if ($gradeitem->itemmodule) {
                 $capability = 'mod/' . $gradeitem->itemmodule . ':view';
@@ -254,44 +299,107 @@ function get_course_gradings($course, $userid, &$data) {
             }
         }
 
-        // If the grade item is related to a module check and get it.
-        if ($gradeitem->itemmodule) {
-            // Get a submission due date if there is one.
-            $module = get_module($gradeitem);
-        }
-        $duedate = isset($module->duedate) ? $module->duedate : 0;
-
-        // Calculate the feedback due date from the submission due date if there is one.
-        $feedbackduedate = $duedate ? $duedate + $feedbackperiod : 0;
-        // Get the submission date if any.
-        if ($userid) {
-            $submissiondate = get_submissiondate($userid, $gradeitem);
-        } else {
-            $submissiondate = get_submissiondate($gradeitem->studentid, $gradeitem);
-        }
-
-        // If there is feedback in the gradebook show a link to it.
-        $feedbacklink = '';
-        if ((isset($gradeitem->finalgrade) || isset($gradeitem->feedback)) && isset($gradeitem->assignmentid)) {
-            $feedbacklink = html_writer::link("/mod/$gradeitem->itemmodule/view.php?id=$gradeitem->assignmentid", "view feedback");
-        }
-
-        $record = new stdClass();
-        $record->submissiondate = $submissiondate == 0 ? '--' : date("Y-m-d", $submissiondate);
-        $record->submissionstatus = get_submission_status($submissiondate, $duedate, $warningperiod);
-        $record->course = get_course_link($course);
-        $record->assessment = get_item_link($gradeitem);
-        $record->type = get_item_type($gradeitem);
-        $record->duedate = $duedate == 0 ? '--' : date("Y-m-d", $duedate);
-        $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
-        $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
-        $record->student = $gradeitem->student;
-        $record->grader = $gradeitem->grader;
-        $record->feedback = ($feedbackduedate == 0 || $submissiondate == 0) ? '' :
-            get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
-
+        // All good - now get and store the feedback record.
+        $record = get_user_feedback_record($course, $userid, $gradeitem);
         $data->records[] = $record;
     }
+}
+
+/**
+ * Get the admin feedback record for a grade item.
+ *
+ * @param stdClass $course
+ * @param stdClass $gradeitem
+ * @return stdClass
+ * @throws dml_exception
+ */
+function get_admin_feedback_record ($course, $gradeitem) {
+
+    $oneday = 24 * 60 * 60; // Number of seconds in a day.
+    $warningdays = 14; // Number of days before a date when a warning is shown. TODO: Make an admin option.
+    $feedbackdeadlinedays = 30; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
+    $feedbackextenddays = 7; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
+
+    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
+    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
+    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
+
+    // If the grade item is related to a module check and get it.
+    if ($gradeitem->itemmodule) {
+        // Get a submission due date if there is one.
+        $module = get_module($gradeitem);
+    }
+    $duedate = isset($module->duedate) ? $module->duedate : 0;
+
+    // Calculate the feedback due date from the submission due date if there is one.
+    $feedbackduedate = $duedate ? $duedate + $feedbackperiod : 0;
+    // Get the submission date if any.
+    $submissiondate = get_submissiondate($gradeitem->studentid, $gradeitem);
+
+    $record = new stdClass();
+    $record->submissiondate = $submissiondate == 0 ? '--' : date("Y-m-d", $submissiondate);
+    $record->submissionstatus = get_submission_status($submissiondate, $duedate, $warningperiod);
+    $record->course = get_course_link($course);
+    $record->assessment = get_item_link($gradeitem);
+    $record->type = get_item_type($gradeitem);
+    $record->duedate = $duedate == 0 ? '--' : date("Y-m-d", $duedate);
+    $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
+    $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
+    $record->student = $gradeitem->student;
+    $record->grader = $gradeitem->grader;
+    $record->feedback = ($feedbackduedate == 0 || $submissiondate == 0) ? '' :
+        get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
+
+    return $record;
+}
+
+/**
+ * Get the user feedback record for a grade item.
+ *
+ * @param stdClass $course
+ * @param int $userid
+ * @param stdClass $gradeitem
+ * @return stdClass
+ * @throws dml_exception
+ */
+function get_user_feedback_record ($course, $userid, $gradeitem) {
+
+    $oneday = 24 * 60 * 60; // Number of seconds in a day.
+    $warningdays = 14; // Number of days before a date when a warning is shown. TODO: Make an admin option.
+    $feedbackdeadlinedays = 30; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
+    $feedbackextenddays = 7; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
+
+    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
+    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
+    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
+
+    // If the grade item is related to a module check and get it.
+    if ($gradeitem->itemmodule) {
+        // Get a submission due date if there is one.
+        $module = get_module($gradeitem);
+    }
+    $duedate = isset($module->duedate) ? $module->duedate : 0;
+
+    // Calculate the feedback due date from the submission due date if there is one.
+    $feedbackduedate = $duedate ? $duedate + $feedbackperiod : 0;
+    // Get the submission date if any.
+    $submissiondate = get_submissiondate($userid, $gradeitem);
+
+    $record = new stdClass();
+    $record->submissiondate = $submissiondate == 0 ? '--' : date("Y-m-d", $submissiondate);
+    $record->submissionstatus = get_submission_status($submissiondate, $duedate, $warningperiod);
+    $record->course = get_course_link($course);
+    $record->assessment = get_item_link($gradeitem);
+    $record->type = get_item_type($gradeitem);
+    $record->duedate = $duedate == 0 ? '--' : date("Y-m-d", $duedate);
+    $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
+    $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
+    $record->student = $gradeitem->student;
+    $record->grader = $gradeitem->grader;
+    $record->feedback = ($feedbackduedate == 0 || $submissiondate == 0) ? '' :
+        get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
+
+    return $record;
 }
 
 /**
@@ -375,17 +483,20 @@ function get_submission_status($submissiondate, $duedate, $warningperiod) {
 
     // Submission was in time.
     if ($submissiondate && $submissiondate <= $duedate) {
-        return ' <i class="fa fa-check-square text-success fa-2x"></i>';
+        $title = get_string('submission:success', 'report_feedback_tracker');
+        return " <i class='fa fa-check-square text-success fa-2x' title='$title'></i>";
     }
 
     // NO submission but approaching due date within warning period.
     if (!$submissiondate && time() <= $duedate && time() >= $duedate - $warningperiod) {
-        return ' <i class="fa fa-exclamation-triangle text-warning fa-2x"></i>';
+        $title = get_string('submission:warning', 'report_feedback_tracker');
+        return " <i class='fa fa-exclamation-triangle text-warning fa-2x' title='$title'></i>";
     }
 
     // NO submission and the due date has passed.
     if ($duedate && !$submissiondate && time() > $duedate ) {
-        return ' <i class="fa fa-exclamation-circle text-danger fa-2x"></i>';
+        $title = get_string('submission:overdue', 'report_feedback_tracker');
+        return " <i class='fa fa-exclamation-circle text-danger fa-2x' title='$title'></i>";
     }
 
     // The submission is not due yet - so return nothing.
