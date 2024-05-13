@@ -172,8 +172,16 @@ function get_feedback_tracker_user_data($userid) {
  * @return stdClass
  */
 function get_feedback_tracker_admin_data($courseid) {
+    global $PAGE;
+
     $data = new stdClass();
     $data->records = [];
+
+// Check if the user is in edit mode.
+    if ($PAGE->user_is_editing()) {
+        // User is in edit mode
+        $data->editmode = true;
+    }
 
     $course = get_course($courseid);
     get_admin_course_gradings($course, $data);
@@ -200,6 +208,7 @@ function get_admin_course_gradings($course, &$data) {
     gi.itemname,
     gi.itemtype,
     gi.itemmodule,
+    cm.id as assignmentid,
     gi.iteminstance,
     gi.gradepass,
     gi.grademax,
@@ -351,6 +360,7 @@ function get_admin_feedback_record ($course, $gradeitem) {
 
     $oneday = 24 * 60 * 60; // Number of seconds in a day.
     $feedbackdeadlinedays = 30; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
+    $feedbackextenddays = 7; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
 
     $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
 
@@ -418,7 +428,7 @@ function get_user_feedback_record ($course, $userid, $gradeitem) {
     $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
     $record->student = $gradeitem->student;
     $record->grader = $gradeitem->grader;
-    $record->feedback = ($feedbackduedate == 0 || $submissiondate == 0) ? '' :
+    $record->feedback = ($submissiondate == 0) ? '' :
         get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
 
     return $record;
@@ -540,31 +550,42 @@ function get_submission_status($submissiondate, $duedate, $warningperiod) {
  */
 function get_feedback_badge($feedbackduedate, $feedbackextendperiod, $feedbackdate, $finalgrade) {
 
+    // Feedback is available even if there is no due date.
+    if(!$feedbackduedate && isset($finalgrade)) {
+        return '<span class="badge badge-pill badge-success">' .
+            get_string('finalgrade_available', 'report_feedback_tracker') . '</span>';
+    }
+
     // Feedback was given in time.
     if (isset($finalgrade) && $feedbackdate <= $feedbackduedate) {
-        return '<span class="badge badge-pill badge-success">Feedback in time</span>';
+        return '<span class="badge badge-pill badge-success">' .
+            get_string('feedback:in_time', 'report_feedback_tracker') . '</span>';
     }
 
     $warningduedate = $feedbackduedate + $feedbackextendperiod;
 
     // Feedback was given within the extend period.
     if (isset($finalgrade) && $feedbackdate <= $warningduedate) {
-        return '<span class="badge badge-pill badge-warning">Warning!</span>';
+        return '<span class="badge badge-pill badge-warning">' .
+            get_string('feedback:warning', 'report_feedback_tracker') . '</span>';
     }
 
     // Feedback was given outside the extend period.
     if (isset($finalgrade) && $feedbackdate > $warningduedate) {
-        return '<span class="badge badge-pill badge-danger">Late feedback</span>';
+        return '<span class="badge badge-pill badge-danger">' .
+            get_string('feedback:late', 'report_feedback_tracker') . '</span>';
     }
 
     // NO feedback was given but it's still within the extend period.
     if (!isset($finalgrade) && $feedbackduedate < time() && $warningduedate >= time() ) {
-        return '<span class="badge badge-pill badge-warning">Feedback due</span>';
+        return '<span class="badge badge-pill badge-warning">' .
+            get_string('feedback:due', 'report_feedback_tracker') . '</span>';
     }
 
     // NO feedback was given, and it is beyond the extend period.
     if (!isset($finalgrade) && $warningduedate < time()) {
-        return '<span class="badge badge-pill badge-danger">Feedback overdue</span>';
+        return '<span class="badge badge-pill badge-danger">' .
+            get_string('feedback:overdue', 'report_feedback_tracker') . '</span>';
     }
 
     // The feedback is due within the due time - so do nothing.

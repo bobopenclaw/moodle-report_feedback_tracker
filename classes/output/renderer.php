@@ -57,6 +57,9 @@ class renderer extends plugin_renderer_base {
         // Get the table data.
         $feedbacktrackerdata = get_feedback_tracker_admin_data($courseid);
         // Render the table data.
+        if ($feedbacktrackerdata->editmode) {
+            return $this->output->render_from_template('report_feedback_tracker/adminedittable', $feedbacktrackerdata);
+        }
         return $this->output->render_from_template('report_feedback_tracker/admintable', $feedbacktrackerdata);
     }
 
