@@ -33,20 +33,16 @@
             {
                 "assessment": "",
                 "type": "",
-                "student": "",
                 "summative": "",
                 "duedate": "",
-                "submissiondate": "",
                 "feedbackduedate": "",
-                "feedback": "",
-                "grade": "",
-                "grader": ""
+                "feedbacks": "",
+                "hidden": ""
             }
         ]
     }
 
 }}
-<div style="color: red">ADMINEDITTABLE </div>
 <table class="table">
     <thead>
         <tr>
@@ -59,14 +55,6 @@
         </tr>
     </thead>
     <tbody>
-        <tr>
-            <td>Filterdummy</td>
-            <td>Filterdummy</td>
-            <td>Filterdummy</td>
-            <td>Filterdummy</td>
-            <td>Filterdummy</td>
-            <td>Filterdummy</td>
-        </tr>
         {{#records}}
             <tr>
                 <td>{{{type}}} {{{assessment}}}</td>
@@ -81,3 +69,12 @@
 </table>
 
 <hr>
+
+{{#js}}
+    require(['report_feedback_tracker/adminedit'], function(Test) {
+    Test.init();
+    });
+    require(['report_feedback_tracker/datepicker'], function(DatePicker) {
+    DatePicker.init();
+    });
+{{/js}}

@@ -38,7 +38,7 @@ $PAGE->set_pagelayout('report');
 require_login($course);
 
 // Set the header and print it.
-$PAGE->set_title($course->shortname .':' . get_string('pluginname', 'report_feedback_tracker'));
+$PAGE->set_title(get_string('pluginname', 'report_feedback_tracker'));
 $PAGE->set_heading($course->fullname);
 echo $OUTPUT->header();
 

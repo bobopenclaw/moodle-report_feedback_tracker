@@ -7,7 +7,7 @@
     <TABLE NAME="report_feedback_tracker" COMMENT="Storing additional information about course modules">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="cmid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="the course module id"/>
+        <FIELD NAME="gradeitem" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="the grade item id"/>
         <FIELD NAME="hidden" TYPE="int" LENGTH="1" NOTNULL="false" DEFAULT="0" SEQUENCE="false" COMMENT="hidden or not"/>
         <FIELD NAME="feedbackduedate" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
       </FIELDS>

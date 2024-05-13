@@ -177,11 +177,8 @@ function get_feedback_tracker_admin_data($courseid) {
     $data = new stdClass();
     $data->records = [];
 
-// Check if the user is in edit mode.
-    if ($PAGE->user_is_editing()) {
-        // User is in edit mode
-        $data->editmode = true;
-    }
+    // Check if the user is in edit mode.
+    $data->editmode = $PAGE->user_is_editing();
 
     $course = get_course($courseid);
     get_admin_course_gradings($course, $data);
@@ -219,53 +216,7 @@ function get_admin_course_gradings($course, &$data) {
     from {grade_items} gi
     left JOIN {modules} m on m.name = gi.itemmodule
     left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
-    left JOIN {report_feedback_tracker} rft on rft.cmid = cm.id
-    where 1
-    and gi.courseid = $course->id
-";
-
-    $gradeitems = $DB->get_records_sql($sql);
-
-    foreach ($gradeitems as $gradeitem) {
-        // Check if the gradeitem module is supported.
-        if (!module_is_supported($gradeitem)) {
-            continue;
-        }
-
-        // All good - now get and store the feedback record.
-        $record = get_admin_feedback_record($course, $gradeitem);
-        $data->records[] = $record;
-    }
-}
-function get_admin_course_gradings0($course, &$data) {
-    global $DB;
-
-    $sql = "
-    select
-    #gi.*,
-    ROW_NUMBER() OVER (ORDER BY gi.id) AS unique_id,
-    gi.courseid,
-    gi.id as itemid,
-    gi.itemname,
-    gi.itemtype,
-    gi.itemmodule,
-    gi.iteminstance,
-    u.id as studentid,
-    u.username as student,
-    gi.gradepass,
-    gi.grademax,
-    gg.finalgrade,
-    gg.feedback,
-    gg.timemodified as feedbackdate,
-    cm.id as assignmentid,
-    um.username as grader,
-    gg.timemodified
-    from {grade_items} gi
-    left JOIN {modules} m on m.name = gi.itemmodule
-    left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
-    left join {grade_grades} gg on gi.id = gg.itemid
-    left join {user} u on u.id = gg.userid
-    left join {user} um on um.id = gg.usermodified
+    left JOIN {report_feedback_tracker} rft on rft.gradeitem = gi.id
     where 1
     and gi.courseid = $course->id
 ";
@@ -322,7 +273,7 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
     from {grade_items} gi
     left JOIN {modules} m on m.name = gi.itemmodule
     left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
-    left JOIN {report_feedback_tracker} rft on rft.cmid = cm.id
+    left JOIN {report_feedback_tracker} rft on rft.gradeitem = gi.id
     left join {grade_grades} gg on gi.id = gg.itemid and gg.userid = $userid
     left join {user} u on u.id = gg.userid
     left join {user} um on um.id = gg.usermodified
@@ -346,7 +297,7 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
         if ($userid) {
             if ($gradeitem->itemmodule) {
                 $capability = 'mod/' . $gradeitem->itemmodule . ':view';
-                if (!has_capability($capability, context_module::instance($gradeitem->iteminstance))) {
+                if (!has_capability($capability, context_module::instance($gradeitem->assignmentid))) {
                     continue;
                 }
             }
@@ -367,6 +318,7 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
  * @throws dml_exception
  */
 function get_admin_feedback_record ($course, $gradeitem) {
+    global $PAGE;
 
     $oneday = 24 * 60 * 60; // Number of seconds in a day.
     $feedbackdeadlinedays = 30; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
@@ -381,18 +333,99 @@ function get_admin_feedback_record ($course, $gradeitem) {
     }
     $duedate = isset($module->duedate) ? $module->duedate : 0;
 
-    // Calculate the feedback due date from the submission due date if there is one.
-    $feedbackduedate = $duedate ? $duedate + $feedbackperiod : 0;
+    // Use a stored feedback due date if present, otherwise
+    // calculate the feedback due date from the submission due date if there is one.
+    $feedbackduedate = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate : ($duedate ? $duedate + $feedbackperiod : 0);
 
     $record = new stdClass();
     $record->course = get_course_link($course);
     $record->assessment = get_item_link($gradeitem);
     $record->type = get_item_type($gradeitem);
-    $record->duedate = $duedate == 0 ? '--' : date("Y-m-d", $duedate);
-    $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("Y-m-d", $feedbackduedate);
+    $record->duedate = $duedate == 0 ? '--' : date("m/d/Y", $duedate);
+    $record->feedbackduedate = render_date_picker($gradeitem, $feedbackduedate);
     $record->feedbacks = $gradeitem->feedbacks;
+    $record->hidden = get_hidden_state($gradeitem);
 
     return $record;
+}
+
+/**
+ * Render a date picker when in edit mode, return the date otherwise.
+ *
+ * @param stdClass $gradeitem
+ * @param int $date in seconds since 1.1.1970
+ * @return string
+ */
+function render_date_picker($gradeitem, $date = 0) {
+    global $PAGE;
+
+    $o = '';
+    if ($PAGE->user_is_editing()) {
+        $date = $date ? $date : time(); // Default to current date if not specified.
+        // Generate a unique ID for the date picker input field.
+        $pickerid = html_writer::random_id('date_picker');
+
+        // Generate the input field with the unique ID.
+        $inputfield = html_writer::empty_tag('input', [
+            'type' => 'date',
+            'id' => $pickerid,
+            'itemid' => $gradeitem->itemid,
+            'class' => 'date-picker',
+            'data-action' => 'report_feedback_tracker/datepicker',
+            'value' => date('Y-m-d', $date),
+        ]);
+
+        $o .= $inputfield;
+    } else {
+        $o .= $date ? date("d/m/Y", $date) : '--';
+    }
+
+    if ($date) {
+//        $classes = 'fa fa-info-circle text-primary' . ($gradeitem->feedbackduedate ? '' : ' hidden');
+        $classes = 'fa fa-info-circle text-primary';
+        $style = $gradeitem->feedbackduedate ? '' : 'display: none;';
+        $title = get_string('feedbackduedate:custom', 'report_feedback_tracker');
+        $o .= " <i class='$classes' title='$title' data-itemid='$gradeitem->itemid' data-action='report_feedback_tracker/customhint' style='$style'></i>";
+    }
+
+    return $o;
+}
+
+/**
+ * Show / edit the hiding state of a grading item.
+ *
+ * @param stdClass $gradeitem
+ * @return string
+ */
+function get_hidden_state($gradeitem) {
+    global $PAGE;
+
+    if ($PAGE->user_is_editing()) {
+        if ($gradeitem->hidden) {
+            return "<input
+                data-action='report_feedback_tracker/hiding_checkbox'
+                test-attribute='gnupf'
+                type='checkbox'
+                class='form-check-input'
+                cmid='$gradeitem->itemid'
+                checked='checked'
+            >";
+        } else {
+            return "<input
+                data-action='report_feedback_tracker/hiding_checkbox'
+                test-attribute='gnupf'
+                type='checkbox'
+                class='form-check-input'
+                cmid='$gradeitem->itemid'
+            >";
+        }
+    } else {
+        if ($gradeitem->hidden) {
+            return "<i class='fa fa-check'></i>";
+        } else {
+            return '';
+        }
+    }
 }
 
 /**
@@ -567,8 +600,8 @@ function get_submission_status($submissiondate, $duedate, $warningperiod) {
  */
 function get_feedback_badge($feedbackduedate, $feedbackextendperiod, $feedbackdate, $finalgrade) {
 
-    // Final gradex is available even if there is no due date.
-    if(!$feedbackduedate && isset($finalgrade)) {
+    // Final grade is available even if there is no due date.
+    if (!$feedbackduedate && isset($finalgrade)) {
         return '<span class="badge badge-pill badge-success">' .
             get_string('finalgrade_available', 'report_feedback_tracker') . '</span>';
     }
