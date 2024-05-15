@@ -42,6 +42,7 @@ export const init = () => {
                 getString('feedbackduedate:removedmessage', 'report_feedback_tracker')
                     .then((message) => {
                         window.alert(message);
+                        return message;
                     });
             } else {
                 response = await updateFeedbackDuedate(itemid, date);

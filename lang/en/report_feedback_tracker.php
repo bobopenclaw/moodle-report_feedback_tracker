@@ -53,3 +53,9 @@ $string['summative'] = 'Summative';
 $string['type'] = 'Type';
 $string['user'] = 'User';
 
+$string['settings:warningdays'] = 'Warning period';
+$string['settings:feedbackdeadlinedays'] = 'Feedback period';
+$string['settings:feedbackextenddays'] = 'Extension period';
+$string['settings:warningdaysinfo'] = 'Number of calendar days before a due date from when a warning is shown.';
+$string['settings:feedbackdeadlinedaysinfo'] = 'Default number of calendar days between assessment due date and feedback due date.';
+$string['settings:feedbackextenddaysinfo'] = 'Extended number of calendar days after the feedback due date to provide feedback (yellow state).';

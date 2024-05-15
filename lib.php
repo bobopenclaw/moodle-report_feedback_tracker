@@ -321,9 +321,7 @@ function get_admin_feedback_record ($course, $gradeitem) {
     global $PAGE;
 
     $oneday = 24 * 60 * 60; // Number of seconds in a day.
-    $feedbackdeadlinedays = 30; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
-    $feedbackextenddays = 7; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
-
+    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
     $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
 
     // If the grade item is related to a module check and get it.
@@ -440,10 +438,10 @@ function get_hidden_state($gradeitem) {
 function get_user_feedback_record ($course, $userid, $gradeitem) {
 
     $oneday = 24 * 60 * 60; // Number of seconds in a day.
-    $warningdays = 14; // Number of days before a date when a warning is shown. TODO: Make an admin option.
-    $feedbackdeadlinedays = 30; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
-    $feedbackextenddays = 7; // Number of days to provide feedback after the activity due date. TODO: Make an admin option.
 
+    $warningdays = get_config('report_feedback_tracker', 'warningdays');
+    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
+    $feedbackextenddays = get_config('report_feedback_tracker', 'feedbackextenddays');
     $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
     $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
     $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
