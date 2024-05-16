@@ -30,16 +30,19 @@ if ($ADMIN->fulltree) {
     $feedbackdeadlinedaysdefault = 30;
     $feedbackextenddaysdefault = 7;
 
-//    $settings->add(new admin_setting_heading('report_feedback_tracker_addheading', 'Test Header', ''));
+    $settings->add(new admin_setting_configtext('report_feedback_tracker/warningdays',
+        get_string('settings:warningdays', 'report_feedback_tracker'),
+        get_string('settings:warningdaysinfo', 'report_feedback_tracker'),
+        $warningdaysdefault, PARAM_RAW, 5));
 
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/warningdays', get_string('settings:warningdays', 'report_feedback_tracker'),
-        get_string('settings:warningdaysinfo', 'report_feedback_tracker'), $warningdaysdefault, PARAM_RAW, 5));
+    $settings->add(new admin_setting_configtext('report_feedback_tracker/feedbackdeadlinedays',
+        get_string('settings:feedbackdeadlinedays', 'report_feedback_tracker'),
+        get_string('settings:feedbackdeadlinedaysinfo', 'report_feedback_tracker'),
+        $feedbackdeadlinedaysdefault, PARAM_RAW, 5));
 
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/feedbackdeadlinedays', get_string('settings:feedbackdeadlinedays', 'report_feedback_tracker'),
-        get_string('settings:feedbackdeadlinedaysinfo', 'report_feedback_tracker'), $feedbackdeadlinedaysdefault, PARAM_RAW, 5));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/feedbackextenddays', get_string('settings:feedbackextenddays', 'report_feedback_tracker'),
-        get_string('settings:feedbackextenddaysinfo', 'report_feedback_tracker'), $feedbackextenddaysdefault, PARAM_RAW, 5));
-
+    $settings->add(new admin_setting_configtext('report_feedback_tracker/feedbackextenddays',
+        get_string('settings:feedbackextenddays', 'report_feedback_tracker'),
+        get_string('settings:feedbackextenddaysinfo', 'report_feedback_tracker'),
+        $feedbackextenddaysdefault, PARAM_RAW, 5));
 
 }

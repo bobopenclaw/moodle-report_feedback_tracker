@@ -209,7 +209,7 @@ function get_admin_course_gradings($course, &$data) {
     gi.iteminstance,
     gi.gradepass,
     gi.grademax,
-    (select count(distinct gg.userid) from mdl_grade_grades gg where gg.itemid = gi.id and gg.finalgrade != '') as feedbacks,
+    (select count(distinct gg.userid) from {grade_grades} gg where gg.itemid = gi.id and gg.finalgrade != '') as feedbacks,
     rft.summative,
     rft.hidden,
     rft.feedbackduedate
@@ -219,10 +219,10 @@ function get_admin_course_gradings($course, &$data) {
     left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
     left JOIN {report_feedback_tracker} rft on rft.gradeitem = gi.id
     where 1
-    and gi.courseid = $course->id
+    and gi.courseid = :courseid
 ";
-
-    $gradeitems = $DB->get_records_sql($sql);
+    $params['courseid'] = $course->id;
+    $gradeitems = $DB->get_records_sql($sql, $params);
 
     foreach ($gradeitems as $gradeitem) {
         // Check if the gradeitem module is supported.
@@ -251,7 +251,6 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
 
     $sql = "
     select
-    #gi.*,
     ROW_NUMBER() OVER (ORDER BY gi.id) AS unique_id,
     gi.courseid,
     gi.id as itemid,
@@ -276,14 +275,16 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
     left JOIN {modules} m on m.name = gi.itemmodule
     left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
     left JOIN {report_feedback_tracker} rft on rft.gradeitem = gi.id
-    left join {grade_grades} gg on gi.id = gg.itemid and gg.userid = $userid
+    left join {grade_grades} gg on gi.id = gg.itemid and gg.userid = :userid
     left join {user} u on u.id = gg.userid
     left join {user} um on um.id = gg.usermodified
     where 1
-    and gi.courseid = $course->id
+    and gi.courseid = :courseid
 ";
 
-    $gradeitems = $DB->get_records_sql($sql);
+    $params['courseid'] = $course->id;
+    $params['userid'] = $userid;
+    $gradeitems = $DB->get_records_sql($sql, $params);
 
     foreach ($gradeitems as $gradeitem) {
         // Check if the gradeitem module is supported.
@@ -328,14 +329,15 @@ function get_admin_feedback_record ($course, $gradeitem) {
 
     // If the grade item is related to a module check and get it.
     if ($gradeitem->itemmodule) {
-        // Get a submission due date if there is one.
-        $module = get_module($gradeitem);
+        // Get a submission due date and the number of submissions if available.
+        $feedbackmodule = get_feedback_module($gradeitem);
     }
-    $duedate = isset($module->duedate) ? $module->duedate : 0;
+    $duedate = isset($feedbackmodule->duedate) ? $feedbackmodule->duedate : 0;
 
     // Use a stored feedback due date if present, otherwise
     // calculate the feedback due date from the submission due date if there is one.
-    $feedbackduedate = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate : ($duedate ? $duedate + $feedbackperiod : 0);
+    $feedbackduedate = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
+        ($duedate ? $duedate + $feedbackperiod : 0);
 
     $record = new stdClass();
     $record->course = get_course_link($course);
@@ -343,11 +345,80 @@ function get_admin_feedback_record ($course, $gradeitem) {
     $record->type = get_item_type($gradeitem);
     $record->duedate = $duedate == 0 ? '--' : date("d/m/Y", $duedate);
     $record->feedbackduedate = render_date_picker($gradeitem, $feedbackduedate);
-    $record->feedbacks = $gradeitem->feedbacks;
+    $record->feedbacks = get_feedbacks($gradeitem, $feedbackmodule);
     $record->summative = get_summative_state($gradeitem);
     $record->hidden = get_hidden_state($gradeitem);
 
     return $record;
+}
+
+/**
+ * Get the user feedback record for a grade item.
+ *
+ * @param stdClass $course
+ * @param int $userid
+ * @param stdClass $gradeitem
+ * @return stdClass
+ * @throws dml_exception
+ */
+function get_user_feedback_record ($course, $userid, $gradeitem) {
+
+    $oneday = 24 * 60 * 60; // Number of seconds in a day.
+
+    $warningdays = get_config('report_feedback_tracker', 'warningdays');
+    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
+    $feedbackextenddays = get_config('report_feedback_tracker', 'feedbackextenddays');
+    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
+    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
+    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
+
+    // If the grade item is related to a module check and get it.
+    if ($gradeitem->itemmodule) {
+        // Get a submission due date if there is one.
+        $feedbackmodule = get_feedback_module($gradeitem);
+    }
+    $duedate = isset($feedbackmodule->duedate) ? $feedbackmodule->duedate : 0;
+
+    // If there is a manual feedback due date use it, otherwise calculate it from the submission due date.
+    $feedbackduedate = $gradeitem->feedbackduedate ?? ($duedate ? $duedate + $feedbackperiod : 0);
+    // Get the submission date if any.
+    $submissiondate = get_submissiondate($userid, $gradeitem);
+
+    $record = new stdClass();
+    $record->submissiondate = $submissiondate == 0 ? '--' : date("d. M Y", $submissiondate);
+    $record->submissionstatus = get_submission_status($submissiondate, $duedate, $warningperiod);
+    $record->course = get_course_link($course);
+    $record->assessment = get_item_link($gradeitem);
+    $record->type = get_item_type($gradeitem);
+    $record->summative = get_summative_state($gradeitem);
+    $record->duedate = $duedate == 0 ? '--' : date("d. M Y", $duedate);
+    $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("d. M Y", $feedbackduedate);
+    $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
+    $record->student = $gradeitem->student;
+    $record->grader = $gradeitem->grader;
+    $record->feedback = ($submissiondate == 0) ? '' :
+        get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
+
+    return $record;
+}
+
+/**
+ * Get the feedbacks and submissions.
+ *
+ * @param stdClass $gradeitem
+ * @param stdClass $feedbackmodule
+ * @return string
+ * @throws dml_exception
+ */
+function get_feedbacks($gradeitem, $feedbackmodule) {
+    global $DB;
+
+    if (!$gradeitem->assignmentid) {
+        return "";
+    }
+
+    $content = "$gradeitem->feedbacks of $feedbackmodule->submissions";
+    return html_writer::div($content);
 }
 
 /**
@@ -363,7 +434,7 @@ function render_date_picker($gradeitem, $date = 0) {
     $o = '';
     if ($PAGE->user_is_editing()) {
         // Default to current date if not specified.
-        $date = $date ? $date : time();
+        $date = $date ?? time();
 
         // Generate a unique ID for the date picker input field.
         $pickerid = html_writer::random_id('date_picker');
@@ -384,11 +455,11 @@ function render_date_picker($gradeitem, $date = 0) {
     }
 
     if ($date) {
-//        $classes = 'fa fa-info-circle text-primary' . ($gradeitem->feedbackduedate ? '' : ' hidden');
         $classes = 'fa fa-info-circle text-primary';
         $style = $gradeitem->feedbackduedate ? '' : 'display: none;';
         $title = get_string('feedbackduedate:custom', 'report_feedback_tracker');
-        $o .= " <i class='$classes' title='$title' data-itemid='$gradeitem->itemid' data-action='report_feedback_tracker/customhint' style='$style'></i>";
+        $o .= " <i class='$classes' title='$title' data-itemid='$gradeitem->itemid'
+                data-action='report_feedback_tracker/customhint' style='$style'></i>";
     }
 
     return $o;
@@ -462,57 +533,6 @@ function get_hidden_state($gradeitem) {
             return '';
         }
     }
-}
-
-/**
- * Get the user feedback record for a grade item.
- *
- * @param stdClass $course
- * @param int $userid
- * @param stdClass $gradeitem
- * @return stdClass
- * @throws dml_exception
- */
-function get_user_feedback_record ($course, $userid, $gradeitem) {
-
-    $oneday = 24 * 60 * 60; // Number of seconds in a day.
-
-    $warningdays = get_config('report_feedback_tracker', 'warningdays');
-    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
-    $feedbackextenddays = get_config('report_feedback_tracker', 'feedbackextenddays');
-    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
-    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
-    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
-
-    // If the grade item is related to a module check and get it.
-    if ($gradeitem->itemmodule) {
-        // Get a submission due date if there is one.
-        $module = get_module($gradeitem);
-    }
-    $duedate = isset($module->duedate) ? $module->duedate : 0;
-
-    // If there is a manual feedback date use it, otherwise calculate from submission due date.
-    $feedbackduedate = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
-        ($duedate ? $duedate + $feedbackperiod : 0);
-    // Get the submission date if any.
-    $submissiondate = get_submissiondate($userid, $gradeitem);
-
-    $record = new stdClass();
-    $record->submissiondate = $submissiondate == 0 ? '--' : date("d. M Y", $submissiondate);
-    $record->submissionstatus = get_submission_status($submissiondate, $duedate, $warningperiod);
-    $record->course = get_course_link($course);
-    $record->assessment = get_item_link($gradeitem);
-    $record->type = get_item_type($gradeitem);
-    $record->summative = get_summative_state($gradeitem);
-    $record->duedate = $duedate == 0 ? '--' : date("d. M Y", $duedate);
-    $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("d. M Y", $feedbackduedate);
-    $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
-    $record->student = $gradeitem->student;
-    $record->grader = $gradeitem->grader;
-    $record->feedback = ($submissiondate == 0) ? '' :
-        get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
-
-    return $record;
 }
 
 /**
@@ -830,55 +850,91 @@ function is_course_editor($courseid, $userid) {
 /**
  * Get information about the module instance.
  *
- * @param stdClass $gi
+ * @param stdClass $gradeitem
  * @return false|mixed|stdClass
  * @throws dml_exception
  */
-function get_module($gi) {
-    global $DB;
+function get_feedback_module($gradeitem) {
+    global $DB, $USER;
 
     // Handle cases of module types here where needed.
-    switch ($gi->itemmodule) {
+    $userkey = 'userid';
+    switch ($gradeitem->itemmodule) {
         case 'assign':
-            $tablename = $gi->itemmodule;
+            $moduletable = $gradeitem->itemmodule;
+            $submissiontable = 'assign_submission';
+            $submissionkey = 'assignment';
+            $filter = ['field' => 'status', 'value' => 'submitted'];
             break;
         case 'lesson':
-            $tablename = $gi->itemmodule;
+            $moduletable = $gradeitem->itemmodule;
             $replacements = ['deadline' => 'duedate'];
+            $submissiontable = 'lesson_attempts';
+            $submissionkey = 'lessonid';
             break;
         case 'quiz':
-            $tablename = $gi->itemmodule;
+            $moduletable = $gradeitem->itemmodule;
             $replacements = ['timeclose' => 'duedate'];
+            $submissiontable = 'quiz_attempts';
+            $submissionkey = 'quiz';
+            $filter = ['field' => 'state', 'value' => 'finished'];
             break;
         case 'scorm':
-            $tablename = $gi->itemmodule;
+            $moduletable = $gradeitem->itemmodule;
             $replacements = ['timeclose' => 'duedate'];
+            $submissiontable = 'scorm_attempt';
+            $submissionkey = 'scormid';
             break;
         case 'turnitintooltwo':
-            $tablename = $gi->itemmodule;
+            $moduletable = $gradeitem->itemmodule;
             // ToDo: Check source of due date.
+            $submissiontable = 'turnitintooltwo_submissions';
+            $submissionkey = 'turnitintooltwoid';
+            $filter = ['field' => 'submission_type', 'value' => 1];
             break;
         case 'workshop':
-            $tablename = $gi->itemmodule;
+            $moduletable = $gradeitem->itemmodule;
             $replacements = ['submissionend' => 'duedate'];
+            $submissiontable = 'workshop_submissions';
+            $submissionkey = 'workshopid';
+            $userkey = 'authorid';
             break;
-        case 'special':
+        case 'somethingelse':
             // Do something specific here.
             break;
         default:
-            $tablename = $gi->itemmodule;
+            $moduletable = $gradeitem->itemmodule;
             break;
     }
 
-    $module = $DB->get_record($tablename, ['id' => $gi->iteminstance]);
+    $feedbackmodule = $DB->get_record($moduletable, ['id' => $gradeitem->iteminstance]);
 
     // Compute replacement values.
     if (isset($replacements)) {
         foreach ($replacements as $from => $to) {
-            $module->$to = $module->$from;
+            $feedbackmodule->$to = $feedbackmodule->$from;
         }
         unset($replacement);
     }
 
-    return $module;
+    // The admin bits.
+    if (is_course_editor($gradeitem->courseid, $USER->id)) {
+        // Get the submissions when available.
+        if (isset($submissiontable)) {
+            // Get the count of submissions for the specified course module.
+            $sql = "select
+            count(distinct $userkey) as submissions
+            from {" . $submissiontable . "}
+            where $submissionkey = :instance
+            ";
+            if (isset($filter)) {
+                $sql .= 'and ' . $filter['field'] . ' = "' . $filter['value'] . '"';
+            }
+            $params = ['instance' => $gradeitem->iteminstance];
+            $result = $DB->get_record_sql($sql, $params);
+
+            $feedbackmodule->submissions = $result->submissions;
+        }
+    }
+    return $feedbackmodule;
 }
