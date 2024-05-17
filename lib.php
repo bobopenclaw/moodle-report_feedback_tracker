@@ -149,23 +149,6 @@ function report_feedback_tracker_supports_logstore($instance) {
 }
 
 /**
- * Get the Feedback Tracker data for all courses of a given user.
- *
- * @param int $userid
- * @return stdClass
- */
-function get_feedback_tracker_user_data($userid) {
-    $data = new stdClass();
-    $data->records = [];
-
-    $enrolledcourses = enrol_get_users_courses($userid);
-    foreach ($enrolledcourses as $course) {
-        get_user_course_gradings($course, $userid, $data);
-    }
-    return $data;
-}
-
-/**
  * Get the Feedback Tracker data for all enrolled users of a given course.
  *
  * @param int $courseid
@@ -234,6 +217,63 @@ function get_admin_course_gradings($course, &$data) {
         $record = get_admin_feedback_record($course, $gradeitem);
         $data->records[] = $record;
     }
+}
+
+/**
+ * Get the admin feedback record for a grade item.
+ *
+ * @param stdClass $course
+ * @param stdClass $gradeitem
+ * @return stdClass
+ * @throws dml_exception
+ */
+function get_admin_feedback_record ($course, $gradeitem) {
+    global $PAGE;
+
+    $oneday = 24 * 60 * 60; // Number of seconds in a day.
+    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
+    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
+
+    // If the grade item is related to a module check and get it.
+    if ($gradeitem->itemmodule) {
+        // Get a submission due date and the number of submissions if available.
+        $feedbackmodule = get_feedback_module($gradeitem);
+    }
+    $duedate = isset($feedbackmodule->duedate) ? $feedbackmodule->duedate : 0;
+
+    // Use a stored feedback due date if present, otherwise
+    // calculate the feedback due date from the submission due date if there is one.
+    $feedbackduedate = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
+        ($duedate ? $duedate + $feedbackperiod : 0);
+
+    $record = new stdClass();
+    $record->course = get_course_link($course);
+    $record->assessment = get_item_link($gradeitem);
+    $record->type = get_item_type($gradeitem);
+    $record->duedate = $duedate == 0 ? '--' : date("d/m/Y", $duedate);
+    $record->feedbackduedate = render_date_picker($gradeitem, $feedbackduedate);
+    $record->feedbacks = get_feedbacks($gradeitem, $feedbackmodule);
+    $record->summative = get_summative_state($gradeitem);
+    $record->hidden = get_hidden_state($gradeitem);
+
+    return $record;
+}
+
+/**
+ * Get the Feedback Tracker data for all courses of a given user.
+ *
+ * @param int $userid
+ * @return stdClass
+ */
+function get_feedback_tracker_user_data($userid) {
+    $data = new stdClass();
+    $data->records = [];
+
+    $enrolledcourses = enrol_get_users_courses($userid);
+    foreach ($enrolledcourses as $course) {
+        get_user_course_gradings($course, $userid, $data);
+    }
+    return $data;
 }
 
 /**
@@ -307,49 +347,98 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
         }
 
         // All good - now get and store the feedback record.
-        $record = get_user_feedback_record($course, $userid, $gradeitem);
+
+        // TurnitinToolTwo special treatment as one grading item may have several parts.
+        if ($gradeitem->itemmodule == 'turnitintooltwo') {
+            get_user_turnitin_records($course, $gradeitem, $userid, $data);
+        } else {
+            $record = get_user_feedback_record($course, $userid, $gradeitem);
+            $data->records[] = $record;
+        }
+    }
+}
+
+/**
+ * Get the parts of a turnitintooltwo grading item and list them as separate items.
+ *
+ * @param stdClass $course
+ * @param stdClass $gradeitem
+ * @param int $userid
+ * @param stdClass $data
+ * @return void
+ * @throws dml_exception
+ */
+function get_user_turnitin_records($course, $gradeitem, $userid, &$data) {
+
+    $oneday = 24 * 60 * 60; // Number of seconds in a day.
+
+    $warningdays = get_config('report_feedback_tracker', 'warningdays');
+    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
+    $feedbackextenddays = get_config('report_feedback_tracker', 'feedbackextenddays');
+    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
+    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
+    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
+
+    // Get the parts.
+    $tttparts = get_tttparts($gradeitem);
+
+    // Make each part a record and store it in the data.
+    foreach ($tttparts as $tttpart) {
+        $duedate = $tttpart->dtdue; // Each part may have its own due date.
+        // If there is a manual feedback due date use it, otherwise calculate it from the submission due date.
+        $feedbackduedate = $gradeitem->feedbackduedate ?? ($duedate ? $duedate + $feedbackperiod : 0);
+        // Get the submission date if any.
+        $submissiondate = get_ttt_submission_date($tttpart, $userid);
+
+        $record = new stdClass();
+        $record->submissiondate = $submissiondate == 0 ? '--' : date("d. M Y", $submissiondate);
+        $record->submissionstatus = get_submission_status($submissiondate, $duedate, $warningperiod);
+        $record->course = get_course_link($course);
+        $record->assessment = get_item_link($gradeitem, $tttpart->partname);
+        $record->type = get_item_type($gradeitem);
+        $record->summative = get_summative_state($gradeitem);
+        $record->duedate = $duedate == 0 ? '--' : date("d. M Y", $duedate);
+        $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("d. M Y", $feedbackduedate);
+        $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
+        $record->student = $gradeitem->student;
+        $record->grader = $gradeitem->grader;
+        $record->feedback = ($submissiondate == 0) ? '' :
+            get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
+
         $data->records[] = $record;
     }
 }
 
 /**
- * Get the admin feedback record for a grade item.
+ * Get the submission date for a ttt part.
  *
- * @param stdClass $course
- * @param stdClass $gradeitem
- * @return stdClass
+ * NOTE: This actually returns the modification date of a submission - which is also updated when
+ * a submission is graded - there is no separate submission date to use :(.
+ *
+ * @param stdClass $tttpart
+ * @param int $userid
+ * @return mixed
  * @throws dml_exception
  */
-function get_admin_feedback_record ($course, $gradeitem) {
-    global $PAGE;
+function get_ttt_submission_date($tttpart, $userid) {
+    global $DB;
 
-    $oneday = 24 * 60 * 60; // Number of seconds in a day.
-    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
-    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
+    $res = $DB->get_record('turnitintooltwo_submissions', ['submission_part' => $tttpart->id, 'userid' => $userid]);
 
-    // If the grade item is related to a module check and get it.
-    if ($gradeitem->itemmodule) {
-        // Get a submission due date and the number of submissions if available.
-        $feedbackmodule = get_feedback_module($gradeitem);
-    }
-    $duedate = isset($feedbackmodule->duedate) ? $feedbackmodule->duedate : 0;
+    return $res->submission_modified;
+}
 
-    // Use a stored feedback due date if present, otherwise
-    // calculate the feedback due date from the submission due date if there is one.
-    $feedbackduedate = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
-        ($duedate ? $duedate + $feedbackperiod : 0);
+/**
+ * Get the parts of a turnitintooltwo assessment.
+ *
+ * @param stdClass $gradeitem
+ * @return array
+ * @throws dml_exception
+ */
+function get_tttparts($gradeitem) {
+    global $DB;
 
-    $record = new stdClass();
-    $record->course = get_course_link($course);
-    $record->assessment = get_item_link($gradeitem);
-    $record->type = get_item_type($gradeitem);
-    $record->duedate = $duedate == 0 ? '--' : date("d/m/Y", $duedate);
-    $record->feedbackduedate = render_date_picker($gradeitem, $feedbackduedate);
-    $record->feedbacks = get_feedbacks($gradeitem, $feedbackmodule);
-    $record->summative = get_summative_state($gradeitem);
-    $record->hidden = get_hidden_state($gradeitem);
-
-    return $record;
+    return $DB->get_records('turnitintooltwo_parts', ['turnitintooltwoid' => $gradeitem->iteminstance]);
 }
 
 /**
@@ -595,9 +684,10 @@ function get_course_link($course) {
  * Return a link to the module item where applicable.
  *
  * @param stdClass $gradeitem
+ * @param string $partname
  * @return mixed|string
  */
-function get_item_link($gradeitem) {
+function get_item_link($gradeitem, $partname = '') {
     global $CFG, $USER;
 
     if (!isset($gradeitem->assignmentid)) {
@@ -605,7 +695,8 @@ function get_item_link($gradeitem) {
     } else {
         $url = "$CFG->wwwroot/mod/$gradeitem->itemmodule/view.php?id=$gradeitem->assignmentid";
     }
-    return html_writer::link($url, $gradeitem->itemname);
+    $linktext = $partname ? "$gradeitem->itemname - $partname" : $gradeitem->itemname;
+    return html_writer::link($url, $linktext);
 }
 
 /**
