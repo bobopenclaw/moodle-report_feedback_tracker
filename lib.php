@@ -273,11 +273,74 @@ function get_admin_feedback_record ($course, $gradeitem) {
     $record->duedate = $gradeitem->duedate == 0 ? '--' : date("d/m/Y", $gradeitem->duedate);
     $record->feedbackduedate = render_feedbackduedate($gradeitem, $feedbackperiod);
     $record->feedbacks = get_feedbacks($gradeitem);
+    $record->method = get_feedback_method($gradeitem);
+    $record->responsibility = get_feedback_responsibility($gradeitem);
+    $record->generalfeedback = get_generalfeedback($gradeitem);
+    $record->gfurl = get_gfurl($gradeitem);
     $record->summative = get_summative_state($gradeitem);
     $record->hidden = get_hidden_state($gradeitem);
 
     return $record;
 }
+
+function get_feedback_method($gradeitem) {
+    global $OUTPUT, $PAGE;
+
+    if ($PAGE->user_is_editing()) {
+        $edititem = new \core\output\inplace_editable(
+            'report_feedback_tracker',
+            'method',
+            $gradeitem->assignmentid,
+            true,
+            format_string($gradeitem->method),
+            $gradeitem->method,
+            get_string('edit:module', 'report_feedback_tracker')
+        );
+        return html_writer::div($OUTPUT->render($edititem));
+    }
+    return html_writer::div($gradeitem->method);
+}
+
+function get_feedback_responsibility($gradeitem) {
+    global $OUTPUT, $PAGE;
+
+    if ($PAGE->user_is_editing()) {
+        $edititem = new \core\output\inplace_editable(
+            'report_feedback_tracker',
+            'responsibility',
+            $gradeitem->assignmentid,
+            true,
+            format_string($gradeitem->responsibility),
+            $gradeitem->responsibility,
+            get_string('edit:responsibility', 'report_feedback_tracker')
+        );
+        return html_writer::div($OUTPUT->render($edititem));
+    }
+    return html_writer::div($gradeitem->responsibility);
+}
+
+function get_generalfeedback($gradeitem) {
+    global $OUTPUT, $PAGE;
+
+    if ($PAGE->user_is_editing()) {
+        $edititem = new \core\output\inplace_editable(
+            'report_feedback_tracker',
+            'generalfeedback',
+            $gradeitem->assignmentid,
+            true,
+            format_string($gradeitem->generalfeedback),
+            $gradeitem->generalfeedback,
+            get_string('edit:generalfeedback', 'report_feedback_tracker')
+        );
+        return html_writer::div($OUTPUT->render($edititem));
+    }
+    return html_writer::div($gradeitem->generalfeedback);
+}
+
+function get_gfurl($gradeitem) {
+    return $gradeitem->gfurl;
+}
+
 
 /**
  * Get the Feedback Tracker data for all courses of a given user.
@@ -394,6 +457,54 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
 }
 
 /**
+ * Get the user feedback record for a grade item.
+ *
+ * @param stdClass $course
+ * @param int $userid
+ * @param stdClass $gradeitem
+ * @return stdClass
+ * @throws dml_exception
+ */
+function get_user_feedback_record ($course, $userid, $gradeitem) {
+
+    $oneday = 24 * 60 * 60; // Number of seconds in a day.
+
+    $warningdays = get_config('report_feedback_tracker', 'warningdays');
+    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
+    $feedbackextenddays = get_config('report_feedback_tracker', 'feedbackextenddays');
+    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
+    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
+    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
+
+    // If there is a manual feedback due date use it, otherwise calculate it from the submission due date.
+    $feedbackduedate = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
+        ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 0);
+    // Get the submission date if any.
+    $submissiondate = get_submissiondate($userid, $gradeitem);
+
+    $record = new stdClass();
+    $record->submissiondate = $submissiondate == 0 ? '--' : date("d. M Y", $submissiondate);
+    $record->submissionstatus = get_submission_status($submissiondate, $gradeitem->duedate, $warningperiod);
+    $record->course = get_course_link($course);
+    $record->assessment = get_item_link($gradeitem);
+    $record->type = get_item_type($gradeitem);
+    $record->summative = get_summative_state($gradeitem);
+    $record->duedate = $gradeitem->duedate == 0 ? '--' : date("d. M Y", $gradeitem->duedate);
+    $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("d. M Y", $feedbackduedate);
+    $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
+    $record->student = $gradeitem->student;
+    $record->grader = $gradeitem->grader;
+    $record->feedback = ($submissiondate == 0) ? '' :
+        get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
+    $record->method = get_feedback_method($gradeitem);
+    $record->responsibility = get_feedback_responsibility($gradeitem);
+    $record->generalfeedback = get_generalfeedback($gradeitem);
+    $record->gfurl = get_gfurl($gradeitem);
+
+    return $record;
+}
+
+/**
  * Get the parts of a turnitintooltwo grading item and list them as separate items.
  *
  * @param stdClass $course
@@ -474,50 +585,6 @@ function get_tttparts($gradeitem) {
     global $DB;
 
     return $DB->get_records('turnitintooltwo_parts', ['turnitintooltwoid' => $gradeitem->iteminstance]);
-}
-
-/**
- * Get the user feedback record for a grade item.
- *
- * @param stdClass $course
- * @param int $userid
- * @param stdClass $gradeitem
- * @return stdClass
- * @throws dml_exception
- */
-function get_user_feedback_record ($course, $userid, $gradeitem) {
-
-    $oneday = 24 * 60 * 60; // Number of seconds in a day.
-
-    $warningdays = get_config('report_feedback_tracker', 'warningdays');
-    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
-    $feedbackextenddays = get_config('report_feedback_tracker', 'feedbackextenddays');
-    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
-    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
-    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
-
-    // If there is a manual feedback due date use it, otherwise calculate it from the submission due date.
-    $feedbackduedate = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
-        ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 0);
-    // Get the submission date if any.
-    $submissiondate = get_submissiondate($userid, $gradeitem);
-
-    $record = new stdClass();
-    $record->submissiondate = $submissiondate == 0 ? '--' : date("d. M Y", $submissiondate);
-    $record->submissionstatus = get_submission_status($submissiondate, $gradeitem->duedate, $warningperiod);
-    $record->course = get_course_link($course);
-    $record->assessment = get_item_link($gradeitem);
-    $record->type = get_item_type($gradeitem);
-    $record->summative = get_summative_state($gradeitem);
-    $record->duedate = $gradeitem->duedate == 0 ? '--' : date("d. M Y", $gradeitem->duedate);
-    $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("d. M Y", $feedbackduedate);
-    $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
-    $record->student = $gradeitem->student;
-    $record->grader = $gradeitem->grader;
-    $record->feedback = ($submissiondate == 0) ? '' :
-        get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
-
-    return $record;
 }
 
 /**
@@ -1063,4 +1130,34 @@ function get_feedback_module($gradeitem) {
         }
     }
     return $feedbackmodule;
+}
+
+/**
+ * @param string $itemtype
+ * @param int $itemid
+ * @param string $newvalue
+ * @return \core\output\inplace_editable
+ * @throws coding_exception
+ * @throws dml_exception
+ */
+function report_feedback_tracker_inplace_editable($itemtype, $itemid, $newvalue) {
+    global $DB, $USER;
+
+    if (in_array($itemtype, ['method', 'generalfeedback', 'responsibility'])) {
+        // Update the database.
+        $DB->set_field('report_feedback_tracker', $itemtype, $newvalue, ['gradeitem' => $itemid]);
+
+        // Return the result.
+        return new \core\output\inplace_editable(
+            'report_feedback_tracker',
+            $itemtype,
+            $itemid,
+            true,
+            format_string($newvalue),
+            $newvalue
+        );
+    }
+
+    // The $itemtype is unknown - not good.
+    throw new coding_exception('Unknown inplace editable type: ' . $itemtype);
 }

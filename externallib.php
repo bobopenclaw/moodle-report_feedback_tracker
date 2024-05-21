@@ -63,7 +63,7 @@ class report_feedback_tracker_external extends \core_external\external_api {
      * Saving the summative state for a grade item.
      *
      * @param int $itemid The ID of the grade item
-     * @param bool $summativestate The hiding state (0 or 1)
+     * @param bool $summativestate The summative state (0 or 1)
      * @return bool will return success.
      */
     public static function save_summative_state(int $itemid, bool $summativestate): bool {

@@ -25,6 +25,9 @@
 $string['assessment'] = 'Assessment';
 $string['course'] = 'Course';
 $string['duedate'] = 'Due date';
+$string['edit:method'] = 'Edit method';
+$string['edit:responsibility'] = 'Edit responsibility';
+$string['edit:generalfeedback'] = 'Edit general feedback';
 $string['feedback'] = 'Feedback';
 $string['feedback:due'] = 'Feedback due';
 $string['feedback:in_time'] = 'Feedback in time';
