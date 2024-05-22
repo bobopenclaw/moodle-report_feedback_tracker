@@ -13,3 +13,15 @@
 .col_hidden {
     text-align: center;
 }
+
+.generalfeedbacktext {
+    max-height: 3em; /* Height to show approx. 100 characters */
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out;
+    position: relative;
+}
+
+.generalfeedbacktext:hover {
+    max-height: 100em; /* Height to fit the full text */
+}
+

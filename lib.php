@@ -278,14 +278,21 @@ function get_admin_feedback_record ($course, $gradeitem) {
     $record->feedbacks = get_feedbacks($gradeitem);
     $record->method = get_feedback_method($gradeitem);
     $record->responsibility = get_feedback_responsibility($gradeitem);
-    $record->generalfeedback = get_generalfeedback($gradeitem);
-    $record->gfurl = get_gfurl($gradeitem);
+    $record->generalfeedback = get_admin_generalfeedback($gradeitem);
+    $record->gfurl = $gradeitem->gfurl;
     $record->summative = get_summative_state($gradeitem);
     $record->hidden = get_hidden_state($gradeitem);
 
     return $record;
 }
 
+/**
+ * Show / edit the feedback method for a grade item.
+ *
+ * @param stdClass $gradeitem
+ * @return string
+ * @throws coding_exception
+ */
 function get_feedback_method($gradeitem) {
     global $OUTPUT, $PAGE;
 
@@ -304,6 +311,13 @@ function get_feedback_method($gradeitem) {
     return html_writer::div($gradeitem->method);
 }
 
+/**
+ * Show/edit the responsibility of a grade item.
+ *
+ * @param stdClass $gradeitem
+ * @return string
+ * @throws coding_exception
+ */
 function get_feedback_responsibility($gradeitem) {
     global $OUTPUT, $PAGE;
 
@@ -322,18 +336,20 @@ function get_feedback_responsibility($gradeitem) {
     return html_writer::div($gradeitem->responsibility);
 }
 
-function get_generalfeedback($gradeitem) {
+/**
+ * Show/edit the general feedback for a grade item.
+ *
+ * @param stdClass $gradeitem
+ * @return string
+ */
+function get_admin_generalfeedback($gradeitem) {
     global $OUTPUT, $PAGE;
 
-    $o = html_writer::div($gradeitem->generalfeedback, 'generalfeedback',
-        ['data-action' => 'report_feedback_tracker/generalfeedback', 'id' => 'generalfeedbacktext']);
-    $o = html_writer::start_div('generalfeedback',
-        ['data-action' => 'report_feedback_tracker/generalfeedback', 'id' => 'generalfeedback_' . $gradeitem->itemid]);
-//    $o .= $gradeitem->generalfeedback;
-    $o .= html_writer::span($gradeitem->generalfeedback, 'generalfeedback',
-        ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
-
+    $o = html_writer::start_div('generalfeedback');
     if ($PAGE->user_is_editing()) {
+        $o .= html_writer::span($gradeitem->generalfeedback, 'generalfeedbacktext',
+            ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
+
         $o .= html_writer::tag('i', '',
             [
                 'id' => html_writer::random_id('generalfeedback'),
@@ -343,50 +359,34 @@ function get_generalfeedback($gradeitem) {
                 'data-generalfeedback' => $gradeitem->generalfeedback,
                 'data-gfurl' => $gradeitem->gfurl,
             ]);
+    } else {
+        $o .= html_writer::div($gradeitem->generalfeedback, 'generalfeedbacktext',
+            ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
+
+
     }
     $o .= html_writer::end_div();
     return $o;
 }
-function get_generalfeedback1($gradeitem) {
-    global $OUTPUT, $PAGE;
 
-    $o = html_writer::div($gradeitem->generalfeedback, 'generalfeedback',
-        ['data-action' => 'report_feedback_tracker/generalfeedback', 'id' => 'generalfeedbacktext']);
-    if ($PAGE->user_is_editing()) {
-        // Render the button to open the modal.
-        $o .= html_writer::tag('button', get_string('openmodal', 'report_feedback_tracker'),
-            [
-                'id' => 'openModalBtn',
-                'class' => 'btn btn-primary',
-                'cmid' => $gradeitem->itemid,
-                'data-action' => 'report_feedback_tracker/showgeneralfeedback',
-                'data-generalfeedback' => $gradeitem->generalfeedback,
-            ]);
-    }
+/**
+ * Show the general feedback and the gf URL to students.
+ *
+ * @param stdClass $gradeitem
+ * @return string
+ */
+function get_user_generalfeedback($gradeitem) {
+
+    $o = html_writer::start_div('generalfeedback');
+    $o .= html_writer::div($gradeitem->generalfeedback, 'generalfeedbacktext',
+        ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
+    $link = "<a href='$gradeitem->gfurl'>$gradeitem->gfurl</a>";
+    $o .= html_writer::div($link, 'gfurl',
+        ['id' => 'gfurl_' . $gradeitem->itemid]);
+
+    $o .= html_writer::end_div();
     return $o;
 }
-function get_generalfeedback0($gradeitem) {
-    global $OUTPUT, $PAGE;
-
-    if ($PAGE->user_is_editing()) {
-        $edititem = new \core\output\inplace_editable(
-            'report_feedback_tracker',
-            'generalfeedback',
-            $gradeitem->assignmentid,
-            true,
-            format_string($gradeitem->generalfeedback),
-            $gradeitem->generalfeedback,
-            get_string('edit:generalfeedback', 'report_feedback_tracker')
-        );
-        return html_writer::div($OUTPUT->render($edititem));
-    }
-    return html_writer::div($gradeitem->generalfeedback);
-}
-
-function get_gfurl($gradeitem) {
-    return $gradeitem->gfurl;
-}
-
 
 /**
  * Get the Feedback Tracker data for all courses of a given user.
@@ -534,7 +534,7 @@ function get_user_feedback_record ($course, $userid, $gradeitem) {
     $record->course = get_course_link($course);
     $record->assessment = get_item_link($gradeitem);
     $record->type = get_item_type($gradeitem);
-    $record->summative = get_summative_state($gradeitem);
+    $record->summative = $gradeitem->summative ? "<i class='fa fa-check'></i>" : '';
     $record->duedate = $gradeitem->duedate == 0 ? '--' : date("d. M Y", $gradeitem->duedate);
     $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("d. M Y", $feedbackduedate);
     $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
@@ -542,10 +542,10 @@ function get_user_feedback_record ($course, $userid, $gradeitem) {
     $record->grader = $gradeitem->grader;
     $record->feedback = ($submissiondate == 0) ? '' :
         get_feedback_badge($feedbackduedate, $feedbackextendperiod, $gradeitem->feedbackdate, $gradeitem->finalgrade);
-    $record->method = get_feedback_method($gradeitem);
-    $record->responsibility = get_feedback_responsibility($gradeitem);
-    $record->generalfeedback = get_generalfeedback($gradeitem);
-    $record->gfurl = get_gfurl($gradeitem);
+    $record->method = html_writer::div($gradeitem->method);
+    $record->responsibility = html_writer::div($gradeitem->responsibility);
+    $record->generalfeedback = get_user_generalfeedback($gradeitem);
+    $record->gfurl = $gradeitem->gfurl;
 
     return $record;
 }
@@ -588,7 +588,7 @@ function get_user_turnitin_records($course, $gradeitem, $userid, &$data) {
         $record->course = get_course_link($course);
         $record->assessment = get_item_link($gradeitem, $tttpart->partname);
         $record->type = get_item_type($gradeitem);
-        $record->summative = get_summative_state($gradeitem);
+        $record->summative = $gradeitem->summative ? "<i class='fa fa-check'></i>" : '';
         $record->duedate = $duedate == 0 ? '--' : date("d. M Y", $duedate);
         $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("d. M Y", $feedbackduedate);
         $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
@@ -727,11 +727,7 @@ function get_summative_state($gradeitem) {
             >";
         }
     } else {
-        if ($gradeitem->summative) {
-            return "<i class='fa fa-check'></i>";
-        } else {
-            return '';
-        }
+        return $gradeitem->summative ? "<i class='fa fa-check'></i>" : '';
     }
 }
 

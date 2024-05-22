@@ -27,6 +27,9 @@ use core\report_helper;
 require('../../config.php');
 require_once($CFG->dirroot.'/report/feedback_tracker/locallib.php');
 
+// Include the AMD module for manipulating general feedback output.
+//$PAGE->requires->js_call_amd('report_feedback_tracker/generalfeedback', 'init');
+
 // If there is no course ID given redirect to the user report.
 if (!$courseid = optional_param('id', null, PARAM_INT)) {
     redirect(new moodle_url("$CFG->wwwroot/report/feedback_tracker/user.php?userid=".$USER->id));
@@ -37,8 +40,8 @@ if (!is_course_editor($courseid, $USER->id)) {
     redirect(new moodle_url("/?redirect=0"));
 }
 
-// Include the AMD module for the modal form
-$PAGE->requires->js_call_amd('report_feedback_tracker/modalform', 'init');
+// Include the AMD module for manipulating general feedback output.
+$PAGE->requires->js_call_amd('report_feedback_tracker/generalfeedback', 'init');
 
 $course = isset($courseid) ? get_course($courseid) : $COURSE;
 

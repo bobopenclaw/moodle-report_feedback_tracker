@@ -12,7 +12,7 @@ const Selectors = {
 };
 
 export const init = async () => {
-    window.console.log('modalform.js initialised');
+    window.console.log('generalfeedback.js initialised');
 
     document.addEventListener('click', async e => {
         if (e.target.closest(Selectors.actions.showGeneralfeedback)) {
@@ -26,7 +26,7 @@ export const init = async () => {
             // Show a modal with a free text and a URL field.
             const modal = await ModalSaveCancel.create({
                 title: 'General Feedback',
-                body: Templates.render('report_feedback_tracker/modal_form',
+                body: Templates.render('report_feedback_tracker/generalfeedback_modal',
                     {
                         generalfeedbacklabel: 'Feedback text:',
                         generalfeedback: generalfeedback,
