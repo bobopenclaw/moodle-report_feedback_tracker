@@ -313,7 +313,7 @@ function get_feedback_method($gradeitem) {
         $edititem = new \core\output\inplace_editable(
             'report_feedback_tracker',
             'method',
-            $gradeitem->assignmentid,
+            $gradeitem->itemid,
             true,
             format_string($gradeitem->method),
             $gradeitem->method,
@@ -1262,6 +1262,13 @@ function report_feedback_tracker_inplace_editable($itemtype, $itemid, $newvalue)
     $PAGE->set_context(context_system::instance());
 
     if (in_array($itemtype, ['method', 'generalfeedback', 'responsibility'])) {
+        // If no record for this grade item exists, create it first.
+        if (!$DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid])) {
+            $record = new stdClass();
+            $record->gradeitem = $itemid;
+            $DB->insert_record('report_feedback_tracker', $record);
+        }
+
         // Update the database.
         $DB->set_field('report_feedback_tracker', $itemtype, $newvalue, ['gradeitem' => $itemid]);
 
