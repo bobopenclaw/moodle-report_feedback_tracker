@@ -11,6 +11,7 @@ const Selectors = {
         toggleHideState: '[data-action="report_feedback_tracker/hiding_checkbox"]',
         datePicker: '[data-action="report_feedback_tracker/datepicker"]',
         customHint: '[data-action="report_feedback_tracker/customhint"]',
+        dummy: '[data-action="report_feedback_tracker/dummy"]',
     },
 };
 
@@ -21,7 +22,7 @@ export const init = () => {
         if (e.target.closest(Selectors.actions.toggleSummativeState)) {
             const target = e.target;
             const itemid = target.getAttribute('cmid');
-            var summativestate = '1';
+            let summativestate = '1';
             if (target.checked === true) {
                 summativestate = '1';
             } else {
@@ -36,7 +37,7 @@ export const init = () => {
         if (e.target.closest(Selectors.actions.toggleHideState)) {
             const target = e.target;
             const itemid = target.getAttribute('cmid');
-            var hiddenstate = '1';
+            let hiddenstate = '1';
             if (target.checked === true) {
                 hiddenstate = '1';
             } else {
@@ -47,33 +48,46 @@ export const init = () => {
         }
     });
 
-    document.addEventListener('change', async e => {
+    document.addEventListener('change', async(e) => {
         if (e.target.closest(Selectors.actions.datePicker)) {
-            const target = e.target;
-            const itemid = target.getAttribute('itemid');
-            const date = new Date(e.target.value).getTime() / 1000;
-            var response = '';
-            if (!date) { // Delete custom date.
-                response = await deleteFeedbackDuedate(itemid);
-                // Hide hint.
-                document.querySelector('[data-itemid="' + itemid + '"]').style.display = 'none';
-                // Show message.
-                getString('feedbackduedate:removedmessage', 'report_feedback_tracker')
-                    .then(async (message) => {
-                        const modal = await Modal.create({
-                            title: 'Please note:',
-                            body: message,
-                            footer: '',
-                        });
-                        modal.show();
-                        return message;
+            try {
+                const target = e.target;
+                const itemid = target.getAttribute('itemid');
+                const date = new Date(e.target.value).getTime() / 1000;
+
+                let response = '';
+                if (!date) { // Delete custom date.
+                    response = await deleteFeedbackDuedate(itemid);
+
+                    // Hide hint.
+                    const hintElement = document.querySelector(`[data-itemid="${itemid}"]`);
+                    if (hintElement) {
+                        hintElement.style.display = 'none';
+                    }
+
+                    // Show message.
+                    const message = await getString('feedbackduedate:removedmessage', 'report_feedback_tracker');
+                    const modal = await Modal.create({
+                        title: 'Please note:',
+                        body: message,
+                        footer: '',
                     });
-            } else {
-                response = await updateFeedbackDuedate(itemid, date);
-                // Show hint.
-                document.querySelector('[data-itemid="' + itemid + '"]').style.display = '';
+                    modal.show();
+                } else { // Update custom date.
+                    response = await updateFeedbackDuedate(itemid, date);
+
+                    // Show hint.
+                    const hintElement = document.querySelector(`[data-itemid="${itemid}"]`);
+                    if (hintElement) {
+                        hintElement.style.display = '';
+                    }
+                }
+
+                // Log response to console.
+                window.console.log(response);
+            } catch (error) {
+                window.console.error('An error occurred:', error);
             }
-            window.console.log(response);
         }
     });
 

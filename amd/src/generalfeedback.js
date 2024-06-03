@@ -1,4 +1,3 @@
-//import Modal from 'core/modal';
 import ModalSaveCancel from 'core/modal_save_cancel';
 import ModalEvents from 'core/modal_events';
 import Templates from 'core/templates';
@@ -11,7 +10,7 @@ const Selectors = {
     },
 };
 
-export const init = async () => {
+export const init = async() => {
     window.console.log('generalfeedback.js initialised');
 
     document.addEventListener('click', async e => {
@@ -36,7 +35,7 @@ export const init = async () => {
             });
             modal.show();
 
-            modal.getRoot().on(ModalEvents.save, async () => {
+            modal.getRoot().on(ModalEvents.save, async() => {
                 // Get the general feedback text and URL.
                 var generalfeedback = document.getElementById('generalfeedback').value;
                 var gfurl = document.getElementById('gfurl').value;
