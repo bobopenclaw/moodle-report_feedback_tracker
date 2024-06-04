@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Display a list of activites with their current feedback status.
+ * Display a list of grading items with their current feedback status.
  *
  * @package    report_feedback_tracker
  * @copyright  2024 UCL <m.opitz@ucl.ac.uk>
@@ -27,15 +27,20 @@ use core\report_helper;
 require('../../config.php');
 require_once($CFG->dirroot.'/report/feedback_tracker/locallib.php');
 
-require_login($COURSE);
-$PAGE->set_context(context_course::instance($COURSE->id));
-
 // If there is no course ID given redirect to the user report.
 if (!$courseid = optional_param('id', null, PARAM_INT)) {
     redirect(new moodle_url("$CFG->wwwroot/report/feedback_tracker/user.php?userid=".$USER->id));
 }
 
 $course = isset($courseid) ? get_course($courseid) : $COURSE;
+require_login($course);
+
+$pageparams = ['id' => $course->id];
+
+$PAGE->set_url('/report/feedback_tracker/index.php', $pageparams);
+$PAGE->set_pagelayout('report');
+
+$context = context_course::instance($course->id);
 
 // Check if the user is able to see the report and redirect to home if not.
 if (!is_course_editor($courseid, $USER->id)) {
@@ -44,10 +49,6 @@ if (!is_course_editor($courseid, $USER->id)) {
 
 // Include the AMD module for manipulating general feedback output.
 $PAGE->requires->js_call_amd('report_feedback_tracker/generalfeedback', 'init');
-
-$pageparams = ['id' => $course->id];
-$PAGE->set_url('/report/feedback_tracker/index.php', $pageparams);
-$PAGE->set_pagelayout('report');
 
 // Set the header and print it.
 $PAGE->set_title($course->shortname .':' . get_string('pluginname', 'report_feedback_tracker'));
@@ -63,3 +64,6 @@ $renderer = $PAGE->get_renderer('report_feedback_tracker');
 echo $renderer->render_feedback_tracker_admin_wrapper($courseid);
 
 echo $OUTPUT->footer();
+
+
+
