@@ -256,8 +256,8 @@ function get_admin_course_gradings($course, &$data) {
     $gradeitems = $DB->get_records_sql($sql, $params);
 
     foreach ($gradeitems as $gradeitem) {
-        // Check if the gradeitem module is supported and visible.
-        if (!module_is_supported($gradeitem) || !$gradeitem->visible) {
+        // Check if the gradeitem module is supported.
+        if (!module_is_supported($gradeitem)) {
             continue;
         }
 
@@ -492,8 +492,8 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
     $gradeitems = $DB->get_records_sql($sql, $params);
 
     foreach ($gradeitems as $gradeitem) {
-        // Check if the gradeitem module is supported or hidden.
-        if (!$gradeitem->visible || $gradeitem->hidden || !module_is_supported($gradeitem)) {
+        // Check if the gradeitem module is supported.
+        if (!module_is_supported($gradeitem)) {
             continue;
         }
 
@@ -1018,6 +1018,11 @@ function module_is_supported($gradeitem) {
     // Manual feedback is supported.
     if ($gradeitem->itemtype == 'manual' && !$gradeitem->itemmodule) {
         return true;
+    }
+
+    // Invisible items are invisible.
+    if ($gradeitem->hidden || !$gradeitem->visible) {
+        return false;
     }
 
     // Todo: make an admin option.
