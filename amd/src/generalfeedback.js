@@ -2,6 +2,7 @@ import ModalSaveCancel from 'core/modal_save_cancel';
 import ModalEvents from 'core/modal_events';
 import Templates from 'core/templates';
 import {updateGeneralFeedback} from "./repository";
+import {getString} from 'core/str';
 
 const Selectors = {
     actions: {
@@ -24,12 +25,12 @@ export const init = async() => {
 
             // Show a modal with a free text and a URL field.
             const modal = await ModalSaveCancel.create({
-                title: 'Additional information',
+                title: await getString('generalfeedback', 'report_feedback_tracker'),
                 body: Templates.render('report_feedback_tracker/generalfeedback_modal',
                     {
-                        generalfeedbacklabel: 'Text:',
+                        generalfeedbacklabel: await getString('generalfeedback:text', 'report_feedback_tracker'),
                         generalfeedback: generalfeedback,
-                        gfurllabel: 'URL:',
+                        gfurllabel: await getString('generalfeedback:url', 'report_feedback_tracker'),
                         gfurl: gfurl
                     }),
             });
@@ -59,6 +60,4 @@ export const init = async() => {
         }
     });
 
-
-    // ...
 };
