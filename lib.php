@@ -338,7 +338,7 @@ function get_feedback_responsibility($gradeitem) {
         $edititem = new \core\output\inplace_editable(
             'report_feedback_tracker',
             'responsibility',
-            $gradeitem->assignmentid,
+            $gradeitem->itemid,
             true,
             format_string($gradeitem->responsibility),
             $gradeitem->responsibility,
