@@ -545,13 +545,15 @@ function get_user_feedback_record ($course, $userid, $gradeitem) {
     // Get the submission date if any.
     $submissiondate = get_submissiondate($userid, $gradeitem);
 
+    $summativetext = get_string('summative', 'report_feedback_tracker');
+
     $record = new stdClass();
     $record->submissiondate = $submissiondate == 0 ? '--' : date("d. M Y", $submissiondate);
     $record->submissionstatus = get_submission_status($submissiondate, $gradeitem->duedate, $warningperiod);
     $record->course = get_course_link($course);
     $record->assessment = get_item_link($gradeitem);
     $record->type = get_item_type($gradeitem);
-    $record->summative = $gradeitem->summative ? "summative" : "formative";
+    $record->summative = $gradeitem->summative ? $summativetext : "";
     $record->duedate = $gradeitem->duedate == 0 ? '--' : date("d. M Y", $gradeitem->duedate);
     $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("d. M Y", $feedbackduedate);
     $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
@@ -599,7 +601,6 @@ function get_user_turnitin_records($course, $gradeitem, $userid, &$data) {
         // Get the submission date if any.
         $submissiondate = get_ttt_submission_date($tttpart, $userid);
 
-        $formativetext = get_string('formative', 'report_feedback_tracker');
         $summativetext = get_string('summative', 'report_feedback_tracker');
 
         $record = new stdClass();
@@ -608,7 +609,7 @@ function get_user_turnitin_records($course, $gradeitem, $userid, &$data) {
         $record->course = get_course_link($course);
         $record->assessment = get_item_link($gradeitem, $tttpart->partname);
         $record->type = get_item_type($gradeitem);
-        $record->summative = $gradeitem->summative ? $summativetext : $formativetext;
+        $record->summative = $gradeitem->summative ? $summativetext : "";
         $record->duedate = $duedate == 0 ? '--' : date("d. M Y", $duedate);
         $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date("d. M Y", $feedbackduedate);
         $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
