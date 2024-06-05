@@ -31,6 +31,7 @@ $string['edit:method'] = 'Edit method';
 $string['edit:responsibility'] = 'Edit responsibility';
 $string['feedback'] = 'Feedback status';
 $string['feedback:due'] = 'Feedback due';
+$string['feedback:extended'] = 'Feedback in extended period';
 $string['feedback:in_time'] = 'Feedback in time';
 $string['feedback:late'] = 'Late feedback';
 $string['feedback:overdue'] = 'Feedback overdue';

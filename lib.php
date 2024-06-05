@@ -935,9 +935,9 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod)
 
     $warningduedate = $feedbackduedate + $feedbackextendperiod;
 
-    // Feedback was given within the extend period.
+    // Feedback was given within the extended period.
     if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $warningduedate) {
-        $o = html_writer::div(get_string('feedback:warning', 'report_feedback_tracker'),
+        $o = html_writer::div(get_string('feedback:extended', 'report_feedback_tracker'),
             "badge badge-pill badge-warning");
         if ($contact) {
             $o .= html_writer::start_div('feedback_tracker_contact');
@@ -949,7 +949,7 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod)
         return $o;
     }
 
-    // Feedback was given outside the extend period.
+    // Feedback was given outside the extended period.
     if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate > $warningduedate) {
         $o = html_writer::div(get_string('feedback:late', 'report_feedback_tracker'),
             "badge badge-pill badge-danger");
@@ -963,7 +963,7 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod)
         return $o;
     }
 
-    // NO feedback was given but it's still within the extend period.
+    // NO feedback was given but it's still within the extended period.
     if (!isset($gradeitem->finalgrade) && $feedbackduedate < time() && $warningduedate >= time() ) {
         $o = html_writer::div(get_string('feedback:due', 'report_feedback_tracker'),
             "badge badge-pill badge-warning");
@@ -977,7 +977,7 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod)
         return $o;
     }
 
-    // NO feedback was given, and it is beyond the extend period.
+    // NO feedback was given, and it is beyond the extended period.
     if (!isset($gradeitem->finalgrade) && $warningduedate < time()) {
         $o = html_writer::div(get_string('feedback:overdue', 'report_feedback_tracker'),
             "badge badge-pill badge-danger");
