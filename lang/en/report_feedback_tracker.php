@@ -44,6 +44,7 @@ $string['feedbacks'] = 'Feedbacks';
 $string['finalgrade_available'] = 'Finalgrade available';
 $string['formative'] = 'formative';
 $string['generalfeedback'] = 'Additional information';
+$string['generalfeedback:only'] = 'There is general feedback only';
 $string['generalfeedback:text'] = 'Text:';
 $string['generalfeedback:url'] = 'URL:';
 $string['grade'] = 'Grade';

@@ -46,12 +46,14 @@ export const updateGeneralFeedback = (
     itemid,
     generalfeedback,
     gfurl,
+    gfdate,
 ) => ajax([{
     methodname: 'report_feedback_tracker_update_general_feedback',
     args: {
         itemid: itemid,
         generalfeedback: generalfeedback,
-        gfurl: gfurl
+        gfurl: gfurl,
+        gfdate: gfdate
     },
 }])[0];
 

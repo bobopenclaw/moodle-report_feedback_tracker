@@ -252,7 +252,8 @@ function get_admin_course_gradings($course, &$data) {
         rft.method,
         rft.responsibility,
         rft.generalfeedback,
-        rft.gfurl
+        rft.gfurl,
+        rft.gfdate
     from {grade_items} gi
         left JOIN {modules} m on m.name = gi.itemmodule
         left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
@@ -291,7 +292,6 @@ function get_admin_course_gradings($course, &$data) {
  * @throws dml_exception
  */
 function get_admin_feedback_record ($course, $gradeitem) {
-    global $PAGE;
 
     $oneday = 24 * 60 * 60; // Number of seconds in a day.
     $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
@@ -473,7 +473,7 @@ function get_feedback_responsibility($gradeitem) {
  * @return string
  */
 function get_admin_generalfeedback($gradeitem) {
-    global $OUTPUT, $PAGE;
+    global $PAGE;
 
     $o = html_writer::start_div('generalfeedback');
     if ($PAGE->user_is_editing()) {
@@ -488,6 +488,7 @@ function get_admin_generalfeedback($gradeitem) {
                 'data-action' => 'report_feedback_tracker/showgeneralfeedback',
                 'data-generalfeedback' => $gradeitem->generalfeedback,
                 'data-gfurl' => $gradeitem->gfurl,
+                'data-gfdate' => $gradeitem->gfdate,
             ]);
     } else {
         $o .= html_writer::div($gradeitem->generalfeedback, 'generalfeedbacktext',
@@ -600,7 +601,8 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
         rft.method,
         rft.responsibility,
         rft.generalfeedback,
-        rft.gfurl
+        rft.gfurl,
+        rft.gfdate
     from {grade_items} gi
         left JOIN {modules} m on m.name = gi.itemmodule
         left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
@@ -665,9 +667,11 @@ function get_user_feedback_record($course, $userid, $gradeitem) {
     $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
     $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
 
-    // If there is a manual feedback due date use it, otherwise calculate it from the submission due date.
+    // If there is a manual feedback due date use it, otherwise if there is a general feedback only date use that,
+    // otherwise calculate it from the submission due date.
     $feedbackduedate = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
-        ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 0);
+        ($gradeitem->gfdate ? $gradeitem->gfdate :
+        ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 0));
     // Get the submission date if any.
     $submissiondate = get_submissiondate($userid, $gradeitem);
 
@@ -686,11 +690,9 @@ function get_user_feedback_record($course, $userid, $gradeitem) {
     $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
     $record->student = $gradeitem->student;
     $record->grader = $gradeitem->grader;
-    $record->feedbackdate = $gradeitem->feedbackdate;
-    $record->feedbackstatus = ($submissiondate == 0) ? '' :
-        get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod);
-    $record->feedback = ($submissiondate == 0) ? '' :
-        get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod);
+    $record->feedbackdate = $gradeitem->feedbackdate ? $gradeitem->feedbackdate : $gradeitem->gfdate;
+    $record->feedbackstatus = get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate);
+    $record->feedback = get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate);
     $record->method = $gradeitem->method;
     $record->responsibility = html_writer::div($gradeitem->responsibility);
     $record->generalfeedback = get_user_generalfeedback($gradeitem);
@@ -809,10 +811,8 @@ function get_user_turnitin_records($course, $gradeitem, $userid, &$data) {
         $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
         $record->student = $gradeitem->student;
         $record->grader = $gradeitem->grader;
-        $record->feedbackstatus = ($submissiondate == 0) ? '' :
-            get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod);
-        $record->feedback = ($submissiondate == 0) ? '' :
-            get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod);
+        $record->feedbackstatus = get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate);
+        $record->feedback = get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate);
         $record->method = $gradeitem->method;
 
         $data->records[] = $record;
@@ -877,7 +877,8 @@ function render_feedbackduedate($gradeitem, $feedbackperiod = 0) {
     // Use a stored feedback due date if present, otherwise
     // calculate the feedback due date from the submission due date if there is one.
     $date = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
-        ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 0);
+        ($gradeitem->gfdate ? $gradeitem->gfdate :
+        ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 0));
 
     $o = '';
     if ($PAGE->user_is_editing()) { // Render a date picker.
@@ -1126,7 +1127,12 @@ function get_submission_status($submissiondate, $duedate, $warningperiod) {
  * @return string
  * @throws coding_exception
  */
-function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod) {
+function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate) {
+
+    if (!isset($gradeitem->gfdate) && $submissiondate == 0) {
+        return '';
+    }
+
     $contact = $gradeitem->responsibility;
     // Final grade is available even if there is no due date.
     if (!$feedbackduedate && isset($gradeitem->finalgrade)) {
@@ -1144,7 +1150,7 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod)
     }
 
     // Feedback was given in time.
-    if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $feedbackduedate) {
+    if (isset($gradeitem->gfdate) || (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $feedbackduedate)) {
         $o = html_writer::div(get_string('feedback:in_time', 'report_feedback_tracker'),
             "badge badge-pill badge-success");
         if ($contact) {
@@ -1235,8 +1241,13 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod)
  * @return lang_string|string
  * @throws coding_exception
  */
-function get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod) {
-    $contact = $gradeitem->responsibility;
+function get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate) {
+
+    // If there is no general feedback date and no submission there is no feedback(?).
+    if (!isset($gradeitem->gfdate) && $submissiondate == 0) {
+        return '';
+    }
+
     // Final grade is available even if there is no due date.
     if (!$feedbackduedate && isset($gradeitem->finalgrade)) {
         return get_string('finalgrade_available', 'report_feedback_tracker');

@@ -22,6 +22,7 @@ export const init = async() => {
             // Get the current general feedback text and URL.
             var generalfeedback = target.getAttribute('data-generalfeedback');
             var gfurl = target.getAttribute('data-gfurl');
+            var gfdate = target.getAttribute('data-gfdate');
 
             // Show a modal with a free text and a URL field.
             const modal = await ModalSaveCancel.create({
@@ -31,20 +32,34 @@ export const init = async() => {
                         generalfeedbacklabel: await getString('generalfeedback:text', 'report_feedback_tracker'),
                         generalfeedback: generalfeedback,
                         gfurllabel: await getString('generalfeedback:url', 'report_feedback_tracker'),
-                        gfurl: gfurl
+                        gfurl: gfurl,
+                        gfdatelabel: await getString('generalfeedback:only', 'report_feedback_tracker'),
+                        gfdate: gfdate
                     }),
             });
             modal.show();
 
             modal.getRoot().on(ModalEvents.save, async() => {
-                // Get the general feedback text and URL.
+                // Get the general feedback text, URL and optional date.
                 var generalfeedback = document.getElementById('generalfeedback').value;
                 var gfurl = document.getElementById('gfurl').value;
+//                var gfdate = document.getElementById('gfdate').value;
+
+//                const gfdateCheckbox = document.getElementById('gfdate');
+                gfdate = document.getElementById('gfdate').checked;
+//                var gfdate = 999;
+                window.console.log('----------');
+                window.console.log('gfdate: ');
+                window.console.log(gfdate);
+                window.console.log('----------');
+
                 // Update the database.
-                const response = await updateGeneralFeedback(itemid, generalfeedback, gfurl);
+                const response = await updateGeneralFeedback(itemid, generalfeedback, gfurl, gfdate);
+
                 // Update the screen elements.
                 target.setAttribute('data-generalfeedback', generalfeedback);
                 target.setAttribute('data-gfurl', gfurl);
+                target.setAttribute('data-gfdate', gfdate);
                 document.getElementById('generalfeedbacktext_' + itemid).innerHTML = generalfeedback;
                 window.console.log(response);
             });
