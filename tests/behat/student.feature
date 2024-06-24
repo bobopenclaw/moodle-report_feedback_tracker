@@ -1,4 +1,4 @@
-@report @report_feedback_tracker @workbench
+@report @report_feedback_tracker @rft_student
 Feature: As a student I want to see, sort and filter the results of the feredback tracker report
 
   Background:

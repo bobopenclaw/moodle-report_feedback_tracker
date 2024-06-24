@@ -1,4 +1,4 @@
-@report @report_feedback_tracker
+@report @report_feedback_tracker @rft_admin
 Feature: As an admin I want to be able to hide a grade item from the report, I want to be able to set a grade item
   as summative and I will be able to set a manual feedback due date.
   As an admin
