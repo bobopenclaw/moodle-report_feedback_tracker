@@ -1194,8 +1194,9 @@ function module_is_supported($gradeitem) {
         return false;
     }
 
-    // Manual feedback is supported.
-    if ($gradeitem->itemtype == 'manual' && !$gradeitem->itemmodule) {
+    // Manual feedback is supported if checked in the settings.
+    if ($gradeitem->itemtype == 'manual' && !$gradeitem->itemmodule &&
+        get_config('report_feedback_tracker', 'supportmanual')) {
         return true;
     }
 
@@ -1204,14 +1205,21 @@ function module_is_supported($gradeitem) {
         return false;
     }
 
-    // Todo: make an admin option.
-    $supportedmodules = [
+    $modulelist = [
         'assign',
-//        'lesson',
+        'lesson',
         'turnitintooltwo',
         'quiz',
-//        'workshop',
+        'workshop',
     ];
+
+    $supportedmodules = [];
+
+    foreach ($modulelist as $module) {
+        if (get_config('report_feedback_tracker', 'support' . $module)) {
+            array_push($supportedmodules, $module);
+        }
+    }
 
     if (in_array($gradeitem->itemmodule, $supportedmodules)) {
         return true;

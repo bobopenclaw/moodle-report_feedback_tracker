@@ -31,6 +31,9 @@ if ($ADMIN->fulltree) {
     $feedbackextenddaysdefault = 7;
     $dateformatdefault = get_string('dateformat:default', 'report_feedback_tracker');
 
+    $settings->add(new admin_setting_heading('report_feedback_tracker_dates',
+        get_string('settings:datesheading', 'report_feedback_tracker'), ''));
+
     $settings->add(new admin_setting_configtext('report_feedback_tracker/warningdays',
         get_string('settings:warningdays', 'report_feedback_tracker'),
         get_string('settings:warningdaysinfo', 'report_feedback_tracker'),
@@ -51,4 +54,27 @@ if ($ADMIN->fulltree) {
         get_string('settings:dateformatinfo', 'report_feedback_tracker'),
         $dateformatdefault, PARAM_RAW, 15));
 
+    $settings->add(new admin_setting_heading('report_feedback_tracker_support',
+        get_string('settings:supportheading', 'report_feedback_tracker'), ''));
+
+    $settings->add(new admin_setting_configcheckbox('report_feedback_tracker/supportassign',
+        get_string('settings:supportassignment', 'report_feedback_tracker'), '', true));
+
+    $settings->add(new admin_setting_configcheckbox('report_feedback_tracker/supportlesson',
+        get_string('settings:supportlesson', 'report_feedback_tracker'), '', false));
+
+    $settings->add(new admin_setting_configcheckbox('report_feedback_tracker/supportmanual',
+        get_string('settings:supportmanual', 'report_feedback_tracker'), '', true));
+
+    // Check if TurnitinToolTwo is installed.
+    if (file_exists($CFG->dirroot.'/mod/turnitintooltwo/version.php')) {
+        $settings->add(new admin_setting_configcheckbox('report_feedback_tracker/supportturnitin',
+            get_string('settings:supportturnitin', 'report_feedback_tracker'), '', true));
+    }
+
+    $settings->add(new admin_setting_configcheckbox('report_feedback_tracker/supportquiz',
+        get_string('settings:supportquiz', 'report_feedback_tracker'), '', true));
+
+    $settings->add(new admin_setting_configcheckbox('report_feedback_tracker/supportworkshop',
+        get_string('settings:supportworkshop', 'report_feedback_tracker'), '', false));
 }
