@@ -134,31 +134,6 @@ function get_admin_course_gradings($course, &$data) {
 }
 
 /**
- * Return an array of IDs of summative assessments for a given course
- *
- * @param int $courseid
- * @return array
- */
-function get_summative_ids($courseid) {
-    global $CFG;
-
-    $summativeids = [];
-    // Check if SITSgradepush is installed.
-    if (file_exists($CFG->dirroot.'/local/sitsgradepush/version.php')) {
-        require_once($CFG->dirroot . '/local/sitsgradepush/classes/external/get_summative_grade_items.php');
-
-        $instance = new local_sitsgradepush\external\get_summative_grade_items;
-        $result = $instance::execute($courseid);
-        $summativegradeitems = $result['gradeitems'];
-        // Build an array of summative IDs.
-        foreach ($summativegradeitems as $summativegradeitem) {
-            $summativeids[] = $summativegradeitem->id;
-        }
-    }
-    return $summativeids;
-}
-
-/**
  * Get the admin feedback record for a grade item.
  *
  * @param stdClass $course
@@ -236,53 +211,6 @@ function get_admin_generalfeedback($gradeitem) {
 }
 
 /**
- * Get the parts of a turnitintooltwo grading item and list them as separate items.
- *
- * @param stdClass $course
- * @param stdClass $gradeitem
- * @param array $summativeids
- * @param stdClass $data
- * @return void
- * @throws dml_exception
- */
-function get_admin_turnitin_records($course, $gradeitem, $summativeids, &$data) {
-
-    $oneday = 24 * 60 * 60; // Number of seconds in a day.
-    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
-    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
-    $dateformat = get_config('report_feedback_tracker', 'dateformat');
-
-    // Get the parts.
-    $tttparts = get_tttparts($gradeitem);
-
-    // Make each part a record and store it in the data.
-    foreach ($tttparts as $tttpart) {
-        $duedate = $tttpart->dtdue; // Each part may have its own due date.
-        // If there is a manual feedback due date use it, otherwise calculate it from the submission due date.
-        $feedbackduedate = $gradeitem->feedbackduedate ?? ($duedate ? $duedate + $feedbackperiod : 0);
-
-        $record = new stdClass();
-        $record->course = get_course_link($course);
-        $record->courseid = $course->id;
-        $record->coursename = $course->shortname;
-        $record->assessment = get_item_link($gradeitem, $tttpart->partname);
-        $record->type = get_item_type($gradeitem);
-        $record->module = get_item_module($gradeitem);
-        $record->duedate = $duedate == 0 ? '--' : date($dateformat, $duedate);
-        $record->feedbackduedate = render_feedbackduedate($gradeitem, $feedbackperiod);
-        $record->feedbacks = get_feedbacks($gradeitem);
-        $record->method = get_feedback_method($gradeitem);
-        $record->responsibility = get_feedback_responsibility($gradeitem);
-        $record->generalfeedback = get_admin_generalfeedback($gradeitem);
-        $record->gfurl = $gradeitem->gfurl;
-        $record->summative = get_admin_summative($gradeitem, $summativeids);
-        $record->summativetext = $gradeitem->summative ? get_string('summative', 'report_feedback_tracker') : "";
-        $record->hidden = get_hidden_state($gradeitem);
-        $data->records[] = $record;
-    }
-}
-
-/**
  * Get the options for filtering the admin table.
  *
  * @param stdClass $data
@@ -336,6 +264,91 @@ function get_admin_filter_options(&$data) {
 }
 
 /**
+ * Show / edit the summative state of a grading item.
+ *
+ * @param stdClass $gradeitem
+ * @param array $summativeids an array with summative item ids from sitsgradepush
+ * @return string
+ */
+function get_admin_summative($gradeitem, $summativeids) {
+    global $PAGE;
+
+    // Check if an item is declared summative by SITS.
+    if (in_array($gradeitem->itemid, $summativeids)) {
+        $gradeitem->summative = 2;
+    }
+
+    // If not set by SITS one may still declare summative manually.
+    if ($PAGE->user_is_editing() && $gradeitem->summative < 2) {
+        if ($gradeitem->summative) {
+            return "<input
+                data-action='report_feedback_tracker/summative_checkbox'
+                type='checkbox'
+                class='form-check-input summative_checkbox'
+                cmid='$gradeitem->itemid'
+                checked='checked'
+            >";
+        } else {
+            return "<input
+                data-action='report_feedback_tracker/summative_checkbox'
+                type='checkbox'
+                class='form-check-input summative_checkbox'
+                cmid='$gradeitem->itemid'
+            >";
+        }
+    } else {
+        return $gradeitem->summative ? "<i class='fa fa-check'></i>" : '';
+    }
+}
+
+/**
+ * Get the parts of a turnitintooltwo grading item and list them as separate items.
+ *
+ * @param stdClass $course
+ * @param stdClass $gradeitem
+ * @param array $summativeids
+ * @param stdClass $data
+ * @return void
+ * @throws dml_exception
+ */
+function get_admin_turnitin_records($course, $gradeitem, $summativeids, &$data) {
+
+    $oneday = 24 * 60 * 60; // Number of seconds in a day.
+    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
+    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
+    $dateformat = get_config('report_feedback_tracker', 'dateformat');
+
+    // Get the parts.
+    $tttparts = get_tttparts($gradeitem);
+
+    // Make each part a record and store it in the data.
+    foreach ($tttparts as $tttpart) {
+        $duedate = $tttpart->dtdue; // Each part may have its own due date.
+        // If there is a manual feedback due date use it, otherwise calculate it from the submission due date.
+        $feedbackduedate = $gradeitem->feedbackduedate ?? ($duedate ? $duedate + $feedbackperiod : 0);
+
+        $record = new stdClass();
+        $record->course = get_course_link($course);
+        $record->courseid = $course->id;
+        $record->coursename = $course->shortname;
+        $record->assessment = get_item_link($gradeitem, $tttpart->partname);
+        $record->type = get_item_type($gradeitem);
+        $record->module = get_item_module($gradeitem);
+        $record->duedate = $duedate == 0 ? '--' : date($dateformat, $duedate);
+        $record->feedbackduedate = render_feedbackduedate($gradeitem, $feedbackperiod);
+        $record->feedbacks = get_feedbacks($gradeitem);
+        $record->method = get_feedback_method($gradeitem);
+        $record->responsibility = get_feedback_responsibility($gradeitem);
+        $record->generalfeedback = get_admin_generalfeedback($gradeitem);
+        $record->gfurl = $gradeitem->gfurl;
+        $record->summative = get_admin_summative($gradeitem, $summativeids);
+        $record->summativetext = $gradeitem->summative ? get_string('summative', 'report_feedback_tracker') : "";
+        $record->hidden = get_hidden_state($gradeitem);
+        $data->records[] = $record;
+    }
+}
+
+/**
  * Return a link to the course.
  *
  * @param stdClass $course
@@ -377,7 +390,7 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod,
     $contact = $gradeitem->responsibility;
     // Final grade is available even if there is no due date.
     if (!$feedbackduedate && isset($gradeitem->finalgrade)) {
-        $o = html_writer::div(get_string('finalgrade_available', 'report_feedback_tracker'),
+        $o = html_writer::div(get_string('grade:released', 'report_feedback_tracker'),
             "badge badge-pill badge-success");
 
         if ($contact) {
@@ -423,7 +436,7 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod,
     // Feedback was given outside the extended period.
     if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate > $warningduedate) {
         $o = html_writer::div(get_string('feedback:late', 'report_feedback_tracker'),
-            "badge badge-pill badge-danger");
+            "badge badge-pill badge-warning");
         if ($contact) {
             $o .= html_writer::start_div('feedback_tracker_contact');
             $o .= html_writer::span(get_string('contact', 'report_feedback_tracker') .
@@ -542,7 +555,7 @@ function get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod
 
     // Final grade is available even if there is no due date.
     if (!$feedbackduedate && isset($gradeitem->finalgrade)) {
-        return get_string('finalgrade_available', 'report_feedback_tracker');
+        return get_string('grade:released', 'report_feedback_tracker');
     }
 
     // Feedback was given in time.
@@ -836,41 +849,28 @@ function get_submission_status($submissiondate, $duedate, $warningperiod) {
 }
 
 /**
- * Show / edit the summative state of a grading item.
+ * Return an array of IDs of summative assessments for a given course
  *
- * @param stdClass $gradeitem
- * @param array $summativeids an array with summative item ids from sitsgradepush
- * @return string
+ * @param int $courseid
+ * @return array
  */
-function get_admin_summative($gradeitem, $summativeids) {
-    global $PAGE;
+function get_summative_ids($courseid) {
+    global $CFG;
 
-    // Check if an item is declared summative by SITS.
-    if (in_array($gradeitem->itemid, $summativeids)) {
-        $gradeitem->summative = 2;
-    }
+    $summativeids = [];
+    // Check if SITSgradepush is installed.
+    if (file_exists($CFG->dirroot.'/local/sitsgradepush/version.php')) {
+        require_once($CFG->dirroot . '/local/sitsgradepush/classes/external/get_summative_grade_items.php');
 
-    // If not set by SITS one may still declare summative manually.
-    if ($PAGE->user_is_editing() && $gradeitem->summative < 2) {
-        if ($gradeitem->summative) {
-            return "<input
-                data-action='report_feedback_tracker/summative_checkbox'
-                type='checkbox'
-                class='form-check-input summative_checkbox'
-                cmid='$gradeitem->itemid'
-                checked='checked'
-            >";
-        } else {
-            return "<input
-                data-action='report_feedback_tracker/summative_checkbox'
-                type='checkbox'
-                class='form-check-input summative_checkbox'
-                cmid='$gradeitem->itemid'
-            >";
+        $instance = new local_sitsgradepush\external\get_summative_grade_items;
+        $result = $instance::execute($courseid);
+        $summativegradeitems = $result['gradeitems'];
+        // Build an array of summative IDs.
+        foreach ($summativegradeitems as $summativegradeitem) {
+            $summativeids[] = $summativegradeitem->id;
         }
-    } else {
-        return $gradeitem->summative ? "<i class='fa fa-check'></i>" : '';
     }
+    return $summativeids;
 }
 
 /**
@@ -1063,19 +1063,6 @@ function get_user_feedback_record($course, $userid, $gradeitem, $summativeids) {
 }
 
 /**
- * Show a summative text for a summative grade item in students/users report.
- *
- * @param stdClass $gradeitem
- * @param array $summativeids
- * @return lang_string|string
- * @throws coding_exception
- */
-function get_user_summative($gradeitem, $summativeids) {
-    return $gradeitem->summative || in_array($gradeitem->itemid, $summativeids) ?
-        get_string('summative', 'report_feedback_tracker') : "";
-}
-
-/**
  * Get the options for filtering the user table.
  *
  * @param stdClass $data
@@ -1155,6 +1142,19 @@ function get_user_generalfeedback($gradeitem) {
 
     $o .= html_writer::end_div();
     return $o;
+}
+
+/**
+ * Show a summative text for a summative grade item in students/users report.
+ *
+ * @param stdClass $gradeitem
+ * @param array $summativeids
+ * @return lang_string|string
+ * @throws coding_exception
+ */
+function get_user_summative($gradeitem, $summativeids) {
+    return $gradeitem->summative || in_array($gradeitem->itemid, $summativeids) ?
+        get_string('summative', 'report_feedback_tracker') : "";
 }
 
 /**
