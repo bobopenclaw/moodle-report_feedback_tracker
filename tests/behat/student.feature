@@ -24,7 +24,7 @@ Feature: As a student I want to see, sort and filter the results of the feredbac
       | Grade to pass | 8                       |
 
   @javascript
-  Scenario: For a student the feedback tracker report should be available in the profile.
+  Scenario: As a student I should be able to filter contemt.
     Given I am on the "Course 1" "course" page logged in as "student1"
     And I follow "Profile" in the user menu
     And I follow "Feedback tracker"
@@ -33,4 +33,5 @@ Feature: As a student I want to see, sort and filter the results of the feredbac
     And I should see "Test assignment"
     And I should see "Test quiz"
     When I select "Quiz" from the "filtertype" dropdown
-    Then I should not see "Test assignment"
+    Then I should not see "Test assignment" in the "#feedback_table" "css_element"
+    And I should see "Test quiz" in the "#feedback_table" "css_element"
