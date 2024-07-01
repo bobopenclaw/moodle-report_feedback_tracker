@@ -24,8 +24,8 @@
 
 use core\report_helper;
 
-require('../../config.php');
-require_once($CFG->dirroot.'/report/feedback_tracker/locallib.php');
+require(__DIR__ . '/../../config.php');
+require_once(__DIR__ . '/locallib.php');
 
 // If there is no course ID given redirect to the user report.
 if (!$courseid = optional_param('id', null, PARAM_INT)) {
