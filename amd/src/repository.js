@@ -25,11 +25,13 @@ export const updateHidingState = (
 export const updateFeedbackDuedate = (
     itemid,
     duedate,
+    duedatereason,
 ) => ajax([{
     methodname: 'report_feedback_tracker_save_feedback_duedate',
     args: {
         itemid: itemid,
-        duedate: duedate
+        duedate: duedate,
+        duedatereason: duedatereason
     },
 }])[0];
 

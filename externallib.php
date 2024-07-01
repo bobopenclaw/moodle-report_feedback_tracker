@@ -150,6 +150,7 @@ class report_feedback_tracker_external extends \core_external\external_api {
             [
                 'itemid' => new external_value(PARAM_RAW, 'The ID of the grade item'),
                 'duedate' => new external_value(PARAM_RAW, 'The due date in seconds'),
+                'duedatereason' => new external_value(PARAM_RAW, 'The reason for a manual due date'),
             ]
         );
     }
@@ -159,10 +160,11 @@ class report_feedback_tracker_external extends \core_external\external_api {
      *
      * @param int $itemid The ID of the grade item
      * @param int $duedate The due date in seconds
-     * @return bool will return success.
+     * @param string $duedatereason The reason for a manual due date
+     * @return string returns success.
      */
-    public static function save_feedback_duedate(int $itemid, int $duedate): bool {
-        global $DB;
+    public static function save_feedback_duedate(int $itemid, int $duedate, string $duedatereason): bool {
+        global $DB, $USER;
 
         if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid])) {
             $record->feedbackduedate = $duedate;
@@ -174,7 +176,17 @@ class report_feedback_tracker_external extends \core_external\external_api {
             $record->feedbackduedate = $duedate;
             $DB->insert_record('report_feedback_tracker', $record);
         }
-        return true;
+
+        // Add a record to the duedates table.
+        $record = new stdClass();
+        $record->gradeitem = $itemid;
+        $record->feedbackduedate = $duedate;
+        $record->reason = $duedatereason;
+        $record->userid = $USER->id;
+        $record->changedate = time();
+        $DB->insert_record('report_feedback_tracker_duedates', $record);
+
+        return get_string('feedbackduedate:updated', 'report_feedback_tracker');
     }
 
     /**
@@ -248,7 +260,7 @@ class report_feedback_tracker_external extends \core_external\external_api {
      * @param string $generalfeedback The general feedback text
      * @param int $gfurl The general feedback URL
      * @param int $gfdate
-     * @return bool
+     * @return string
      * @throws coding_exception
      * @throws dml_exception
      */
@@ -268,7 +280,7 @@ class report_feedback_tracker_external extends \core_external\external_api {
             $record->gfdate = $gfdate ? strtotime('now') : null;
             $DB->insert_record('report_feedback_tracker', $record);
         }
-        return true;
+        return get_string('generalfeedback:updated', 'report_feedback_tracker');
     }
 
     /**

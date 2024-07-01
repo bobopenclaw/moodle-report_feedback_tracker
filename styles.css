@@ -17,3 +17,25 @@
 #feedback_table_filterrow {
     background-color: lightgrey;
 }
+
+.reason_horizontal {
+    display: flex;
+    align-items: flex-start; /* Align items to the top */
+}
+
+.reason_horizontal i {
+    margin-right: 10px; /* Space between the icon and the textarea */
+}
+
+.reason_horizontal textarea {
+    flex-grow: 1; /* Allow the textarea to take up the remaining space */
+}
+
+.horizontal-aligned {
+    display: flex;
+    align-items: center; /* Align items vertically centered */
+}
+
+.horizontal-aligned i {
+    margin-left: 5px; /* Space between the icon and the textarea */
+}

@@ -179,7 +179,7 @@ function get_admin_feedback_record ($course, $gradeitem, $summativeids) {
 function get_admin_generalfeedback($gradeitem) {
     global $PAGE;
 
-    $o = html_writer::start_div('generalfeedback');
+    $o = html_writer::start_div('generalfeedback horizontal-aligned');
     if ($PAGE->user_is_editing()) {
         $o .= html_writer::span($gradeitem->generalfeedback, 'generalfeedbacktext',
             ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
@@ -507,7 +507,7 @@ function get_feedback_method($gradeitem) {
             $gradeitem->method,
             get_string('edit:method', 'report_feedback_tracker')
         );
-        return html_writer::div($OUTPUT->render($edititem));
+        return html_writer::div($OUTPUT->render($edititem), "horizontal-aligned");
     }
     return $gradeitem->method;
 }
@@ -1296,7 +1296,7 @@ function render_feedbackduedate($gradeitem, $feedbackperiod = 0) {
     $date = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
         ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 0);
 
-    $o = '';
+    $o = html_writer::start_div("horizontal-aligned");
     if ($PAGE->user_is_editing()) { // Render a date picker.
         // Default to current date if not specified.
         $date = isset($date) && $date > 0 ? $date : time();
@@ -1311,6 +1311,7 @@ function render_feedbackduedate($gradeitem, $feedbackperiod = 0) {
             'class' => 'date-picker',
             'data-action' => 'report_feedback_tracker/datepicker',
             'value' => date('Y-m-d', $date),
+            'data-deadlinedays' => get_config('report_feedback_tracker', 'feedbackdeadlinedays'),
         ]);
 
         $o .= $inputfield;
@@ -1327,7 +1328,7 @@ function render_feedbackduedate($gradeitem, $feedbackperiod = 0) {
         $o .= " <i class='$classes' title='$title' data-itemid='$gradeitem->itemid'
                 data-action='report_feedback_tracker/customhint' style='$style'></i>";
     }
-
+    $o .= html_writer::end_div();
     return $o;
 }
 
