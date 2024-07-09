@@ -24,7 +24,7 @@ defined('MOODLE_INTERNAL') || die;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once($CFG->dirroot . '/report/feedback_tracker/locallib.php');
+require_once('locallib.php');
 
 /**
  * Get the Feedback Tracker data for all enrolled users of a given course.

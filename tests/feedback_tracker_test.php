@@ -27,7 +27,7 @@ use context_course;
  * @category   test
  * @copyright  2024 UCL <m.opitz@ucl.ac.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @coversDefaultClass \report_feedback_tracker
+ * @covers \report_feedback_tracker
  */
 final class feedback_tracker_test extends advanced_testcase {
 
@@ -39,6 +39,55 @@ final class feedback_tracker_test extends advanced_testcase {
         global $PAGE;
         $this->resetAfterTest();
         $this->setAdminUser();
+    }
+
+    /**
+     * Test the user/student data.
+     *
+     * @covers \get_feedback_tracker_user_data
+     * @return void
+     * @throws \coding_exception
+     */
+    public function test_get_feedback_tracker_user_data(): void {
+
+        // Create a course and prepare the page.
+        $course = $this->getDataGenerator()->create_course();
+        $page = new \moodle_page();
+        $page->set_context(context_course::instance($course->id));
+        $page->set_pagelayout('course');
+
+        // Create users and enrol them.
+        $student1 = $this->getDataGenerator()->create_user();
+        $student2 = $this->getDataGenerator()->create_user();
+        $teacher = $this->getDataGenerator()->create_user();
+
+        $this->getDataGenerator()->enrol_user($student1->id, $course->id, 'student');
+        $this->getDataGenerator()->enrol_user($student2->id, $course->id, 'student');
+        $this->getDataGenerator()->enrol_user($teacher->id, $course->id, 'teacher');
+
+        // Setup some dummy data.
+        $this->setup_dummy_data($course, $teacher, $student1, $student2);
+
+        // Get the user data.
+        $userdata = get_feedback_tracker_user_data($student1->id, $course->id);
+
+        $records = $userdata->records;
+        $feedbackreleased = $records[0];
+        $feedbackextended = $records[1];
+        $feedbacklate = $records[2];
+        $submissionlate = $records[3];
+
+        $this->assertEquals($student1->username, $feedbackreleased->student, "Assert submission is by student 1");
+        $this->assertTrue(strstr($feedbackreleased->submissionstatus, 'Submission in time') > 0,
+            "Assert submission is in time");
+        $this->assertEquals('80/100', $feedbackreleased->grade, "Assert grade is shown correctly");
+        $this->assertEquals('Released', $feedbackreleased->feedbackstatus, "Assert feedback is released");
+
+        $this->assertEquals('Feedback in extended period', $feedbackextended->feedbackstatus,
+            "Assert feedback in extended period");
+        $this->assertEquals('Late', $feedbacklate->feedbackstatus, "Assert late feedback");
+        $this->assertTrue(strstr($submissionlate->submissionstatus, 'Submission was late') > 0,
+            "Assert that submission was late");
     }
 
     /**
@@ -154,55 +203,6 @@ final class feedback_tracker_test extends advanced_testcase {
     }
 
     /**
-     * Test the user/student data.
-     *
-     * @return void
-     * @throws \coding_exception
-     */
-    public function test_get_feedback_tracker_user_data(): void {
-
-        // Create a course and prepare the page.
-        $course = $this->getDataGenerator()->create_course();
-        $page = new \moodle_page();
-        $page->set_context(context_course::instance($course->id));
-        $page->set_pagelayout('course');
-
-        // Create users and enrol them.
-        $student1 = $this->getDataGenerator()->create_user();
-        $student2 = $this->getDataGenerator()->create_user();
-        $teacher = $this->getDataGenerator()->create_user();
-
-        $this->getDataGenerator()->enrol_user($student1->id, $course->id, 'student');
-        $this->getDataGenerator()->enrol_user($student2->id, $course->id, 'student');
-        $this->getDataGenerator()->enrol_user($teacher->id, $course->id, 'teacher');
-
-        // Setup some dummy data.
-        $this->setup_dummy_data($course, $teacher, $student1, $student2);
-
-        // Get the user data.
-        $userdata = get_feedback_tracker_user_data($student1->id, $course->id);
-
-        $records = $userdata->records;
-        $feedback_released = $records[0];
-        $feedback_extended = $records[1];
-        $feedback_late = $records[2];
-        $submission_late = $records[3];
-
-        $this->assertEquals($student1->username, $feedback_released->student, "Assert submission is by student 1");
-        $this->assertTrue(strstr($feedback_released->submissionstatus, 'Submission in time') > 0,
-            "Assert submission is in time");
-        $this->assertEquals('80/100', $feedback_released->grade, "Assert grade is shown correctly");
-        $this->assertEquals('Released', $feedback_released->feedbackstatus, "Assert feedback is released");
-
-        $this->assertEquals('Feedback in extended period', $feedback_extended->feedbackstatus,
-            "Assert feedback in extended period");
-        $this->assertEquals('Late', $feedback_late->feedbackstatus, "Assert late feedback");
-        $this->assertTrue(strstr($submission_late->submissionstatus, 'Submission was late') > 0,
-            "Assert that submission was late");
-
-    }
-
-    /**
      * Update a submission for a student and a course module.
      *
      * @param \stdClass $dmodule
@@ -213,21 +213,17 @@ final class feedback_tracker_test extends advanced_testcase {
     private function update_submission($module, $studentid, $submissiondate) {
         global $DB;
 
-        $day = 60 * 60 * 24;
-        $week = $day * 7;
-
         switch ($module->modname) {
             case 'assign':
-//                $this->setUser($studentid);
-                if ($submissionData = $DB->get_record('assign_submission', [
+                if ($submissiondata = $DB->get_record('assign_submission', [
                     'assignment' => $module->instance,
                     'userid' => $studentid,
                 ])) {
-                    $submissionData->timemodified = $submissiondate;
-                    $submissionData->status = 'submitted';
+                    $submissiondata->timemodified = $submissiondate;
+                    $submissiondata->status = 'submitted';
 
                     // Update submission data.
-                    $DB->update_record('assign_submission', $submissionData);
+                    $DB->update_record('assign_submission', $submissiondata);
                 }
                 break;
 
