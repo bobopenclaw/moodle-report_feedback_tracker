@@ -288,7 +288,7 @@ function get_admin_summative($gradeitem, $summativeids) {
         if ($gradeitem->summative) {
             $attributes['checked'] = 'checked';
         }
-        return html_writer::tag("input", "",$attributes);
+        return html_writer::tag("input", "", $attributes);
 
     } else {
         return $gradeitem->summative ? "<i class='fa fa-check'></i>" : '';

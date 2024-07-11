@@ -49,7 +49,7 @@
     <table id="feedback_table" class="table">
         <thead>
         <tr class="bg-secondary">
-            <th scope="col" style="width: 50%;">{{#str}} assessment, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
+            <th scope="col">{{#str}} assessment, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
             <th scope="col">{{#str}} duedate, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
             <th scope="col">{{#str}} feedbackduedate, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
             <th scope="col">{{#str}} feedbacks, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
@@ -61,7 +61,7 @@
         <tr id="feedback_table_filterrow" class="bg-light">
             <td  style="display: none;">
                 <select id="filtercourse">
-                    <option value=""></option>
+                    <option value="">&nbsp;</option>
                     {{#courseoptions}}
                         <option value="{{key}}">{{value}}</option>
                     {{/courseoptions}}
@@ -69,7 +69,7 @@
             </td>
             <td>
                 <select id="filtertype">
-                    <option value=""></option>
+                    <option value="">&nbsp;</option>
                     {{#typeoptions}}
                         <option value="{{key}}">{{value}}</option>
                     {{/typeoptions}}
@@ -83,7 +83,7 @@
             </td>
             <td>
                 <select id="filtermethod">
-                    <option value=""></option>
+                    <option value="">&nbsp;</option>
                     {{#methodoptions}}
                         <option value="{{key}}">{{value}}</option>
                     {{/methodoptions}}
@@ -97,7 +97,7 @@
             </td>
             <td>
                 <select id="filtersummative">
-                    <option value=""></option>
+                    <option value="">&nbsp;</option>
                     {{#summativeoptions}}
                         <option value="{{key}}">{{value}}</option>
                     {{/summativeoptions}}
@@ -109,8 +109,8 @@
         {{#records}}
             <tr>
                 <td class="col_assessment" data-filter="{{module}}">{{{type}}} {{{assessment}}}</td>
-                <td class="col_duedate">{{duedate}}</td>
-                <td class="col_feedbackduedate">{{{feedbackduedate}}}</td>
+                <td class="col_duedate text-nowrap">{{duedate}}</td>
+                <td class="col_feedbackduedate text-nowrap">{{{feedbackduedate}}}</td>
                 <td class="col_feedbacks">{{{feedbacks}}}</td>
                 <td class="col_method" data-filter="{{method}}">{{{method}}}</td>
                 <td class="col_responsibility textsearchable">{{{responsibility}}}</td>
