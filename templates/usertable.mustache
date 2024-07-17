@@ -51,8 +51,7 @@
             <tr class="feedback_table_header">
                 <th scope="col" class="align-top" style="min-width: 300px; width: 300px;">{{#str}} assessment, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
                 <th scope="col" class="align-top">{{#str}} type, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
-                <th scope="col" class="align-top">{{#str}} duedate, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
-                <th scope="col" class="align-top">{{#str}} submissiondate, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
+                <th scope="col" class="align-top">{{#str}} duesubmissiondate, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
                 <th scope="col" class="align-top">{{#str}} feedbackduedate, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
                 <th scope="col" class="align-top">{{#str}} method, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
                 <th scope="col" class="align-top">{{#str}} generalfeedback, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
@@ -86,8 +85,6 @@
                 <td>
                 </td>
                 <td>
-                </td>
-                <td>
                     <label for="filterfeedback" class="sr-only">{{#str}}filter:feedback, report_feedback_tracker{{/str}}</label>
                     <select id="filterfeedback" class="custom-select custom-select-sm w-100">
                         <option value="">{{#str}}filter:feedback, report_feedback_tracker{{/str}}</option>
@@ -114,8 +111,14 @@
                         </div>
                     </td>
                     <td class="col_summative small" data-filter="{{summative}}">{{{summative}}}</td>
-                    <td class="col_duedate text-nowrap small">{{duedate}}</td>
-                    <td class="col_submissiondate text-nowrap small">{{submissiondate}}</td>
+                    <td class="col_submissiondate text-nowrap small">
+                        <div class="text-nowrap w-100 mb-1">
+                            {{duedate}}
+                        </div>
+                        <div class="text-nowrap strong w-100">
+                            {{submissiondate}}
+                        </div>
+                    </td>
                     <td class="col_feedback" data-filter="{{feedbackstatus}}">
                         <div class="small w-100">
                             {{{feedbackduedate}}}

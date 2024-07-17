@@ -28,6 +28,7 @@ $string['contact'] = 'Contact';
 $string['course'] = 'Course';
 $string['dateformat:default'] = "d. M Y";
 $string['duedate'] = 'Due';
+$string['duesubmissiondate'] = 'Due /<br>Submission';
 $string['edit:generalfeedback'] = 'Edit general feedback';
 $string['edit:method'] = 'Edit method';
 $string['edit:responsibility'] = 'Edit responsibility';
