@@ -971,13 +971,10 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
             continue;
         }
 
-        // Check if a user is allowed to access the grade item.
-        if ($userid) {
-            if ($gradeitem->itemmodule) {
-                $capability = 'mod/' . $gradeitem->itemmodule . ':view';
-                if (!has_capability($capability, context_module::instance($gradeitem->cmid))) {
-                    continue;
-                }
+        // If item is a module (e.g. not manual) check if a user is allowed to access it.
+        if ($userid && $gradeitem->itemmodule) {
+            if (!\core_availability\info_module::is_user_visible($gradeitem->cmid, $userid, false)) {
+                continue;
             }
         }
 
