@@ -279,17 +279,22 @@ function get_admin_summative($gradeitem, $summativeids) {
 
     // If not set by SITS one may still declare summative manually.
     if ($PAGE->user_is_editing() && $gradeitem->summative < 2) {
-        $attributes = [
-            'data-action' => 'report_feedback_tracker/summative_checkbox',
-            'type' => 'checkbox',
-            'class' => 'form-check-input summative_checkbox',
-            'cmid' => '$gradeitem->itemid',
-        ];
         if ($gradeitem->summative) {
-            $attributes['checked'] = 'checked';
+            return "<input
+                data-action='report_feedback_tracker/summative_checkbox'
+                type='checkbox'
+                class='form-check-input summative_checkbox'
+                cmid='$gradeitem->itemid'
+                checked='checked'
+            >";
+        } else {
+            return "<input
+                data-action='report_feedback_tracker/summative_checkbox'
+                type='checkbox'
+                class='form-check-input summative_checkbox'
+                cmid='$gradeitem->itemid'
+            >";
         }
-        return html_writer::tag("input", "", $attributes);
-
     } else {
         return $gradeitem->summative ? "<i class='fa fa-check'></i>" : '';
     }
