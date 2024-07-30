@@ -51,7 +51,21 @@ function get_feedback_tracker_admin_data($courseid) {
     $users = get_enrolled_users($context);
     $sdata->students = [];
     foreach ($users as $user) {
-        $sdata->students[] = $user;
+        // Check if the user has no managerial capabilities (e.g. is a student).
+        $capability = 'gradereport/grader:view';
+        if (!has_capability('gradereport/grader:view', $context, $user) &&
+            !has_capability('moodle/course:manageactivities', $context, $user)
+        ) {
+            $sdata->students[] = $user;
+        } else { // If a user has a managerial role check if there is (also) a student role.
+            $roles = get_user_roles($context, $user->id, true);
+            foreach ($roles as $role) {
+                if (strstr($role->shortname, 'student')) {
+                    $sdata->students[] = $user;
+                    break;
+                }
+            }
+        }
     }
 
     // Render the drop down menu for switching into student view.
