@@ -38,13 +38,6 @@ function get_feedback_tracker_admin_data($courseid) {
     $data = new stdClass();
     $data->records = [];
 
-    // The filter options.
-    $data->courseoptions = [];
-    $data->typeoptions = [];
-    $data->summativeoptions = [];
-    $data->feedbackoptions = [];
-    $data->methodoptions = [];
-
     // Get the students of the course.
     $sdata = new stdClass();
     $context = \context_course::instance($courseid);
@@ -91,13 +84,6 @@ function get_feedback_tracker_admin_data($courseid) {
 function get_feedback_tracker_user_data($userid, $courseid) {
     $data = new stdClass();
     $data->records = [];
-
-    // The filter options.
-    $data->courseoptions = [];
-    $data->typeoptions = [];
-    $data->summativeoptions = [];
-    $data->feedbackoptions = [];
-    $data->methodoptions = [];
 
     // If a course ID is given return data for that course only
     // otherwise return data for all courses a user is enrolled in.

@@ -49,6 +49,7 @@ Feedback due date now again calculated from assessment due date where available.
 $string['feedbackduedate:updated'] = 'Feedback due date updated';
 $string['feedbacks'] = 'Feedback due<br>provided';
 $string['field_required'] = 'This field is required!';
+$string['filter:academicyear'] = 'Filter by academic year';
 $string['filter:by'] = 'Filter by';
 $string['filter:contact'] = 'Filter by contact';
 $string['filter:course'] = 'Filter by course';

@@ -58,11 +58,18 @@
             </tr>
             <tr id="feedback_table_filterrow" class="bg-light">
                 <td class="d-flex align-items-center">
+                    <label for="filteracademicyear" class="sr-only">{{#str}}filter:course, report_feedback_tracker{{/str}}</label>
+                    <select id="filteracademicyear" class="custom-select custom-select-sm w-100">
+                        <option value="">{{#str}}filter:academicyear, report_feedback_tracker{{/str}}</option>
+                        {{#academicyearoptions}}
+                            <option value="{{key}}">{{value}}</option>
+                        {{/academicyearoptions}}
+                    </select>
                     <label for="filtercourse" class="sr-only">{{#str}}filter:course, report_feedback_tracker{{/str}}</label>
                     <select id="filtercourse" class="custom-select custom-select-sm w-100">
                         <option value="">{{#str}}filter:course, report_feedback_tracker{{/str}}</option>
                         {{#courseoptions}}
-                            <option value="{{key}}">{{value}}</option>
+                            <option value="{{key}}" data-filter-academicyear="{{academicyear}}">{{value}}</option>
                         {{/courseoptions}}
                     </select>
                     <label for="filtertype" class="sr-only">{{#str}}filter:type, report_feedback_tracker{{/str}}</label>
@@ -102,9 +109,9 @@
             <tbody>
             {{#records}}
                 <tr>
-                    <td class="col_course col_assessment" data-filter="{{courseid}}" data-filter-assessment="{{module}}">
-                        <div class="small w-100">
-                            {{{course}}}
+                    <td class="col_course col_assessment col_academicyear" data-filter="{{courseid}}" data-filter-academicyear="{{academicyear}}" data-filter-assessment="{{module}}">
+                        <div class="small w-100 text-nowrap">
+                            {{{course}}}{{#academicyear}} ({{academicyear}}){{/academicyear}}
                         </div>
                         <div class="w-100">
                             {{{type}}} {{{assessment}}}

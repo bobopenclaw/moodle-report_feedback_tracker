@@ -152,6 +152,7 @@ function get_admin_feedback_record ($course, $gradeitem, $summativeids) {
     $record->course = $course->fullname;
     $record->courseid = $course->id;
     $record->coursename = $course->fullname;
+    $record->academicyear = get_academic_year($gradeitem->courseid);
     $record->assessment = get_item_link($gradeitem);
     $record->type = get_item_type($gradeitem);
     $record->module = get_item_module($gradeitem);
@@ -168,6 +169,28 @@ function get_admin_feedback_record ($course, $gradeitem, $summativeids) {
     $record->hidden = get_hidden_state($gradeitem);
 
     return $record;
+}
+
+/**
+ * Get course academic year from custom course fields.
+ *
+ * @param int $courseid
+ */
+function get_academic_year(int $courseid): ?string {
+    $academicyear = null;
+    $handler = \core_course\customfield\course_handler::create();
+    $data = $handler->get_instance_data($courseid, true);
+    foreach ($data as $dta) {
+        if ($dta->get_field()->get('shortname') === "course_year") {
+            $academicyear = !empty($dta->get_value()) ? $dta->get_value() : null;
+        }
+    }
+    if ($academicyear) {
+        $suffix = (int)substr($academicyear, -2) + 1;
+        $academicyear .= "-$suffix";
+
+    }
+    return $academicyear;
 }
 
 /**
@@ -215,13 +238,32 @@ function get_admin_generalfeedback($gradeitem) {
  * @return void
  */
 function get_admin_filter_options(&$data) {
+    // The filter options.
+    $data->academicyearoptions = [];
+    $data->courseoptions = [];
+    $data->typeoptions = [];
+    $data->summativeoptions = [];
+    $data->feedbackoptions = [];
+    $data->methodoptions = [];
+
     foreach ($data->records as $record) {
+
+        // Academic year options.
+        if ($record->academicyear) {
+            $option = new stdClass();
+            $option->key = $record->academicyear;
+            $option->value = $record->academicyear;
+            if (!in_array($option, $data->academicyearoptions)) {
+                $data->academicyearoptions[] = $option;
+            }
+        }
 
         // Course options.
         if ($record->courseid) {
             $option = new stdClass();
             $option->key = $record->courseid;
             $option->value = $record->coursename;
+            $option->academicyear = $record->academicyear;
             if (!in_array($option, $data->courseoptions)) {
                 $data->courseoptions[] = $option;
             }
@@ -329,6 +371,7 @@ function get_admin_turnitin_records($course, $gradeitem, $summativeids, &$data) 
         $record->course = $course->fullname;
         $record->courseid = $course->id;
         $record->coursename = $course->fullname;
+        $record->academicyear = get_academic_year($gradeitem->courseid);
         $record->assessment = get_item_link($gradeitem, $tttpart->partname);
         $record->type = get_item_type($gradeitem);
         $record->module = get_item_module($gradeitem);
@@ -1106,6 +1149,7 @@ function get_user_feedback_record($course, $userid, $gradeitem, $summativeids) {
     $record->course = $course->fullname;
     $record->courseid = $course->id;
     $record->coursename = $course->fullname;
+    $record->academicyear = get_academic_year($gradeitem->courseid);
     $record->assessment = get_item_link($gradeitem);
     $record->type = get_item_type($gradeitem);
     $record->module = get_item_module($gradeitem);
@@ -1133,13 +1177,32 @@ function get_user_feedback_record($course, $userid, $gradeitem, $summativeids) {
  * @return void
  */
 function get_user_filter_options(&$data) {
+    // The filter options.
+    $data->academicyearoptions = [];
+    $data->courseoptions = [];
+    $data->typeoptions = [];
+    $data->summativeoptions = [];
+    $data->feedbackoptions = [];
+    $data->methodoptions = [];
+
     foreach ($data->records as $record) {
+
+        // Academic year options.
+        if ($record->academicyear) {
+            $option = new stdClass();
+            $option->key = $record->academicyear;
+            $option->value = $record->academicyear;
+            if (!in_array($option, $data->academicyearoptions)) {
+                $data->academicyearoptions[] = $option;
+            }
+        }
 
         // Course options.
         if ($record->courseid) {
             $option = new stdClass();
             $option->key = $record->courseid;
             $option->value = $record->coursename;
+            $option->academicyear = $record->academicyear;
             if (!in_array($option, $data->courseoptions)) {
                 $data->courseoptions[] = $option;
             }
@@ -1261,6 +1324,7 @@ function get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, 
         $record->course = $course->fullname;
         $record->courseid = $course->id;
         $record->coursename = $course->fullname;
+        $record->academicyear = get_academic_year($gradeitem->courseid);
         $record->assessment = get_item_link($gradeitem, $tttpart->partname);
         $record->type = get_item_type($gradeitem);
         $record->module = get_item_module($gradeitem);

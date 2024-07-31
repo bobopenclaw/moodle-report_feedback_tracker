@@ -12,58 +12,84 @@ export function tableFilters() {
     const dataTable = document.getElementById('feedback_table');
     const rows = dataTable.getElementsByTagName('tr');
 
+    const filterAcademicYear = document.getElementById('filteracademicyear');
     const filterCourse = document.getElementById('filtercourse');
+    const filterType = document.getElementById('filtertype');
     const filterFeedback = document.getElementById('filterfeedback');
     const filterMethod = document.getElementById('filtermethod');
     const filterSummative = document.getElementById('filtersummative');
-    const filterType = document.getElementById('filtertype');
+
+    const originalCourseOptions = filterCourse ? Array.from(filterCourse.options) : null;
+
+    const getFilterValues = () => ({
+        academicyearValue: filterAcademicYear ? filterAcademicYear.value : null,
+        courseValue: filterCourse ? filterCourse.value : null,
+        typeValue: filterType ? filterType.value : null,
+        feedbackValue: filterFeedback ? filterFeedback.value : null,
+        methodValue: filterMethod ? filterMethod.value : null,
+        summativeValue: filterSummative ? filterSummative.value : null
+    });
+
+    const rowMatchesFilters = (row, filterValues) => {
+        const academicyearColumn = row.querySelector('.col_academicyear');
+        const courseColumn = row.querySelector('.col_course');
+        const typeColumn = row.querySelector('.col_assessment');
+        const feedbackColumn = row.querySelector('.col_feedback');
+        const methodColumn = row.querySelector('.col_method');
+        const summativeColumn = row.querySelector('.col_summative');
+
+        return (
+            (!academicyearColumn || academicyearColumn.getAttribute('data-filter-academicyear') ===
+                filterValues.academicyearValue || !filterValues.academicyearValue) &&
+            (!courseColumn || courseColumn.getAttribute('data-filter') ===
+                filterValues.courseValue || !filterValues.courseValue) &&
+            (!typeColumn || typeColumn.getAttribute('data-filter-assessment') ===
+                filterValues.typeValue || !filterValues.typeValue) &&
+            (!feedbackColumn || feedbackColumn.getAttribute('data-filter') ===
+                filterValues.feedbackValue || !filterValues.feedbackValue) &&
+            (!methodColumn || methodColumn.getAttribute('data-filter') ===
+                filterValues.methodValue || !filterValues.methodValue) &&
+            (!summativeColumn || summativeColumn.getAttribute('data-filter') ===
+                filterValues.summativeValue || !filterValues.summativeValue)
+        );
+    };
 
     const filterTable = () => {
+        const filterValues = getFilterValues();
+        Array.from(rows).forEach(row => {
+            row.style.display = rowMatchesFilters(row, filterValues) ? '' : 'none';
+        });
+    };
 
-        const courseValue = filterCourse ? filterCourse.value : null;
-        const feedbackValue = filterFeedback ? filterFeedback.value : null;
-        const methodValue = filterMethod ? filterMethod.value : null;
-        const summativeValue = filterSummative ? filterSummative.value : null;
-        const typeValue = filterType ? filterType.value : null;
+    // Update course filter options to only show courses of a filtered academic year if any.
+    const updateCourseOptions = () => {
+        const selectedAcademicYear = filterAcademicYear.value;
+        filterCourse.innerHTML = '';
 
-        rows.forEach(row => {
-            const courseColumn = row.querySelector('.col_course');
-            const feedbackColumn = row.querySelector('.col_feedback');
-            const methodColumn = row.querySelector('.col_method');
-            const summativeColumn = row.querySelector('.col_summative');
-            const typeColumn = row.querySelector('.col_assessment');
+        const filteredOptions = originalCourseOptions.filter(option => {
+            const filterData = option.getAttribute('data-filter-academicyear');
+            return !selectedAcademicYear || !filterData || filterData === selectedAcademicYear;
+        });
 
-            const match = (
-                (!courseColumn || courseColumn.getAttribute('data-filter') === courseValue || !courseValue) &&
-                (!feedbackColumn || feedbackColumn.getAttribute('data-filter') === feedbackValue || !feedbackValue) &&
-                (!methodColumn || methodColumn.getAttribute('data-filter') === methodValue || !methodValue) &&
-                (!summativeColumn || summativeColumn.getAttribute('data-filter') === summativeValue || !summativeValue) &&
-                (!typeColumn || typeColumn.getAttribute('data-filter-assessment') === typeValue || !typeValue)
-            );
-
-            row.style.display = match ? '' : 'none';
+        filteredOptions.forEach(option => {
+            filterCourse.appendChild(option);
         });
     };
 
     // Add event listeners to filter dropdowns.
-    if (filterCourse) {
-        filterCourse.addEventListener('change', filterTable);
-    }
-    if (filterFeedback) {
-        filterFeedback.addEventListener('change', filterTable);
-    }
-    if (filterMethod) {
-        filterMethod.addEventListener('change', filterTable);
-    }
-    if (filterSummative) {
-        filterSummative.addEventListener('change', filterTable);
-    }
-    if (filterType) {
-        filterType.addEventListener('change', filterTable);
-    }
+    [filterAcademicYear, filterCourse, filterType, filterFeedback, filterMethod, filterSummative].forEach(filter => {
+        if (filter) {
+            filter.addEventListener('change', filterTable);
+        }
+    });
 
+    if (filterAcademicYear) {
+        filterAcademicYear.addEventListener('change', () => {
+            updateCourseOptions();
+            filterTable();
+        });
+    }
 }
-
 /**
  * Initialise the text filter.
  */
