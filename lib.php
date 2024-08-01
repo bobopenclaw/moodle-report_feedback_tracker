@@ -44,13 +44,14 @@ function get_feedback_tracker_admin_data($courseid) {
     $users = get_enrolled_users($context);
     $sdata->students = [];
     foreach ($users as $user) {
-        // Check if the user has no managerial capabilities (e.g. is a student).
-        $capability = 'gradereport/grader:view';
+        // Check if the user has no managerial or supervising capabilities (e.g. is a student).
         if (!has_capability('gradereport/grader:view', $context, $user) &&
-            !has_capability('moodle/course:manageactivities', $context, $user)
+            !has_capability('moodle/course:manageactivities', $context, $user) &&
+            !has_capability('enrol/category:synchronised', $context, $user) &&
+            !has_capability('moodle/course:view', $context, $user)
         ) {
             $sdata->students[] = $user;
-        } else { // If a user has a managerial role check if there is (also) a student role.
+        } else { // If a user has a managerial or supervising role check if there is (also) a student role.
             $roles = get_user_roles($context, $user->id, true);
             foreach ($roles as $role) {
                 if (strstr($role->shortname, 'student')) {
@@ -81,7 +82,7 @@ function get_feedback_tracker_admin_data($courseid) {
  * @param int $courseid
  * @return stdClass
  */
-function get_feedback_tracker_user_data($userid, $courseid) {
+function get_feedback_tracker_user_data($userid, $courseid = 0) {
     $data = new stdClass();
     $data->records = [];
 

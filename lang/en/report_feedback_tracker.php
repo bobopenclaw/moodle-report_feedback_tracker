@@ -41,6 +41,8 @@ $string['feedback:in_time'] = 'Released';
 $string['feedback:late'] = 'Late';
 $string['feedback:overdue'] = 'Overdue';
 $string['feedback:warning'] = 'Warning!';
+$string['feedback_tracker:view'] = 'View feedback tracker';
+$string['feedback_tracker:viewuserreport'] = 'View feedback tracker user report';
 $string['feedbackduedate'] = 'Feedback due';
 $string['feedbackduedate:custom'] = 'Feedback due date set manually';
 $string['feedbackduedate:reason'] = 'Please give a reason for a manual feedback due date:';
@@ -48,8 +50,6 @@ $string['feedbackduedate:removedmessage'] = 'Custom feedback due date removed.
 Feedback due date now again calculated from assessment due date where available.';
 $string['feedbackduedate:updated'] = 'Feedback due date updated';
 $string['feedbacks'] = 'Feedback due<br>provided';
-$string['feedback_tracker:view'] = 'View feedback tracker';
-$string['feedback_tracker:viewuserreport'] = 'View feedback tracker user report';
 $string['field_required'] = 'This field is required!';
 $string['filter:academicyear'] = 'Filter by academic year';
 $string['filter:by'] = 'Filter by';

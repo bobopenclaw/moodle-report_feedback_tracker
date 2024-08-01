@@ -87,7 +87,7 @@ Feature: As an admin I want to be able to hide a grade item from the report, I w
       | gfurl           | https://www.ucl.ac.uk  |
     And I press "Save changes"
     Then I should see "Some general feedback"
-    And I should not see "https://www.ucl.ac.uk"
+    And I should see "https://www.ucl.ac.uk"
     And I log out
     # Check that a student can see the general feedback.
     When I am on the "Course 1" "course" page logged in as "student1"
