@@ -40,6 +40,7 @@ export const init = async() => {
                 // Get the general feedback text, URL and optional date.
                 const generalfeedback = document.getElementById('generalfeedback').value;
                 const gfurl = document.getElementById('gfurl').value;
+                const link = '<a href="' + gfurl + '">' + gfurl + '</a>';
 
                 // Update the database.
                 const response = await updateGeneralFeedback(itemid, generalfeedback, gfurl);
@@ -48,6 +49,7 @@ export const init = async() => {
                 target.setAttribute('data-generalfeedback', generalfeedback);
                 target.setAttribute('data-gfurl', gfurl);
                 document.getElementById('generalfeedbacktext_' + itemid).innerHTML = generalfeedback;
+                document.getElementById('gfurl_' + itemid).innerHTML = link;
 
                 window.console.log(response);
             });
