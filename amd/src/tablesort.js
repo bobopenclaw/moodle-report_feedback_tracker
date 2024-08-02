@@ -32,9 +32,17 @@ export function tableSort() {
         const rowsArray = Array.from(tbody.querySelectorAll('tr'));
 
         const sortedRows = rowsArray.sort((rowA, rowB) => {
-            const cellA = rowA.querySelectorAll('td')[columnIndex].textContent.trim();
-            const cellB = rowB.querySelectorAll('td')[columnIndex].textContent.trim();
-
+            var cellA = null;
+            var cellB = null;
+            const selectA = rowA.querySelectorAll('.sort-this')[columnIndex];
+            const selectB = rowB.querySelectorAll('.sort-this')[columnIndex];
+            if (selectA && selectB) {
+                cellA = selectA.textContent.trim();
+                cellB = selectB.textContent.trim();
+            } else {
+                cellA = rowA.querySelectorAll('td')[columnIndex].textContent.trim();
+                cellB = rowB.querySelectorAll('td')[columnIndex].textContent.trim();
+            }
             return cellA.localeCompare(cellB, undefined, {numeric: true}) * direction;
         });
 

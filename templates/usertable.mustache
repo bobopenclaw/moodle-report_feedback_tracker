@@ -49,12 +49,12 @@
         <table class="table" id="feedback_table">
             <thead class="small bg-light">
             <tr class="feedback_table_header">
-                <th scope="col" class="align-top" style="min-width: 300px; width: 300px;">{{#str}} assessment, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
-                <th scope="col" class="align-top">{{#str}} type, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
-                <th scope="col" class="align-top">{{#str}} duesubmissiondate, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
-                <th scope="col" class="align-top">{{#str}} feedbackduedate, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
-                <th scope="col" class="align-top">{{#str}} method, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
-                <th scope="col" class="align-top">{{#str}} generalfeedback, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
+                <th scope="col" class="align-top" style="min-width: 300px; width: 300px;" data-column="col_assessment">{{#str}} assessment, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
+                <th scope="col" class="align-top" data-column="col_type">{{#str}} type, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
+                <th scope="col" class="align-top" data-column="col_submissiondate" data-type="numeric">{{#str}} duesubmissiondate, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
+                <th scope="col" class="align-top" data-column="col_feedbackduedate" data-type="numeric">{{#str}} feedbackduedate, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
+                <th scope="col" class="align-top" data-column="col_method">{{#str}} method, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
+                <th scope="col" class="align-top" data-column="col_generalfeedback">{{#str}} generalfeedback, report_feedback_tracker {{/str}} <span class="indicator"></span></th>
             </tr>
             <tr id="feedback_table_filterrow" class="bg-light">
                 <td class="d-flex align-items-center">
@@ -113,12 +113,13 @@
                         <div class="small w-100 text-nowrap">
                             {{{course}}}{{#academicyear}} ({{academicyear}}){{/academicyear}}
                         </div>
-                        <div class="w-100">
+                        <div class="w-100 sort-this" data-sort="assessment">
                             {{{type}}} {{{assessment}}}
                         </div>
                     </td>
-                    <td class="col_summative small" data-filter="{{summative}}">{{{summative}}}</td>
+                    <td class="col_summative small sort-this" data-filter="{{summative}}">{{{summative}}}</td>
                     <td class="col_submissiondate text-nowrap small">
+                        <div class="sort-this hidden">{{{duedateraw}}}</div>
                         <div class="text-nowrap w-100 mb-1">
                             {{duedate}}
                         </div>
@@ -127,6 +128,7 @@
                         </div>
                     </td>
                     <td class="col_feedback" data-filter="{{feedbackstatus}}">
+                        <div class="sort-this hidden">{{{feedbackduedateraw}}}</div>
                         <div class="small w-100">
                             {{{feedbackduedate}}}
                         </div>
@@ -134,8 +136,12 @@
                             {{{feedback}}}
                         </div>
                     </td>
-                    <td class="col_method" data-filter="{{method}}">{{{method}}}</td>
-                    <td class="col_generalfeedback">{{{generalfeedback}}}</td>
+                    <td class="col_method" data-filter="{{method}}">
+                        <div class="sort-this">{{{method}}}</div>
+                    </td>
+                    <td class="col_generalfeedback sort-this">
+                        <div class="sort-this">{{{generalfeedback}}}</div>
+                    </td>
                 </tr>
             {{/records}}
             </tbody>
@@ -145,9 +151,9 @@
 
 {{#js}}
     require(['report_feedback_tracker/tablefilters'], function(tablefilters) {
-    tablefilters.init();
+        tablefilters.init();
     });
     require(['report_feedback_tracker/tablesort'], function(tablesort) {
-    tablesort.init();
+        tablesort.init();
     });
 {{/js}}

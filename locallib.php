@@ -157,7 +157,10 @@ function get_admin_feedback_record ($course, $gradeitem, $summativeids) {
     $record->type = get_item_type($gradeitem);
     $record->module = get_item_module($gradeitem);
     $record->duedate = $gradeitem->duedate == 0 ? '--' : date($dateformat, $gradeitem->duedate);
+    $record->duedateraw = $gradeitem->duedate;
     $record->feedbackduedate = render_feedbackduedate($gradeitem, $feedbackperiod);
+    $record->feedbackduedateraw = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
+        ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 0);
     $record->feedbacks = get_feedbacks($gradeitem);
     $record->method = get_feedback_method($gradeitem);
     $record->responsibility = get_feedback_responsibility($gradeitem);
@@ -298,9 +301,7 @@ function get_admin_filter_options(&$data) {
                 $data->typeoptions[] = $option;
             }
         }
-
     }
-
 }
 
 /**
@@ -376,7 +377,10 @@ function get_admin_turnitin_records($course, $gradeitem, $summativeids, &$data) 
         $record->type = get_item_type($gradeitem);
         $record->module = get_item_module($gradeitem);
         $record->duedate = $duedate == 0 ? '--' : date($dateformat, $duedate);
+        $record->duedateraw = $duedate;
         $record->feedbackduedate = render_feedbackduedate($gradeitem, $feedbackperiod);
+        $record->feedbackduedateraw = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
+            ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 0);
         $record->feedbacks = get_feedbacks($gradeitem);
         $record->method = get_feedback_method($gradeitem);
         $record->responsibility = get_feedback_responsibility($gradeitem);
@@ -451,148 +455,6 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod,
             "badge badge-danger");
     }
 
-    if ($contact) {
-        $o .= html_writer::start_div('feedback_tracker_contact');
-        $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
-        $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
-        $o .= html_writer::end_div();
-    }
-    return $o;
-
-    // The feedback is due within the due time - so do nothing and show a contact.
-//    return '';
-
-
-
-
-
-    // NO feedback was given but it's still within the extended period.
-    if (!isset($gradeitem->finalgrade) && $feedbackduedate < time() && $warningduedate >= time() ) {
-        $o = html_writer::div(get_string('feedback:due', 'report_feedback_tracker'),
-            "badge badge-warning");
-        if ($contact) {
-            $o .= html_writer::start_div('feedback_tracker_contact');
-            $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
-            $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
-            $o .= html_writer::end_div();
-        }
-        return $o;
-    }
-
-    // NO feedback was given, and it is beyond the extended period.
-    if (!isset($gradeitem->finalgrade) && $warningduedate < time()) {
-        $o = html_writer::div(get_string('feedback:overdue', 'report_feedback_tracker'),
-            "badge badge-danger");
-        if ($contact) {
-            $o .= html_writer::start_div('feedback_tracker_contact');
-            $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
-            $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
-            $o .= html_writer::end_div();
-        }
-        return $o;
-    }
-
-    // The feedback is due within the due time - so do nothing and show a contact.
-    $o = '';
-    if ($contact) {
-        $o .= html_writer::start_div('feedback_tracker_contact');
-        $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
-        $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
-        $o .= html_writer::end_div();
-    }
-    return $o;
-}
-function get_feedback_badge0($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate) {
-
-    if (!isset($gradeitem->gfdate) && $submissiondate == 0) {
-        return '';
-    }
-
-    $contact = $gradeitem->responsibility;
-
-    // Final grade is available even if there is no due date.
-    if (!$feedbackduedate && isset($gradeitem->finalgrade)) {
-        $o = html_writer::div(get_string('feedback:released', 'report_feedback_tracker'),
-            "badge badge-success");
-
-        if ($contact) {
-            $o .= html_writer::start_div('feedback_tracker_contact');
-            $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
-            $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
-            $o .= html_writer::end_div();
-        }
-        return $o;
-    }
-
-    // Feedback was given in time.
-    if (isset($gradeitem->gfdate) || (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $feedbackduedate)) {
-        $o = html_writer::div(get_string('feedback:released', 'report_feedback_tracker'),
-            "badge badge-success");
-        if ($contact) {
-            $o .= html_writer::start_div('feedback_tracker_contact');
-            $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
-            $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
-            $o .= html_writer::end_div();
-        }
-        return $o;
-    }
-
-    $warningduedate = $feedbackduedate + $feedbackextendperiod;
-
-    // Feedback was given within the extended period.
-    if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $warningduedate) {
-        $o = html_writer::div(get_string('feedback:extended', 'report_feedback_tracker'),
-            "badge badge-warning");
-        if ($contact) {
-            $o .= html_writer::start_div('feedback_tracker_contact');
-            $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
-            $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
-            $o .= html_writer::end_div();
-        }
-        return $o;
-    }
-
-    // Feedback was given outside the extended period.
-    if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate > $warningduedate) {
-        $o = html_writer::div(get_string('feedback:late', 'report_feedback_tracker'),
-            "badge badge-warning");
-        if ($contact) {
-            $o .= html_writer::start_div('feedback_tracker_contact');
-            $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
-            $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
-            $o .= html_writer::end_div();
-        }
-        return $o;
-    }
-
-    // NO feedback was given but it's still within the extended period.
-    if (!isset($gradeitem->finalgrade) && $feedbackduedate < time() && $warningduedate >= time() ) {
-        $o = html_writer::div(get_string('feedback:due', 'report_feedback_tracker'),
-            "badge badge-warning");
-        if ($contact) {
-            $o .= html_writer::start_div('feedback_tracker_contact');
-            $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
-            $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
-            $o .= html_writer::end_div();
-        }
-        return $o;
-    }
-
-    // NO feedback was given, and it is beyond the extended period.
-    if (!isset($gradeitem->finalgrade) && $warningduedate < time()) {
-        $o = html_writer::div(get_string('feedback:overdue', 'report_feedback_tracker'),
-            "badge badge-danger");
-        if ($contact) {
-            $o .= html_writer::start_div('feedback_tracker_contact');
-            $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
-            $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
-            $o .= html_writer::end_div();
-        }
-        return $o;
-    }
-
-    // The feedback is due within the due time - so do nothing and show a contact.
-    $o = '';
     if ($contact) {
         $o .= html_writer::start_div('feedback_tracker_contact');
         $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
@@ -683,50 +545,8 @@ function get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod
         return get_string('feedback:late', 'report_feedback_tracker');
     }
 
-    // NO feedback was given, and it is beyond the extended period.
-    if (!isset($gradeitem->finalgrade) && $warningduedate < time()) {
-        return get_string('feedback:overdue', 'report_feedback_tracker');
-    }
-
-    // The feedback is due within the due time - so do nothing and show a contact.
-    return '';
-}
-function get_feedback_status0($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate) {
-
-    // If there is no general feedback date and no submission there is no feedback(?).
-    if (!isset($gradeitem->gfdate) && $submissiondate == 0) {
-        return '';
-    }
-
-    // Final grade is available even if there is no due date or when only cohort feedback is given.
-    if ((!$feedbackduedate && isset($gradeitem->finalgrade)) || (isset($gradeitem->gfdate) && $gradeitem->gfdate > 0)) {
-        return get_string('feedback:released', 'report_feedback_tracker');
-    }
-
-    // Feedback was given in time.
-    if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $feedbackduedate) {
-        return get_string('feedback:released', 'report_feedback_tracker');
-    }
-
-    $warningduedate = $feedbackduedate + $feedbackextendperiod;
-
-    // Feedback was given within the extended period.
-    if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $warningduedate) {
-        return get_string('feedback:extended', 'report_feedback_tracker');
-    }
-
-    // Feedback was given outside the extended period.
-    if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate > $warningduedate) {
-        return get_string('feedback:late', 'report_feedback_tracker');
-    }
-
-    // NO feedback was given but it's still within the extended period.
-    if (!isset($gradeitem->finalgrade) && $feedbackduedate < time() && $warningduedate >= time() ) {
-        return get_string('feedback:due', 'report_feedback_tracker');
-    }
-
-    // NO feedback was given, and it is beyond the extended period.
-    if (!isset($gradeitem->finalgrade) && $warningduedate < time()) {
+    // NO feedback was given, and it is beyond the feedback due date.
+    if (!isset($gradeitem->finalgrade) && $feedbackduedate < time()) {
         return get_string('feedback:overdue', 'report_feedback_tracker');
     }
 
@@ -859,11 +679,10 @@ function get_item_type($gradeitem) {
             $title = get_string('pluginname', 'mod_workshop');
             break;
         default:
-            return $gradeitem->itemmodule;
+              return $gradeitem->itemmodule;
     }
 
     return "<img class='icon mr-0' src='$path' alt='$gradeitem->itemmodule' title=$title>";
-
 }
 
 /**
@@ -1265,7 +1084,9 @@ function get_user_feedback_record($course, $userid, $gradeitem, $summativeids) {
     $record->module = get_item_module($gradeitem);
     $record->summative = get_user_summative($gradeitem, $summativeids);
     $record->duedate = $gradeitem->duedate == 0 ? '--' : date($dateformat, $gradeitem->duedate);
+    $record->duedateraw = $gradeitem->duedate;
     $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date($dateformat, $feedbackduedate);
+    $record->feedbackduedateraw = $feedbackduedate;
     $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
     $record->student = $gradeitem->student;
     $record->grader = $gradeitem->grader;
@@ -1357,9 +1178,7 @@ function get_user_filter_options(&$data) {
                 $data->typeoptions[] = $option;
             }
         }
-
     }
-
 }
 
 /**
@@ -1440,7 +1259,9 @@ function get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, 
         $record->module = get_item_module($gradeitem);
         $record->summative = get_user_summative($gradeitem, $summativeids);
         $record->duedate = $duedate == 0 ? '--' : date($dateformat, $duedate);
+        $record->duedateraw = $duedate;
         $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date($dateformat, $feedbackduedate);
+        $record->feedbackduedateraw = $feedbackduedate;
         $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
         $record->student = $gradeitem->student;
         $record->grader = $gradeitem->grader;
