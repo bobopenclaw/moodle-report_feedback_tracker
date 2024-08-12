@@ -381,6 +381,7 @@ function get_admin_turnitin_records($course, $gradeitem, $summativeids, &$data) 
         $record->method = get_feedback_method($gradeitem);
         $record->responsibility = get_feedback_responsibility($gradeitem);
         $record->generalfeedback = get_admin_generalfeedback($gradeitem);
+        $record->cohortfeedback = get_admin_cohortfeedback($gradeitem);
         $record->gfurl = $gradeitem->gfurl;
         $record->summative = get_admin_summative($gradeitem, $summativeids);
         $record->summativetext = $gradeitem->summative ? get_string('summative', 'report_feedback_tracker') : "";
