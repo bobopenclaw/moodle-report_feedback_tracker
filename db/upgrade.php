@@ -101,5 +101,30 @@ function xmldb_report_feedback_tracker_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024070100, 'report', 'feedback_tracker');
     }
 
+    if ($oldversion < 2024081300) {
+        // Define table report_feedback_tracker.
+        $table = new xmldb_table('report_feedback_tracker');
+
+        // Conditionally add field to table.
+        $fieldname = 'partname';
+        if (!$dbman->field_exists($table, $fieldname)) {
+            $field = new xmldb_field($fieldname, XMLDB_TYPE_CHAR, '255', null, null, null, null);
+            $dbman->add_field($table, $field);
+        }
+
+        // Define table report_feedback_tracker_duedates.
+        $table = new xmldb_table('report_feedback_tracker_duedates');
+
+        // Conditionally add field to table.
+        $fieldname = 'partname';
+        if (!$dbman->field_exists($table, $fieldname)) {
+            $field = new xmldb_field($fieldname, XMLDB_TYPE_CHAR, '255', null, null, null, null);
+            $dbman->add_field($table, $field);
+        }
+
+        // Savepoint reached.
+        upgrade_plugin_savepoint(true, 2024081300, 'report', 'feedback_tracker');
+    }
+
     return true;
 }

@@ -27,13 +27,15 @@ export const init = () => {
         if (e.target.closest(Selectors.actions.toggleSummativeState)) {
             const target = e.target;
             const itemid = target.getAttribute('cmid');
+            const partname = target.getAttribute('partname') != '' ? target.getAttribute('partname') : 0;
+
             let summativestate = '1';
             if (target.checked === true) {
                 summativestate = '1';
             } else {
                 summativestate = '0';
             }
-            const response = await updateSummativeState(itemid, summativestate);
+            const response = await updateSummativeState(itemid, partname, summativestate);
             window.console.log(response);
         }
     });
@@ -42,13 +44,15 @@ export const init = () => {
         if (e.target.closest(Selectors.actions.toggleCohortState)) {
             const target = e.target;
             const itemid = target.getAttribute('cmid');
+            const partname = target.getAttribute('partname') != '' ? target.getAttribute('partname') : 0;
+
             let cohortstate = '1';
             if (target.checked === true) {
                 cohortstate = '1';
             } else {
                 cohortstate = '0';
             }
-            const response = await updateCohortState(itemid, cohortstate);
+            const response = await updateCohortState(itemid, partname, cohortstate);
             window.console.log(response);
         }
     });
@@ -57,13 +61,15 @@ export const init = () => {
         if (e.target.closest(Selectors.actions.toggleHideState)) {
             const target = e.target;
             const itemid = target.getAttribute('cmid');
+            const partname = target.getAttribute('partname') != '' ? target.getAttribute('partname') : 0;
+
             let hiddenstate = '1';
             if (target.checked === true) {
                 hiddenstate = '1';
             } else {
                 hiddenstate = '0';
             }
-            const response = await updateHidingState(itemid, hiddenstate);
+            const response = await updateHidingState(itemid, partname, hiddenstate);
             window.console.log(response);
         }
     });
@@ -73,9 +79,11 @@ export const init = () => {
             try {
                 const target = e.target;
                 const itemid = target.getAttribute('itemid');
+                const partname = target.getAttribute('partname') != '' ? target.getAttribute('partname') : 0;
                 const date = new Date(e.target.value).getTime() / 1000;
                 const deadlinedays = target.getAttribute('data-deadlinedays');
                 const duedate = target.parentElement.parentElement.parentElement.parentElement.
+
                 querySelector('.col_duedate').innerHTML;
 
                 let response = '';
@@ -101,7 +109,7 @@ export const init = () => {
                     modal.show();
                 } else { // Update custom date.
                     // Get a reason for a manual due date.
-                    createReasonModal(itemid, date);
+                    createReasonModal(itemid, partname, date);
                 }
 
                 // Log response to console.
@@ -139,10 +147,11 @@ function getDefaultDueDate(duedate, deadlinedays) {
  * Create a modal to collect a reason.
  *
  * @param {string} itemid
+ * @param {string} partname
  * @param {string} date
  * @returns {Promise<void>}
  */
-async function createReasonModal(itemid, date) {
+async function createReasonModal(itemid, partname, date) {
     // Show a modal with a text field.
     const modal = await ModalSaveCancel.create({
         title: await getString('feedbackduedate:reason', 'report_feedback_tracker'),
@@ -166,7 +175,7 @@ async function createReasonModal(itemid, date) {
             reasonError.removeClass('d-flex').addClass('d-none');
 
             // Update custom date.
-            let response = await updateFeedbackDuedate(itemid, date, duedatereason);
+            let response = await updateFeedbackDuedate(itemid, partname, date, duedatereason);
 
             // Show hint.
             const hintElement = document.querySelector(`[data-itemid="${itemid}"]`);
