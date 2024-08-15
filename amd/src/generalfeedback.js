@@ -18,6 +18,7 @@ export const init = async() => {
         if (e.target.closest(Selectors.actions.showGeneralfeedback)) {
             const target = e.target;
             const itemid = target.getAttribute('cmid');
+            const partname = target.getAttribute('partname');
 
             // Get the current values for general feedback text, URL and date.
             var generalfeedback = target.getAttribute('data-generalfeedback');
@@ -43,7 +44,7 @@ export const init = async() => {
                 const link = '<a href="' + gfurl + '">' + gfurl + '</a>';
 
                 // Update the database.
-                const response = await updateGeneralFeedback(itemid, generalfeedback, gfurl);
+                const response = await updateGeneralFeedback(itemid, partname, generalfeedback, gfurl);
 
                 // Update the screen elements.
                 target.setAttribute('data-generalfeedback', generalfeedback);

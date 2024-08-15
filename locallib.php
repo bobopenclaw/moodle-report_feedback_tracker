@@ -222,6 +222,7 @@ function get_admin_generalfeedback($gradeitem) {
                     'id' => html_writer::random_id('generalfeedback'),
                     'class' => 'icon fa fa-pencil fa-fw',
                     'cmid' => $gradeitem->itemid,
+                    'partname' => $gradeitem->partname,
                     'data-action' => 'report_feedback_tracker/showgeneralfeedback',
                     'data-generalfeedback' => $gradeitem->generalfeedback,
                     'data-gfurl' => $gradeitem->gfurl,
