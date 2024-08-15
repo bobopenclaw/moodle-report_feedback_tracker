@@ -113,12 +113,12 @@ function get_admin_course_gradings($course, &$data) {
 
     $summativeids = get_summative_ids($course->id);
 
-    $previousitemid = false;
+    $itemlist = [];
+
     foreach ($gradeitems as $gradeitem) {
         // Check if the gradeitem module is supported
         // and make sure only one (turnitintooltwo) assessment is listed even if there are multiple parts.
-        if (!module_is_supported($gradeitem) || $gradeitem->itemid == $previousitemid) {
-            $previousitemid = $gradeitem->itemid;
+        if (!module_is_supported($gradeitem) || in_array($gradeitem->itemid, $itemlist)) {
             continue;
         }
 
@@ -130,7 +130,7 @@ function get_admin_course_gradings($course, &$data) {
             $record = get_admin_feedback_record($course, $gradeitem, $summativeids);
             $data->records[] = $record;
         }
-        $previousitemid = $gradeitem->itemid;
+        $itemlist[] = $gradeitem->itemid;
     }
 
     // Get the filter options where available.
