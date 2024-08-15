@@ -425,6 +425,85 @@ function get_feedbacks($gradeitem) {
  */
 function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate) {
 
+    // If there is no general feedback date and no submission there is no feedback.
+    if (!isset($gradeitem->gfdate) && $submissiondate == 0) {
+        return '';
+    }
+
+    $o = '';
+    $contact = $gradeitem->responsibility;
+
+    // Feedback is available even if there is no due date or when only cohort feedback is given.
+    if ((!$feedbackduedate && isset($gradeitem->finalgrade)) || (isset($gradeitem->gfdate) && $gradeitem->gfdate > 0)) {
+        $o .= html_writer::div(get_string('feedback:released', 'report_feedback_tracker'),
+            "badge badge-success");
+    } else if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $feedbackduedate) {
+        // Feedback was given in time.
+        $o .= html_writer::div(get_string('feedback:released', 'report_feedback_tracker'),
+            "badge badge-success");
+    } else if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate > $feedbackduedate) {
+        // Feedback was given after the feedback due date.
+        $o .= html_writer::div(get_string('feedback:late', 'report_feedback_tracker'),
+            "badge badge-warning");
+    } else if (!isset($gradeitem->finalgrade) && $feedbackduedate < time()) {
+        // NO feedback was given, and it is beyond the feedback due date.
+        $o .= html_writer::div(get_string('feedback:overdue', 'report_feedback_tracker'),
+            "badge badge-danger");
+    }
+
+    if ($contact) {
+        $o .= html_writer::start_div('feedback_tracker_contact');
+        $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
+        $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
+        $o .= html_writer::end_div();
+    }
+    return $o;
+
+    // The feedback is due within the due time - so do nothing and show a contact.
+//    return '';
+
+
+
+
+
+    // NO feedback was given but it's still within the extended period.
+    if (!isset($gradeitem->finalgrade) && $feedbackduedate < time() && $warningduedate >= time() ) {
+        $o = html_writer::div(get_string('feedback:due', 'report_feedback_tracker'),
+            "badge badge-warning");
+        if ($contact) {
+            $o .= html_writer::start_div('feedback_tracker_contact');
+            $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
+            $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
+            $o .= html_writer::end_div();
+        }
+        return $o;
+    }
+
+    // NO feedback was given, and it is beyond the extended period.
+    if (!isset($gradeitem->finalgrade) && $warningduedate < time()) {
+        $o = html_writer::div(get_string('feedback:overdue', 'report_feedback_tracker'),
+            "badge badge-danger");
+        if ($contact) {
+            $o .= html_writer::start_div('feedback_tracker_contact');
+            $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
+            $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
+            $o .= html_writer::end_div();
+        }
+        return $o;
+    }
+
+    // The feedback is due within the due time - so do nothing and show a contact.
+    $o = '';
+    if ($contact) {
+        $o .= html_writer::start_div('feedback_tracker_contact');
+        $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
+        $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
+        $o .= html_writer::end_div();
+    }
+    return $o;
+}
+function get_feedback_badge0($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate) {
+
     if (!isset($gradeitem->gfdate) && $submissiondate == 0) {
         return '';
     }
@@ -433,7 +512,7 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod,
 
     // Final grade is available even if there is no due date.
     if (!$feedbackduedate && isset($gradeitem->finalgrade)) {
-        $o = html_writer::div(get_string('grade:released', 'report_feedback_tracker'),
+        $o = html_writer::div(get_string('feedback:released', 'report_feedback_tracker'),
             "badge badge-success");
 
         if ($contact) {
@@ -447,7 +526,7 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod,
 
     // Feedback was given in time.
     if (isset($gradeitem->gfdate) || (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $feedbackduedate)) {
-        $o = html_writer::div(get_string('feedback:in_time', 'report_feedback_tracker'),
+        $o = html_writer::div(get_string('feedback:released', 'report_feedback_tracker'),
             "badge badge-success");
         if ($contact) {
             $o .= html_writer::start_div('feedback_tracker_contact');
@@ -589,14 +668,44 @@ function get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod
         return '';
     }
 
-    // Final grade is available even if there is no due date or when only cohort feedback is given.
+    // Feedback is available even if there is no due date or when only cohort feedback is given.
     if ((!$feedbackduedate && isset($gradeitem->finalgrade)) || (isset($gradeitem->gfdate) && $gradeitem->gfdate > 0)) {
-        return get_string('grade:released', 'report_feedback_tracker');
+        return get_string('feedback:released', 'report_feedback_tracker');
     }
 
     // Feedback was given in time.
     if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $feedbackduedate) {
-        return get_string('feedback:in_time', 'report_feedback_tracker');
+        return get_string('feedback:released', 'report_feedback_tracker');
+    }
+
+    // Feedback was given after the feedback due date.
+    if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate > $feedbackduedate) {
+        return get_string('feedback:late', 'report_feedback_tracker');
+    }
+
+    // NO feedback was given, and it is beyond the extended period.
+    if (!isset($gradeitem->finalgrade) && $warningduedate < time()) {
+        return get_string('feedback:overdue', 'report_feedback_tracker');
+    }
+
+    // The feedback is due within the due time - so do nothing and show a contact.
+    return '';
+}
+function get_feedback_status0($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate) {
+
+    // If there is no general feedback date and no submission there is no feedback(?).
+    if (!isset($gradeitem->gfdate) && $submissiondate == 0) {
+        return '';
+    }
+
+    // Final grade is available even if there is no due date or when only cohort feedback is given.
+    if ((!$feedbackduedate && isset($gradeitem->finalgrade)) || (isset($gradeitem->gfdate) && $gradeitem->gfdate > 0)) {
+        return get_string('feedback:released', 'report_feedback_tracker');
+    }
+
+    // Feedback was given in time.
+    if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $feedbackduedate) {
+        return get_string('feedback:released', 'report_feedback_tracker');
     }
 
     $warningduedate = $feedbackduedate + $feedbackextendperiod;
