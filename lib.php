@@ -160,7 +160,7 @@ function report_feedback_tracker_supports_logstore($instance) {
  * @throws coding_exception
  * @throws dml_exception
  */
-function report_feedback_tracker_inplace_editable($itemtype, $itemid, $newvalue): \core\output\inplace_editable
+function report_feedback_tracker_inplace_editable($itemtype, $idblob, $newvalue): \core\output\inplace_editable
 {
     global $DB, $PAGE;
 
@@ -168,21 +168,26 @@ function report_feedback_tracker_inplace_editable($itemtype, $itemid, $newvalue)
     $PAGE->set_context(context_system::instance());
 
     if (in_array($itemtype, ['method', 'generalfeedback', 'responsibility'])) {
+        // Explode the idblob.
+        $ids = explode(',', $idblob);
+        $itemid = $ids[0];
+        $partname = $ids[1] ? $ids[1] : null;
         // If no record for this grade item exists, create it first.
-        if (!$DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid])) {
+        if (!$DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partname' => $partname])) {
             $record = new stdClass();
             $record->gradeitem = $itemid;
+            $record->partname = $partname;
             $DB->insert_record('report_feedback_tracker', $record);
         }
 
         // Update the database.
-        $DB->set_field('report_feedback_tracker', $itemtype, $newvalue, ['gradeitem' => $itemid]);
+        $DB->set_field('report_feedback_tracker', $itemtype, $newvalue, ['gradeitem' => $itemid, 'partname' => $partname]);
 
         // Return the result.
         return new \core\output\inplace_editable(
             'report_feedback_tracker',
             $itemtype,
-            $itemid,
+            $idblob,
             true,
             format_string($newvalue),
             $newvalue
