@@ -162,7 +162,7 @@ function get_admin_feedback_record ($course, $gradeitem, $summativeids) {
     $record->type = get_item_type($gradeitem);
     $record->module = get_item_module($gradeitem);
     $record->duedate = $gradeitem->duedate == 0 ? '--' : date($dateformat, $gradeitem->duedate);
-    $record->duedateraw = $gradeitem->duedate;
+    $record->duedateraw = $gradeitem->duedate == 0 ? 9999999999 : $gradeitem->duedate;
     $record->feedbackduedate = render_feedbackduedate($gradeitem, $feedbackperiod);
     $record->feedbackduedateraw = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
         ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 9999999999);
@@ -382,7 +382,7 @@ function get_admin_turnitin_records($course, $gradeitem, $summativeids, &$data) 
         $record->type = get_item_type($gradeitem);
         $record->module = get_item_module($gradeitem);
         $record->duedate = $duedate == 0 ? '--' : date($dateformat, $duedate);
-        $record->duedateraw = $duedate;
+        $record->duedateraw = $duedate == 0 ? 9999999999 : $duedate;
         $record->feedbackduedate = render_feedbackduedate($gradeitem, $feedbackperiod);
         $record->feedbackduedateraw = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
             ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 9999999999);
@@ -1094,7 +1094,7 @@ function get_user_feedback_record($course, $userid, $gradeitem, $summativeids) {
     $record->module = get_item_module($gradeitem);
     $record->summative = get_user_summative($gradeitem, $summativeids);
     $record->duedate = $gradeitem->duedate == 0 ? '--' : date($dateformat, $gradeitem->duedate);
-    $record->duedateraw = $gradeitem->duedate;
+    $record->duedateraw = $gradeitem->duedate == 0 ? 9999999999 : $gradeitem->duedate;
     $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date($dateformat, $feedbackduedate);
     $record->feedbackduedateraw = $feedbackduedate == 0 ? 9999999999 : $feedbackduedate;
     $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
@@ -1269,7 +1269,7 @@ function get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, 
         $record->module = get_item_module($gradeitem);
         $record->summative = get_user_summative($gradeitem, $summativeids);
         $record->duedate = $duedate == 0 ? '--' : date($dateformat, $duedate);
-        $record->duedateraw = $duedate;
+        $record->duedateraw = $duedate == 0 ? 9999999999 : $duedate;
         $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date($dateformat, $feedbackduedate);
         $record->feedbackduedateraw = $feedbackduedate == 0 ? 9999999999 : $feedbackduedate;
         $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
