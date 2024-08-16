@@ -26,6 +26,8 @@ defined('MOODLE_INTERNAL') || die;
 
 require_once(__DIR__.'/lib.php');
 
+// The course admin report.
+
 /**
  * Get the gradings for all users of a course and amend the data with the findings.
  *
@@ -35,7 +37,7 @@ require_once(__DIR__.'/lib.php');
  * @throws dml_exception
  */
 function get_admin_course_gradings($course, &$data) {
-    global $CFG, $DB;
+    global $CFG, $DB, $PAGE;
 
     $sql = "
     select
@@ -110,14 +112,12 @@ function get_admin_course_gradings($course, &$data) {
 ";
     $params['courseid'] = $course->id;
     $gradeitems = $DB->get_records_sql($sql, $params);
-
     $summativeids = get_summative_ids($course->id);
 
     $itemlist = [];
-
     foreach ($gradeitems as $gradeitem) {
         // Check if the gradeitem module is supported
-        // and make sure only one (turnitintooltwo) assessment is listed even if there are multiple parts.
+        // and make sure only one (turnitintooltwo) assessment record is listed even if there are multiple parts.
         if (!module_is_supported($gradeitem) || in_array($gradeitem->itemid, $itemlist)) {
             continue;
         }
@@ -127,8 +127,10 @@ function get_admin_course_gradings($course, &$data) {
         if ($gradeitem->itemmodule == 'turnitintooltwo') {
             get_admin_turnitin_records($course, $gradeitem, $summativeids, $data);
         } else {
-            $record = get_admin_feedback_record($course, $gradeitem, $summativeids);
-            $data->records[] = $record;
+            if (!$gradeitem->hidden || $PAGE->user_is_editing()) {
+                $record = get_admin_feedback_record($course, $gradeitem, $summativeids);
+                $data->records[] = $record;
+            }
         }
         $itemlist[] = $gradeitem->itemid;
     }
@@ -137,7 +139,67 @@ function get_admin_course_gradings($course, &$data) {
     get_admin_filter_options($data);
 }
 
-function compile_admin_record($course, $gradeitem, $duedate, $summativeids) {
+/**
+ * Get the admin feedback record for a grade item.
+ *
+ * @param stdClass $course
+ * @param stdClass $gradeitem
+ * @param array $summativeids
+ * @return stdClass
+ * @throws dml_exception
+ */
+function get_admin_feedback_record($course, $gradeitem, $summativeids) {
+    $gradeitem->partname = $gradeitem->partname ? $gradeitem->partname : null; // Only turnitintooltwo assessments may have parts.
+    return compile_admin_record($course, $gradeitem, $summativeids);
+}
+
+/**
+ * Get the parts of a turnitintooltwo grading item and list them as separate items.
+ *
+ * @param stdClass $course
+ * @param stdClass $gradeitem
+ * @param array $summativeids
+ * @param stdClass $data
+ * @return void
+ * @throws dml_exception
+ */
+function get_admin_turnitin_records($course, $gradeitem, $summativeids, &$data) {
+    global $PAGE;
+
+    // Get the parts.
+    $tttparts = get_tttparts($gradeitem);
+
+    // Make each part a record and store it in the data.
+    foreach ($tttparts as $tttpart) {
+        if (!$tttpart->hidden || $PAGE->user_is_editing()) {
+            // Each ttt assessment part may have its own attributes.
+            $gradeitem->summative = $tttpart->summative;
+            $gradeitem->hidden = $tttpart->hidden;
+            $gradeitem->feedbackduedate = $tttpart->feedbackduedate ? $tttpart->feedbackduedate : $gradeitem->feedbackduedate;
+            $gradeitem->duedate = $tttpart->dtdue;
+            $gradeitem->method = $tttpart->method;
+            $gradeitem->responsibility = $tttpart->responsibility;
+            $gradeitem->generalfeedback = $tttpart->generalfeedback;
+            $gradeitem->gfurl = $tttpart->gfurl;
+            $gradeitem->gfdate = $tttpart->gfdate;
+            $gradeitem->partname = $tttpart->partname;
+
+            $data->records[] = compile_admin_record($course, $gradeitem, $summativeids);
+        }
+    }
+}
+
+/**
+ * Compile a feedback record for a course admin.
+ *
+ * @param stdClass $course
+ * @param stdClass $gradeitem
+ * @param array $summativeids
+ * @return stdClass
+ * @throws coding_exception
+ * @throws dml_exception
+ */
+function compile_admin_record($course, $gradeitem, $summativeids) {
 
     $oneday = 24 * 60 * 60; // Number of seconds in a day.
     $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
@@ -152,7 +214,7 @@ function compile_admin_record($course, $gradeitem, $duedate, $summativeids) {
     $record->assessment = get_item_link($gradeitem);
     $record->type = get_item_type($gradeitem);
     $record->module = get_item_module($gradeitem);
-    $record->duedate = $duedate == 0 ? '--' : date($dateformat, $duedate);
+    $record->duedate = $gradeitem->duedate == 0 ? '--' : date($dateformat, $gradeitem->duedate);
     $record->feedbackduedate = render_feedbackduedate($gradeitem, $feedbackperiod);
     $record->feedbacks = get_feedbacks($gradeitem);
     $record->method = get_feedback_method($gradeitem);
@@ -169,77 +231,40 @@ function compile_admin_record($course, $gradeitem, $duedate, $summativeids) {
 }
 
 /**
- * Get the admin feedback record for a grade item.
- *
- * @param stdClass $course
- * @param stdClass $gradeitem
- * @param array $summativeids
- * @return stdClass
- * @throws dml_exception
- */
-function get_admin_feedback_record($course, $gradeitem, $summativeids) {
-    $gradeitem->partname = $gradeitem->partname ? $gradeitem->partname : null; // Only turnitintooltwo assessments may have parts.
-    return compile_admin_record($course, $gradeitem, $gradeitem->duedate, $summativeids);
-}
-
-/**
- * Get course academic year from custom course fields.
- *
- * @param int $courseid
- */
-function get_academic_year(int $courseid): ?string {
-    $academicyear = null;
-    $handler = \core_course\customfield\course_handler::create();
-    $data = $handler->get_instance_data($courseid, true);
-    foreach ($data as $dta) {
-        if ($dta->get_field()->get('shortname') === "course_year") {
-            $academicyear = !empty($dta->get_value()) ? $dta->get_value() : null;
-        }
-    }
-    if ($academicyear) {
-        $suffix = (int)substr($academicyear, -2) + 1;
-        $academicyear .= "-$suffix";
-    }
-    return $academicyear;
-}
-
-/**
- * Show/edit the general feedback for a grade item.
+ * Edit / show the cohort feedback status for course admins.
  *
  * @param stdClass $gradeitem
  * @return string
  */
-function get_admin_generalfeedback($gradeitem) {
+function get_admin_cohortfeedback($gradeitem) {
     global $PAGE;
 
-    $o = html_writer::start_div('generalfeedback align-items-center');
     if ($PAGE->user_is_editing()) {
-        $o .= html_writer::span($gradeitem->generalfeedback, 'generalfeedbacktext',
-            ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
-
-        $o .= ' ' . html_writer::tag('i', '',
-                [
-                    'id' => html_writer::random_id('generalfeedback'),
-                    'class' => 'icon fa fa-pencil fa-fw',
-                    'cmid' => $gradeitem->itemid,
-                    'partname' => $gradeitem->partname,
-                    'data-action' => 'report_feedback_tracker/showgeneralfeedback',
-                    'data-generalfeedback' => $gradeitem->generalfeedback,
-                    'data-gfurl' => $gradeitem->gfurl,
-                    'data-gfdate' => $gradeitem->gfdate,
-                ]);
+        if ($gradeitem->gfdate) {
+            return "<input
+                data-action='report_feedback_tracker/cohort_checkbox'
+                type='checkbox'
+                class='form-check-input cohort_checkbox'
+                cmid='$gradeitem->itemid'
+                partname='$gradeitem->partname'
+                checked='checked'
+            >";
+        } else {
+            return "<input
+                data-action='report_feedback_tracker/cohort_checkbox'
+                type='checkbox'
+                class='form-check-input cohort_checkbox'
+                cmid='$gradeitem->itemid'
+                partname='$gradeitem->partname'
+            >";
+        }
     } else {
-        $o .= html_writer::span($gradeitem->generalfeedback, 'generalfeedbacktext',
-            ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
+        if ($gradeitem->gfdate) {
+            return "<i class='fa fa-check'></i>";
+        } else {
+            return '';
+        }
     }
-
-    // Show the URL.
-    $link = "<a href='$gradeitem->gfurl'>$gradeitem->gfurl</a>";
-    $o .= html_writer::div($link, 'gfurl',
-        ['id' => 'gfurl_' . $gradeitem->itemid]);
-
-    $o .= html_writer::end_div();
-    return $o;
 }
 
 /**
@@ -313,6 +338,45 @@ function get_admin_filter_options(&$data) {
 }
 
 /**
+ * Show/edit the general feedback for a grade item.
+ *
+ * @param stdClass $gradeitem
+ * @return string
+ */
+function get_admin_generalfeedback($gradeitem) {
+    global $PAGE;
+
+    $o = html_writer::start_div('generalfeedback align-items-center');
+    if ($PAGE->user_is_editing()) {
+        $o .= html_writer::span($gradeitem->generalfeedback, 'generalfeedbacktext',
+            ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
+
+        $o .= ' ' . html_writer::tag('i', '',
+                [
+                    'id' => html_writer::random_id('generalfeedback'),
+                    'class' => 'icon fa fa-pencil fa-fw',
+                    'cmid' => $gradeitem->itemid,
+                    'partname' => $gradeitem->partname,
+                    'data-action' => 'report_feedback_tracker/showgeneralfeedback',
+                    'data-generalfeedback' => $gradeitem->generalfeedback,
+                    'data-gfurl' => $gradeitem->gfurl,
+                    'data-gfdate' => $gradeitem->gfdate,
+                ]);
+    } else {
+        $o .= html_writer::span($gradeitem->generalfeedback, 'generalfeedbacktext',
+            ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
+    }
+
+    // Show the URL.
+    $link = "<a href='$gradeitem->gfurl'>$gradeitem->gfurl</a>";
+    $o .= html_writer::div($link, 'gfurl',
+        ['id' => 'gfurl_' . $gradeitem->itemid]);
+
+    $o .= html_writer::end_div();
+    return $o;
+}
+
+/**
  * Show / edit the summative state of a grading item.
  *
  * @param stdClass $gradeitem
@@ -352,37 +416,131 @@ function  get_admin_summative($gradeitem, $summativeids) {
     }
 }
 
-function get_admin_ttt_summative($gradeitem, $tttpart, $summativeids) {
-    global $PAGE;
+// The student report.
 
-    // Check if an item is declared summative by SITS.
-    if (in_array($gradeitem->itemid, $summativeids)) {
-        $gradeitem->summative = 2;
-    }
+/**
+ * Get the gradings for a single course user and amend the data with the findings.
+ *
+ * @param stdClass $course
+ * @param int $userid
+ * @param stdClass $data
+ * @return void
+ * @throws coding_exception
+ * @throws dml_exception
+ */
+function get_user_course_gradings($course, $userid, stdClass &$data) {
+    global $DB;
 
-    // If not set by SITS one may still declare summative manually.
-    if ($PAGE->user_is_editing() && $gradeitem->summative < 2) {
-        if ($gradeitem->summative && $tttpart->partname === $gradeitem->partname) {
-            return "<input
-                data-action='report_feedback_tracker/summative_checkbox'
-                type='checkbox'
-                class='form-check-input summative_checkbox'
-                cmid='$gradeitem->itemid'
-                partname='$gradeitem->partname'
-                checked='checked'
-            >";
-        } else {
-            return "<input
-                data-action='report_feedback_tracker/summative_checkbox'
-                type='checkbox'
-                class='form-check-input summative_checkbox'
-                cmid='$gradeitem->itemid'
-                partname='$gradeitem->partname'
-            >";
+    $sql = "
+    select
+        ROW_NUMBER() OVER (ORDER BY gi.id) AS uniqueid,
+        gi.courseid,
+        gi.id as itemid,
+        gi.itemname,
+        gi.itemtype,
+        gi.itemmodule,
+        gi.iteminstance,
+        u.id as studentid,
+        u.username as student,
+        gi.gradepass,
+        gi.grademax,
+        CASE
+            WHEN gi.itemmodule = 'assign' THEN
+                (select duedate from {assign} where id = gi.iteminstance )
+            WHEN gi.itemmodule = 'lesson' THEN
+                (select deadline from {lesson} where id = gi.iteminstance)
+            WHEN gi.itemmodule = 'quiz' THEN
+                (select timeclose from {quiz} where id = gi.iteminstance)
+            WHEN gi.itemmodule = 'scorm' THEN
+                (select timeclose from {scorm} where id = gi.iteminstance)
+            WHEN gi.itemmodule = 'turnitintooltwo' THEN
+                0
+            WHEN gi.itemmodule = 'workshop' THEN
+                (select submissionend from {workshop} where id = gi.iteminstance)
+            ELSE 0
+        END as duedate,
+        gg.finalgrade,
+        gg.feedback,
+        gg.timemodified as feedbackdate,
+        cm.id as cmid,
+        cm.visible,
+        um.username as grader,
+        gg.timemodified,
+        rft.partname,
+        rft.summative,
+        rft.hidden,
+        rft.feedbackduedate,
+        rft.method,
+        rft.responsibility,
+        rft.generalfeedback,
+        rft.gfurl,
+        rft.gfdate
+    from {grade_items} gi
+        left JOIN {modules} m on m.name = gi.itemmodule
+        left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
+        left JOIN {report_feedback_tracker} rft on rft.gradeitem = gi.id
+        left join {grade_grades} gg on gi.id = gg.itemid and gg.userid = :userid
+        left join {user} u on u.id = gg.userid
+        left join {user} um on um.id = gg.usermodified
+    where gi.courseid = :courseid
+";
+
+    $params['courseid'] = $course->id;
+    $params['userid'] = $userid;
+    $gradeitems = $DB->get_records_sql($sql, $params);
+
+    $summativeids = get_summative_ids($course->id);
+
+    $itemlist = [];
+    foreach ($gradeitems as $gradeitem) {
+        // Check if the gradeitem module is supported
+        // and make sure only one (turnitintooltwo) assessment record is listed even if there are multiple parts.
+        if (!module_is_supported($gradeitem) || in_array($gradeitem->itemid, $itemlist)) {
+            continue;
         }
-    } else {
-        return $gradeitem->summative ? "<i class='fa fa-check'></i>" : '';
+
+        // If item is a module (e.g. not manual) check if a user is allowed to access it.
+        if ($userid && $gradeitem->itemmodule) {
+            if (!\core_availability\info_module::is_user_visible($gradeitem->cmid, $userid, false)) {
+                continue;
+            }
+        }
+
+        // All good - now get and store the feedback record.
+        // Check for due date extensions.
+        if ($extension = get_duedate_extension($gradeitem, $userid)) {
+            $gradeitem->duedate = $extension;
+        }
+        // TurnitinToolTwo special treatment as one grading item may have several parts.
+        if ($gradeitem->itemmodule == 'turnitintooltwo') {
+            get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, $data);
+        } else {
+            if (!$gradeitem->hidden) {
+                $record = get_user_feedback_record($course, $userid, $gradeitem, $summativeids);
+                $data->records[] = $record;
+            }
+        }
+        $itemlist[] = $gradeitem->itemid;
     }
+
+    // Get the filter options where available.
+    get_user_filter_options($data);
+}
+
+/**
+ * Get the user feedback record for a grade item.
+ *
+ * @param stdClass $course
+ * @param int $userid
+ * @param stdClass $gradeitem
+ * @param array $summativeids
+ * @return stdClass
+ * @throws dml_exception
+ */
+function get_user_feedback_record($course, $userid, $gradeitem, $summativeids) {
+    $gradeitem->partname = null; // Only turnitintooltwo assessments may have parts.
+
+    return compile_user_record($course, $userid, $gradeitem, $summativeids);
 }
 
 /**
@@ -390,43 +548,261 @@ function get_admin_ttt_summative($gradeitem, $tttpart, $summativeids) {
  *
  * @param stdClass $course
  * @param stdClass $gradeitem
+ * @param int $userid
  * @param array $summativeids
  * @param stdClass $data
  * @return void
  * @throws dml_exception
  */
-function get_admin_turnitin_records($course, $gradeitem, $summativeids, &$data) {
+function get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, &$data) {
     // Get the parts.
     $tttparts = get_tttparts($gradeitem);
 
-    // Make each part a record and store it in the data.
+    // Make each visible part a record and store it in the data.
     foreach ($tttparts as $tttpart) {
-        // Each ttt assessment may have its own attributes.
-        $duedate = $tttpart->dtdue;
-        $gradeitem->summative = $tttpart->summative;
-        $gradeitem->hidden = $tttpart->hidden;
-        $gradeitem->feedbackduedate = $tttpart->feedbackduedate ? $tttpart->feedbackduedate : $gradeitem->feedbackduedate;
-        $gradeitem->method = $tttpart->method;
-        $gradeitem->responsibility = $tttpart->responsibility;
-        $gradeitem->generalfeedback = $tttpart->generalfeedback;
-        $gradeitem->gfurl = $tttpart->gfurl;
-        $gradeitem->gfdate = $tttpart->gfdate;
-        $gradeitem->partname = $tttpart->partname;
+        if (!$tttpart->hidden) {
+            // Each ttt assessment may have its own attributes.
+            $gradeitem->summative = $tttpart->summative;
+            $gradeitem->hidden = $tttpart->hidden;
+            $gradeitem->duedate = $tttpart->dtdue;
+            $gradeitem->method = $tttpart->method;
+            $gradeitem->responsibility = $tttpart->responsibility;
+            $gradeitem->generalfeedback = $tttpart->generalfeedback;
+            $gradeitem->gfurl = $tttpart->gfurl;
+            $gradeitem->gfdate = $tttpart->gfdate;
+            $gradeitem->partname = $tttpart->partname;
 
-        $data->records[] = compile_admin_record($course, $gradeitem, $duedate, $summativeids);
+            $data->records[] = compile_user_record($course, $userid, $gradeitem, $summativeids);
+        }
     }
 }
 
 /**
- * Return a link to the course.
+ * Compile the table record for a student / user.
  *
  * @param stdClass $course
+ * @param int $userid
+ * @param stdClass $gradeitem
+ * @param array $summativeids
+ * @return stdClass
+ * @throws coding_exception
+ * @throws dml_exception
+ */
+function compile_user_record($course, $userid, $gradeitem, $summativeids) {
+
+    $oneday = 24 * 60 * 60; // Number of seconds in a day.
+
+    $warningdays = get_config('report_feedback_tracker', 'warningdays');
+    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
+    $feedbackextenddays = get_config('report_feedback_tracker', 'feedbackextenddays');
+    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
+    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
+    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
+    $dateformat = get_config('report_feedback_tracker', 'dateformat');
+
+    // If there is a manual feedback due date use it, otherwise calculate it from the submission due date where set.
+    $feedbackduedate = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
+        ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 0);
+    // Get the submission date if any.
+    $submissiondate = get_submissiondate($userid, $gradeitem);
+
+    $record = new stdClass();
+    $record->submissiondate = $submissiondate == 0 ? '--' : date($dateformat, $submissiondate);
+    $record->submissionstatus = get_submission_status($submissiondate, $gradeitem->duedate, $warningperiod);
+    $record->course = $course->fullname;
+    $record->courseid = $course->id;
+    $record->coursename = $course->fullname;
+    $record->academicyear = get_academic_year($gradeitem->courseid);
+    $record->assessment = get_item_link($gradeitem);
+    $record->type = get_item_type($gradeitem);
+    $record->module = get_item_module($gradeitem);
+    $record->summative = get_user_summative($gradeitem, $summativeids);
+    $record->duedate = $gradeitem->duedate == 0 ? '--' : date($dateformat, $gradeitem->duedate);
+    $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date($dateformat, $feedbackduedate);
+    $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
+    $record->student = $gradeitem->student;
+    $record->grader = $gradeitem->grader;
+    $record->feedbackdate = $gradeitem->feedbackdate ? $gradeitem->feedbackdate : $gradeitem->gfdate;
+    $record->feedbackstatus = get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate);
+    $record->feedback = get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate);
+    $record->method = $gradeitem->method;
+    $record->responsibility = html_writer::div($gradeitem->responsibility);
+    $record->generalfeedback = get_user_generalfeedback($gradeitem);
+    $record->gfurl = $gradeitem->gfurl;
+
+    return $record;
+}
+
+/**
+ * Get the options for filtering the user table.
+ *
+ * @param stdClass $data
+ * @return void
+ */
+function get_user_filter_options(&$data) {
+    // The filter options.
+    $data->academicyearoptions = [];
+    $data->courseoptions = [];
+    $data->typeoptions = [];
+    $data->summativeoptions = [];
+    $data->feedbackoptions = [];
+    $data->methodoptions = [];
+
+    foreach ($data->records as $record) {
+
+        // Academic year options.
+        if ($record->academicyear) {
+            $option = new stdClass();
+            $option->key = $record->academicyear;
+            $option->value = $record->academicyear;
+            if (!in_array($option, $data->academicyearoptions)) {
+                $data->academicyearoptions[] = $option;
+            }
+        }
+
+        // Course options.
+        if ($record->courseid) {
+            $option = new stdClass();
+            $option->key = $record->courseid;
+            $option->value = $record->coursename;
+            $option->academicyear = $record->academicyear;
+            if (!in_array($option, $data->courseoptions)) {
+                $data->courseoptions[] = $option;
+            }
+        }
+
+        // Feedback options.
+        if ($record->feedbackstatus) {
+            $option = new stdClass();
+            $option->key = $record->feedbackstatus;
+            $option->value = $record->feedbackstatus;
+            if (!in_array($option, $data->feedbackoptions)) {
+                $data->feedbackoptions[] = $option;
+            }
+        }
+
+        // Method options.
+        if ($record->method) {
+            $option = new stdClass();
+            $option->key = $record->method;
+            $option->value = $record->method;
+            if (!in_array($option, $data->methodoptions)) {
+                $data->methodoptions[] = $option;
+            }
+        }
+
+        // Summative / formative options.
+        if ($record->summative) {
+            $option = new stdClass();
+            $option->key = $record->summative;
+            $option->value = $record->summative;
+            if (!in_array($option, $data->summativeoptions)) {
+                $data->summativeoptions[] = $option;
+            }
+        }
+
+        // Type (module) options.
+        if ($record->module) {
+            $option = new stdClass();
+            $option->key = $record->module;
+            $option->value = $record->module;
+            if (!in_array($option, $data->typeoptions)) {
+                $data->typeoptions[] = $option;
+            }
+        }
+    }
+}
+
+/**
+ * Show the general feedback and the gf URL to students.
+ *
+ * @param stdClass $gradeitem
  * @return string
  */
-function get_course_link($course) {
-    global $CFG;
+function get_user_generalfeedback($gradeitem) {
 
-    return html_writer::link("$CFG->wwwroot/course/view.php?id=$course->id", $course->fullname);
+    $o = html_writer::start_div('generalfeedback');
+    $o .= html_writer::div($gradeitem->generalfeedback, 'generalfeedbacktext',
+        ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
+    $link = "<a href='$gradeitem->gfurl'>$gradeitem->gfurl</a>";
+    $o .= html_writer::div($link, 'gfurl',
+        ['id' => 'gfurl_' . $gradeitem->itemid]);
+
+    $o .= html_writer::end_div();
+    return $o;
+}
+
+/**
+ * Show a summative text for a summative grade item in students/users report.
+ *
+ * @param stdClass $gradeitem
+ * @param array $summativeids
+ * @return lang_string|string
+ * @throws coding_exception
+ */
+function get_user_summative($gradeitem, $summativeids) {
+    return $gradeitem->summative || in_array($gradeitem->itemid, $summativeids) ?
+        get_string('summative', 'report_feedback_tracker') : "";
+}
+
+// Supporting functions.
+
+/**
+ * Get course academic year from custom course fields.
+ *
+ * @param int $courseid
+ */
+function get_academic_year(int $courseid): ?string {
+    $academicyear = null;
+    $handler = \core_course\customfield\course_handler::create();
+    $data = $handler->get_instance_data($courseid, true);
+    foreach ($data as $dta) {
+        if ($dta->get_field()->get('shortname') === "course_year") {
+            $academicyear = !empty($dta->get_value()) ? $dta->get_value() : null;
+        }
+    }
+    if ($academicyear) {
+        $suffix = (int)substr($academicyear, -2) + 1;
+        $academicyear .= "-$suffix";
+    }
+    return $academicyear;
+}
+
+/**
+ * Get a due date extension where available.
+ *
+ * @param stdClass $gradeitem
+ * @param int $userid
+ * @return false|mixed
+ * @throws dml_exception
+ */
+function get_duedate_extension($gradeitem, $userid) {
+    global $DB;
+
+    switch ($gradeitem->itemmodule) {
+        case "assign":
+            return $DB->get_field('assign_user_flags', 'extensionduedate',
+                ['assignment' => $gradeitem->iteminstance, 'userid' => $userid]);
+        case "quiz":
+            // Quizzes may have group and/or user due date extensions. Return whatever is higher.
+            $groupextension = 0;
+            if ($usergroups = groups_get_user_groups($gradeitem->courseid, $userid)[0]) {
+                foreach ($usergroups as $usergroupid) {
+                    if ($gext = $DB->get_field('quiz_overrides', 'timeclose',
+                        ['quiz' => $gradeitem->iteminstance, 'groupid' => $usergroupid])) {
+                        $groupextension = $gext > $groupextension ? $gext : $groupextension;
+                    }
+                }
+            }
+            $userextension = $DB->get_field('quiz_overrides', 'timeclose',
+                ['quiz' => $gradeitem->iteminstance, 'userid' => $userid]);
+
+            return $groupextension > $userextension ? $groupextension : $userextension;
+        case "turnitintooltwo":
+            return false;
+        default:
+            return false;
+    }
 }
 
 /**
@@ -610,43 +986,6 @@ function get_hidden_state($gradeitem) {
         }
     } else {
         if ($gradeitem->hidden) {
-            return "<i class='fa fa-check'></i>";
-        } else {
-            return '';
-        }
-    }
-}
-
-/**
- * Edit / show the cohort feedback status for course admins.
- *
- * @param stdClass $gradeitem
- * @return string
- */
-function get_admin_cohortfeedback($gradeitem) {
-    global $PAGE;
-
-    if ($PAGE->user_is_editing()) {
-        if ($gradeitem->gfdate) {
-            return "<input
-                data-action='report_feedback_tracker/cohort_checkbox'
-                type='checkbox'
-                class='form-check-input cohort_checkbox'
-                cmid='$gradeitem->itemid'
-                partname='$gradeitem->partname'
-                checked='checked'
-            >";
-        } else {
-            return "<input
-                data-action='report_feedback_tracker/cohort_checkbox'
-                type='checkbox'
-                class='form-check-input cohort_checkbox'
-                cmid='$gradeitem->itemid'
-                partname='$gradeitem->partname'
-            >";
-        }
-    } else {
-        if ($gradeitem->gfdate) {
             return "<i class='fa fa-check'></i>";
         } else {
             return '';
@@ -902,26 +1241,6 @@ function get_summative_ids($courseid) {
 }
 
 /**
- * Get the submission date for a ttt part.
- *
- * NOTE: This actually returns the modification date of a submission - which is also updated when
- * a submission is graded - there is no separate submission date to use :(.
- *
- * @param stdClass $tttpart
- * @param int $userid
- * @return mixed
- * @throws dml_exception
- */
-function get_ttt_submission_date($tttpart, $userid) {
-    global $DB;
-
-    if ($res = $DB->get_record('turnitintooltwo_submissions', ['submission_part' => $tttpart->id, 'userid' => $userid])) {
-        return $res->submission_modified;
-    }
-    return 0;
-}
-
-/**
  * Get the parts of a turnitintooltwo assessment.
  *
  * @param stdClass $gradeitem
@@ -953,390 +1272,6 @@ function get_tttparts($gradeitem) {
     ";
 
     return $DB->get_records_sql($sql);
-}
-
-/**
- * Get the gradings for a single course user and amend the data with the findings.
- *
- * @param stdClass $course
- * @param int $userid
- * @param stdClass $data
- * @return void
- * @throws coding_exception
- * @throws dml_exception
- */
-function get_user_course_gradings($course, $userid, stdClass &$data) {
-    global $DB;
-
-    $sql = "
-    select
-        ROW_NUMBER() OVER (ORDER BY gi.id) AS uniqueid,
-        gi.courseid,
-        gi.id as itemid,
-        gi.itemname,
-        gi.itemtype,
-        gi.itemmodule,
-        gi.iteminstance,
-        u.id as studentid,
-        u.username as student,
-        gi.gradepass,
-        gi.grademax,
-        CASE
-            WHEN gi.itemmodule = 'assign' THEN
-                (select duedate from {assign} where id = gi.iteminstance )
-            WHEN gi.itemmodule = 'lesson' THEN
-                (select deadline from {lesson} where id = gi.iteminstance)
-            WHEN gi.itemmodule = 'quiz' THEN
-                (select timeclose from {quiz} where id = gi.iteminstance)
-            WHEN gi.itemmodule = 'scorm' THEN
-                (select timeclose from {scorm} where id = gi.iteminstance)
-            WHEN gi.itemmodule = 'turnitintooltwo' THEN
-                0
-            WHEN gi.itemmodule = 'workshop' THEN
-                (select submissionend from {workshop} where id = gi.iteminstance)
-            ELSE 0
-        END as duedate,
-        gg.finalgrade,
-        gg.feedback,
-        gg.timemodified as feedbackdate,
-        cm.id as cmid,
-        cm.visible,
-        um.username as grader,
-        gg.timemodified,
-        rft.partname,
-        rft.summative,
-        rft.hidden,
-        rft.feedbackduedate,
-        rft.method,
-        rft.responsibility,
-        rft.generalfeedback,
-        rft.gfurl,
-        rft.gfdate
-    from {grade_items} gi
-        left JOIN {modules} m on m.name = gi.itemmodule
-        left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
-        left JOIN {report_feedback_tracker} rft on rft.gradeitem = gi.id
-        left join {grade_grades} gg on gi.id = gg.itemid and gg.userid = :userid
-        left join {user} u on u.id = gg.userid
-        left join {user} um on um.id = gg.usermodified
-    where gi.courseid = :courseid
-";
-
-    $params['courseid'] = $course->id;
-    $params['userid'] = $userid;
-    $gradeitems = $DB->get_records_sql($sql, $params);
-
-    $summativeids = get_summative_ids($course->id);
-
-    foreach ($gradeitems as $gradeitem) {
-        // Check if the gradeitem module is supported.
-        if (!module_is_supported($gradeitem)) {
-            continue;
-        }
-
-        // If item is a module (e.g. not manual) check if a user is allowed to access it.
-        if ($userid && $gradeitem->itemmodule) {
-            if (!\core_availability\info_module::is_user_visible($gradeitem->cmid, $userid, false)) {
-                continue;
-            }
-        }
-
-        // All good - now get and store the feedback record.
-        // Check for due date extensions.
-        if ($extension = get_duedate_extension($gradeitem, $userid)) {
-            $gradeitem->duedate = $extension;
-        }
-        // TurnitinToolTwo special treatment as one grading item may have several parts.
-        if ($gradeitem->itemmodule == 'turnitintooltwo') {
-            get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, $data);
-        } else {
-            $record = get_user_feedback_record($course, $userid, $gradeitem, $summativeids);
-            $data->records[] = $record;
-        }
-    }
-
-    // Get the filter options where available.
-    get_user_filter_options($data);
-}
-
-/**
- * Get a due date extension where available.
- *
- * @param stdClass $gradeitem
- * @param int $userid
- * @return false|mixed
- * @throws dml_exception
- */
-function get_duedate_extension($gradeitem, $userid) {
-    global $DB;
-
-    switch ($gradeitem->itemmodule) {
-        case "assign":
-            return $DB->get_field('assign_user_flags', 'extensionduedate',
-                ['assignment' => $gradeitem->iteminstance, 'userid' => $userid]);
-        case "quiz":
-            // Quizzes may have group and/or user due date extensions. Return whatever is higher.
-            $groupextension = 0;
-            if ($usergroups = groups_get_user_groups($gradeitem->courseid, $userid)[0]) {
-                foreach ($usergroups as $usergroupid) {
-                    if ($gext = $DB->get_field('quiz_overrides', 'timeclose',
-                        ['quiz' => $gradeitem->iteminstance, 'groupid' => $usergroupid])) {
-                        $groupextension = $gext > $groupextension ? $gext : $groupextension;
-                    }
-                }
-            }
-            $userextension = $DB->get_field('quiz_overrides', 'timeclose',
-                ['quiz' => $gradeitem->iteminstance, 'userid' => $userid]);
-
-            return $groupextension > $userextension ? $groupextension : $userextension;
-        case "turnitintooltwo":
-            return false;
-        default:
-            return false;
-    }
-}
-
-function compile_user_record($course, $userid, $gradeitem, $duedate, $summativeids) {
-
-    $oneday = 24 * 60 * 60; // Number of seconds in a day.
-
-    $warningdays = get_config('report_feedback_tracker', 'warningdays');
-    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
-    $feedbackextenddays = get_config('report_feedback_tracker', 'feedbackextenddays');
-    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
-    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
-    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
-    $dateformat = get_config('report_feedback_tracker', 'dateformat');
-
-    // If there is a manual feedback due date use it, otherwise calculate it from the submission due date where set.
-    $feedbackduedate = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
-        ($gradeitem->duedate ? $gradeitem->duedate + $feedbackperiod : 0);
-    // Get the submission date if any.
-    $submissiondate = get_submissiondate($userid, $gradeitem);
-
-    $record = new stdClass();
-    $record->submissiondate = $submissiondate == 0 ? '--' : date($dateformat, $submissiondate);
-    $record->submissionstatus = get_submission_status($submissiondate, $duedate, $warningperiod);
-    $record->course = $course->fullname;
-    $record->courseid = $course->id;
-    $record->coursename = $course->fullname;
-    $record->academicyear = get_academic_year($gradeitem->courseid);
-    $record->assessment = get_item_link($gradeitem);
-    $record->type = get_item_type($gradeitem);
-    $record->module = get_item_module($gradeitem);
-    $record->summative = get_user_summative($gradeitem, $summativeids);
-    $record->duedate = $duedate == 0 ? '--' : date($dateformat, $duedate);
-    $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date($dateformat, $feedbackduedate);
-    $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
-    $record->student = $gradeitem->student;
-    $record->grader = $gradeitem->grader;
-    $record->feedbackdate = $gradeitem->feedbackdate ? $gradeitem->feedbackdate : $gradeitem->gfdate;
-    $record->feedbackstatus = get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate);
-    $record->feedback = get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate);
-    $record->method = $gradeitem->method;
-    $record->responsibility = html_writer::div($gradeitem->responsibility);
-    $record->generalfeedback = get_user_generalfeedback($gradeitem);
-    $record->gfurl = $gradeitem->gfurl;
-
-    return $record;
-}
-
-/**
- * Get the user feedback record for a grade item.
- *
- * @param stdClass $course
- * @param int $userid
- * @param stdClass $gradeitem
- * @param array $summativeids
- * @return stdClass
- * @throws dml_exception
- */
-function get_user_feedback_record($course, $userid, $gradeitem, $summativeids) {
-    $gradeitem->partname = null; // Only turnitintooltwo assessments may have parts.
-
-    return compile_user_record($course, $userid, $gradeitem, $gradeitem->duedate, $summativeids);
-}
-
-/**
- * Get the options for filtering the user table.
- *
- * @param stdClass $data
- * @return void
- */
-function get_user_filter_options(&$data) {
-    // The filter options.
-    $data->academicyearoptions = [];
-    $data->courseoptions = [];
-    $data->typeoptions = [];
-    $data->summativeoptions = [];
-    $data->feedbackoptions = [];
-    $data->methodoptions = [];
-
-    foreach ($data->records as $record) {
-
-        // Academic year options.
-        if ($record->academicyear) {
-            $option = new stdClass();
-            $option->key = $record->academicyear;
-            $option->value = $record->academicyear;
-            if (!in_array($option, $data->academicyearoptions)) {
-                $data->academicyearoptions[] = $option;
-            }
-        }
-
-        // Course options.
-        if ($record->courseid) {
-            $option = new stdClass();
-            $option->key = $record->courseid;
-            $option->value = $record->coursename;
-            $option->academicyear = $record->academicyear;
-            if (!in_array($option, $data->courseoptions)) {
-                $data->courseoptions[] = $option;
-            }
-        }
-
-        // Feedback options.
-        if ($record->feedbackstatus) {
-            $option = new stdClass();
-            $option->key = $record->feedbackstatus;
-            $option->value = $record->feedbackstatus;
-            if (!in_array($option, $data->feedbackoptions)) {
-                $data->feedbackoptions[] = $option;
-            }
-        }
-
-        // Method options.
-        if ($record->method) {
-            $option = new stdClass();
-            $option->key = $record->method;
-            $option->value = $record->method;
-            if (!in_array($option, $data->methodoptions)) {
-                $data->methodoptions[] = $option;
-            }
-        }
-
-        // Summative / formative options.
-        if ($record->summative) {
-            $option = new stdClass();
-            $option->key = $record->summative;
-            $option->value = $record->summative;
-            if (!in_array($option, $data->summativeoptions)) {
-                $data->summativeoptions[] = $option;
-            }
-        }
-
-        // Type (module) options.
-        if ($record->module) {
-            $option = new stdClass();
-            $option->key = $record->module;
-            $option->value = $record->module;
-            if (!in_array($option, $data->typeoptions)) {
-                $data->typeoptions[] = $option;
-            }
-        }
-    }
-}
-
-/**
- * Show the general feedback and the gf URL to students.
- *
- * @param stdClass $gradeitem
- * @return string
- */
-function get_user_generalfeedback($gradeitem) {
-
-    $o = html_writer::start_div('generalfeedback');
-    $o .= html_writer::div($gradeitem->generalfeedback, 'generalfeedbacktext',
-        ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
-    $link = "<a href='$gradeitem->gfurl'>$gradeitem->gfurl</a>";
-    $o .= html_writer::div($link, 'gfurl',
-        ['id' => 'gfurl_' . $gradeitem->itemid]);
-
-    $o .= html_writer::end_div();
-    return $o;
-}
-
-/**
- * Show a summative text for a summative grade item in students/users report.
- *
- * @param stdClass $gradeitem
- * @param array $summativeids
- * @return lang_string|string
- * @throws coding_exception
- */
-function get_user_summative($gradeitem, $summativeids) {
-    return $gradeitem->summative || in_array($gradeitem->itemid, $summativeids) ?
-        get_string('summative', 'report_feedback_tracker') : "";
-}
-
-/**
- * Get the parts of a turnitintooltwo grading item and list them as separate items.
- *
- * @param stdClass $course
- * @param stdClass $gradeitem
- * @param int $userid
- * @param array $summativeids
- * @param stdClass $data
- * @return void
- * @throws dml_exception
- */
-function get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, &$data) {
-    // Get the parts.
-    $tttparts = get_tttparts($gradeitem);
-
-    // Make each part a record and store it in the data.
-    foreach ($tttparts as $tttpart) {
-        $gradeitem->partname = $tttpart->partname;
-        $data->records[] = compile_user_record($course, $userid, $gradeitem, $tttpart->dtdue, $summativeids);
-    }
-}
-function get_user_turnitin_records0($course, $gradeitem, $userid, $summativeids, &$data) {
-
-    $oneday = 24 * 60 * 60; // Number of seconds in a day.
-
-    $warningdays = get_config('report_feedback_tracker', 'warningdays');
-    $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
-    $feedbackextenddays = get_config('report_feedback_tracker', 'feedbackextenddays');
-    $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
-    $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
-    $feedbackextendperiod = $feedbackextenddays * $oneday; // Number of seconds in the feedback period.
-    $dateformat = get_config('report_feedback_tracker', 'dateformat');
-
-    // Get the parts.
-    $tttparts = get_tttparts($gradeitem);
-
-    // Make each part a record and store it in the data.
-    foreach ($tttparts as $tttpart) {
-        $duedate = $tttpart->dtdue; // Each part may have its own due date.
-        // If there is a manual feedback due date use it, otherwise calculate it from the submission due date.
-        $feedbackduedate = $gradeitem->feedbackduedate ?? ($duedate ? $duedate + $feedbackperiod : 0);
-        // Get the submission date if any.
-        $submissiondate = get_ttt_submission_date($tttpart, $userid);
-
-        $record = new stdClass();
-        $record->submissiondate = $submissiondate == 0 ? '--' : date($dateformat, $submissiondate);
-        $record->submissionstatus = get_submission_status($submissiondate, $duedate, $warningperiod);
-        $record->course = $course->fullname;
-        $record->courseid = $course->id;
-        $record->coursename = $course->fullname;
-        $record->academicyear = get_academic_year($gradeitem->courseid);
-        $record->assessment = get_item_link($gradeitem, $tttpart->partname);
-        $record->type = get_item_type($gradeitem);
-        $record->module = get_item_module($gradeitem);
-        $record->summative = get_user_summative($gradeitem, $summativeids);
-        $record->duedate = $duedate == 0 ? '--' : date($dateformat, $duedate);
-        $record->duedateraw = $duedate;
-        $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date($dateformat, $feedbackduedate);
-        $record->feedbackduedateraw = $feedbackduedate;
-        $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
-        $record->student = $gradeitem->student;
-        $record->grader = $gradeitem->grader;
-        $record->feedbackstatus = get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate);
-        $record->feedback = get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate);
-        $record->method = $gradeitem->method;
-
-        $data->records[] = $record;
-    }
 }
 
 /**
@@ -1377,12 +1312,12 @@ function module_is_supported($gradeitem) {
         get_config('report_feedback_tracker', 'supportmanual')) {
         return true;
     }
-
+/*
     // Invisible items are invisible unless you are editing.
     if (($gradeitem->hidden || !$gradeitem->visible) && !$PAGE->user_is_editing()) {
         return false;
     }
-
+*/
     $modulelist = [
         'assign',
         'lesson',
@@ -1551,4 +1486,3 @@ function get_feedback_module($gradeitem) {
     }
     return $feedbackmodule;
 }
-
