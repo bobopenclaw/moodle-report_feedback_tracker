@@ -65,10 +65,10 @@
     <!-- Mod metadata. -->
     <div class="col">
         <div class="row">
-            <div class="col-3">
-                <span class="text-nowrap small">
+            <div class="col-4">
+                <small>
                     <span class="text-muted">{{#str}}duedate, report_feedback_tracker{{/str}}:</span> {{duedate}}
-                </span>
+                </small>
                 <br>
                 {{#submissionstatus}}
                     {{{submissionstatus}}}
@@ -76,10 +76,10 @@
             </div>
 
             <!-- Feedback data. -->
-            <div class="col-3">
-                <span class="text-nowrap small">
+            <div class="col-4">
+                <small>
                     <span class="text-muted">{{#str}}feedback:due, report_feedback_tracker{{/str}}:</span> {{{feedbackduedate}}}
-                </span>
+                </small>
                 {{#feedbackbadge}}
                     <br>
                     {{{feedbackbadge}}}
@@ -91,7 +91,7 @@
             </div>
 
             <!-- Marks data. -->
-            <div class="col-3 text-right">
+            <div class="col-4 text-right">
                 {{#grade}}
                     <small class="text-muted">{{#str}}marks, report_feedback_tracker{{/str}}:</small> <strong>{{grade}}</strong>
                 {{/grade}}
