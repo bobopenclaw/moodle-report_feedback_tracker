@@ -1,0 +1,43 @@
+<div class="d-flex">
+
+    {{! Years. }}
+    {{#hasyears}}
+        <hr>
+        Academic year:
+        <a href="{{mainurl}}" class="mr-2">Current</a>
+        {{#year}}
+            <a href="{{url}}" class="mr-2">{{{name}}}</a>
+        {{/year}}
+        <hr>
+    {{/hasyears}}
+
+    {{! Courses quickjump. }}
+    <div class="ml-auto">
+        <div class="dropdown">
+            <button class="btn btn-sm dropdown-toggle" type="button" id="coursejump" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                {{#str}}jumpto, report_feedback_tracker{{/str}}
+            </button>
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="coursejump">
+                {{#courses}}
+                    <a class="dropdown-item line-clamp-2" href="#{{courseid}}">{{{fullname}}}</a>
+                {{/courses}}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{{#courses}}
+    <div id="{{courseid}}" class="pb-4">
+        <h3 class="d-flex align-items-center pb-4">
+            {{#image}}
+                <div class="rounded-circle mr-2 bg-cover" style="height: 3rem; width: 3rem; background-image: url('{{image}}');"></div>
+            {{/image}}
+            <a href="{{{url}}}">{{{fullname}}}</a>
+        </h3>
+
+        {{#records}}
+            {{> report_feedback_tracker/mod }}
+        {{/records}}
+    </div>
+{{/courses}}

@@ -85,6 +85,7 @@ function get_feedback_tracker_admin_data($courseid) {
 function get_feedback_tracker_user_data($userid, $courseid = 0) {
     $data = new stdClass();
     $data->records = [];
+    $data->courses = [];
 
     // If a course ID is given return data for that course only
     // otherwise return data for all courses a user is enrolled in.
@@ -97,6 +98,12 @@ function get_feedback_tracker_user_data($userid, $courseid = 0) {
             get_user_course_gradings($course, $userid, $data);
         }
     }
+
+    // Sort the courses by name.
+    usort($data->courses, function($a, $b) {
+        return strcmp($a->fullname, $b->fullname);
+    });
+
     return $data;
 }
 

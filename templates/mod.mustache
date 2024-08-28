@@ -1,0 +1,149 @@
+{{!
+    This file is part the Feedback Tracker report plugin for Moodle
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template report_feedback_tracker/usertable
+
+    Template for displaying the feedback records to users/students.
+
+    Classes required for JS:
+    * none
+
+    Data attributes required for JS:
+    * none
+
+    Context variables required for this template:
+    * none
+
+    Example context (json):
+    {
+        "records": [
+            {
+                "course": "",
+                "assessment": "",
+                "type": "",
+                "type": "",
+                "duedate": "",
+                "submissiondate": "",
+                "feedbackduedate": "",
+                "feedback": ""
+            }
+        ]
+    }
+
+}}
+{{#modheader}}
+    <div class="row" id="mod_header">
+        <div class="col-12 col-md-5 mb-3 mb-md-0 bg-light">Assessment</div>
+        <div class="col">
+            <div class="row">
+                <div class="col-3 bg-light">{{#str}}submission, report_feedback_tracker{{/str}}</div>
+                <div class="col-3 bg-light">{{#str}}feedback:due, report_feedback_tracker{{/str}}</div>
+                <div class="col-3 bg-light">{{#str}}marks, report_feedback_tracker{{/str}}</div>
+            </div>
+        </div>
+    </div>
+{{/modheader}}
+
+<div class="row">
+    <!-- Mod name. -->
+    <div class="col-12 col-md-5 mb-3 mb-md-0">
+        {{{type}}} {{{assessment}}}
+    </div>
+    <!-- Mod metadata. -->
+    <div class="col">
+        <div class="row">
+            <div class="col-3">
+                <span class="text-nowrap small">
+                    <span class="text-muted">{{#str}}duedate, report_feedback_tracker{{/str}}:</span> {{duedate}}
+                </span>
+                <br>
+                {{#submissionstatus}}
+                    {{{submissionstatus}}}
+                {{/submissionstatus}}
+            </div>
+
+            <!-- Feedback data. -->
+            <div class="col-3">
+                <span class="text-nowrap small">
+                    <span class="text-muted">{{#str}}feedback:due, report_feedback_tracker{{/str}}:</span> {{{feedbackduedate}}}
+                </span>
+                {{#feedbackbadge}}
+                    <br>
+                    {{{feedbackbadge}}}
+                {{/feedbackbadge}}
+                {{#method}}
+                    <br>
+                    <span class="text-nowrap small">{{#str}}method, report_feedback_tracker{{/str}}: {{{method}}}</span>
+                {{/method}}
+            </div>
+
+            <!-- Marks data. -->
+            <div class="col-3 text-right">
+                {{#grade}}
+                    <small class="text-muted">{{#str}}marks, report_feedback_tracker{{/str}}:</small> <strong>{{grade}}</strong>
+                {{/grade}}
+                <br>
+                {{#summative}}
+                    <span data-toggle="tooltip"
+                          title="{{#str}}summative:tooltip, report_feedback_tracker{{/str}}"
+                          class="badge badge-dark">
+                        {{summative}}
+                    </span>
+                {{/summative}}
+
+                {{#formative}}
+                    <span class="badge badge-secondary">{{#str}}formative, report_feedback_tracker{{/str}}</span>
+                {{/formative}}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Free text fields. -->
+
+    {{#additionaldata}}
+        <div class="col p-2 bg-light small">
+            {{#content}}
+                <span class="text-muted">{{#str}}contact, report_feedback_tracker{{/str}}:</span>
+                Kyle Minogue
+                <br>
+            {{/content}}
+
+            {{#method}}
+                <span class="text-muted">{{#str}}method, report_feedback_tracker{{/str}}:</span>
+                {{.}}
+                <br>
+            {{/method}}
+
+            {{#additionalinformation}}
+                <span class="text-muted">{{#str}}additionalinformation, report_feedback_tracker{{/str}}:</span>
+                {{.}}
+                <br>
+            {{/additionalinformation}}
+
+        </div>
+    {{/additionaldata}}
+</div>
+<hr>
+
+{{#js}}
+    require(['report_feedback_tracker/tablefilters'], function(tablefilters) {
+        tablefilters.init();
+    });
+    require(['report_feedback_tracker/tablesort'], function(tablesort) {
+        tablesort.init();
+    });
+{{/js}}

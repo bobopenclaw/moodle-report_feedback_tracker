@@ -22,6 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['additionalinformation'] = 'Additional information';
 $string['assessment'] = 'Assessment';
 $string['classification'] = 'Classification';
 $string['cohortfeedback'] = 'Cohort feedback<br>provided';
@@ -62,7 +63,7 @@ $string['filter:method'] = 'Filter by method';
 $string['filter:summative'] = 'Filter by classification';
 $string['filter:type'] = 'Filter by type';
 $string['filter:typeto'] = 'Type to filter';
-$string['formative'] = 'formative';
+$string['formative'] = 'Formative';
 $string['generalfeedback'] = 'Additional information';
 $string['generalfeedback:hint'] = 'General feedback only';
 $string['generalfeedback:text'] = 'Text:';
@@ -72,7 +73,9 @@ $string['grade'] = 'Grade';
 $string['grade:released'] = 'Marks released';
 $string['grader'] = 'Grader';
 $string['hidden_item'] = 'Hide from report';
-$string['method'] = 'Feedback method';
+$string['jumpto'] = 'Jump to';
+$string['marks'] = 'Marks';
+$string['method'] = 'Method';
 $string['navigationlink'] = 'Feedback tracker';
 $string['pleasenote'] = 'Please note:';
 $string['pluginname'] = 'Feedback tracker report';
@@ -96,11 +99,13 @@ $string['settings:warningdays'] = 'Warning period';
 $string['settings:warningdaysinfo'] = 'Number of calendar days before a due date from when a warning is shown.';
 $string['student'] = 'Student';
 $string['studentdd_label'] = 'View as:';
+$string['submission'] = 'Submission';
 $string['submission:late'] = 'Submitted late';
 $string['submission:overdue'] = 'Overdue';
 $string['submission:success'] = 'Submitted';
 $string['submission:warning'] = 'Submission due date approaching!';
 $string['submissiondate'] = 'Submitted';
 $string['summative'] = 'Summative';
+$string['summative:tooltip'] = 'This summative assessment will count towards the overall course mark.';
 $string['type'] = 'Assessment type';
 $string['user'] = 'User';
