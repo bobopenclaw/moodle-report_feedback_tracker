@@ -184,6 +184,11 @@ function get_admin_feedback_record ($course, $gradeitem, $summativeids) {
  *
  * @param int $courseid
  */
+function get_academic_year1(int $courseid): ?string {
+    // Return a random academic year from the array.
+    $dummyacademicyears = ['2021-22', '2022-23', '2023-24', '2024-25'];
+    return $dummyacademicyears[array_rand($dummyacademicyears)];
+}
 function get_academic_year(int $courseid): ?string {
     $academicyear = null;
     $handler = \core_course\customfield\course_handler::create();
@@ -444,27 +449,27 @@ function get_feedback_badge($gradeitem, $feedbackduedate, $feedbackextendperiod,
 
     // Feedback is available even if there is no due date or when only cohort feedback is given.
     if ((!$feedbackduedate && isset($gradeitem->finalgrade)) || (isset($gradeitem->gfdate) && $gradeitem->gfdate > 0)) {
-        $o .= html_writer::div(get_string('feedback:released', 'report_feedback_tracker'),
+        $o .= html_writer::span(get_string('feedback:released', 'report_feedback_tracker'),
             "badge badge-success");
     } else if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate <= $feedbackduedate) {
         // Feedback was given in time.
-        $o .= html_writer::div(get_string('feedback:released', 'report_feedback_tracker'),
+        $o .= html_writer::span(get_string('feedback:released', 'report_feedback_tracker'),
             "badge badge-success");
     } else if (isset($gradeitem->finalgrade) && $gradeitem->feedbackdate > $feedbackduedate) {
         // Feedback was given after the feedback due date.
-        $o .= html_writer::div(get_string('feedback:late', 'report_feedback_tracker'),
+        $o .= html_writer::span(get_string('feedback:late', 'report_feedback_tracker'),
             "badge badge-warning");
     } else if (!isset($gradeitem->finalgrade) && $feedbackduedate < time()) {
         // NO feedback was given, and it is beyond the feedback due date.
-        $o .= html_writer::div(get_string('feedback:overdue', 'report_feedback_tracker'),
+        $o .= html_writer::span(get_string('feedback:overdue', 'report_feedback_tracker'),
             "badge badge-danger");
     }
 
     if ($contact && false) { // Do not show for now.
-        $o .= html_writer::start_div('feedback_tracker_contact');
+        $o .= html_writer::start_span('feedback_tracker_contact');
         $o .= html_writer::tag('small', get_string('contact', 'report_feedback_tracker') . ': ');
         $o .= html_writer::span($contact, 'feedback_tracker_contact_body small');
-        $o .= html_writer::end_div();
+        $o .= html_writer::end_span();
     }
     return $o;
 }
@@ -988,6 +993,7 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
     $courseobject->courseid = $course->id;
     $courseobject->shortname = $course->shortname;
     $courseobject->fullname = $course->fullname;
+    $courseobject->academicyear = get_academic_year($course->id);
     $courseobject->image = \core_course\external\course_summary_exporter::get_course_image($course);
 
     foreach ($gradeitems as $gradeitem) {

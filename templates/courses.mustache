@@ -11,6 +11,10 @@
         <hr>
     {{/hasyears}}
 
+    {{#academicyearoptions}}
+        <div class="btn btn-sm" data-value="{{key}}">{{value}}</div>
+    {{/academicyearoptions}}
+
     {{! Courses quickjump. }}
     <div class="ml-auto">
         <div class="dropdown">
@@ -33,7 +37,7 @@
             {{#image}}
                 <div class="rounded-circle mr-2 bg-cover" style="height: 3rem; width: 3rem; background-image: url('{{image}}');"></div>
             {{/image}}
-            <a href="{{{url}}}">{{{fullname}}}</a>
+            <a href="{{{url}}}">{{{fullname}}}{{#academicyear}} ({{academicyear}}){{/academicyear}}</a>
         </h3>
 
         {{#records}}
@@ -41,3 +45,9 @@
         {{/records}}
     </div>
 {{/courses}}
+
+{{#js}}
+    require(['report_feedback_tracker/academicyears'], function(academicyears) {
+    academicyears.init();
+    });
+{{/js}}
