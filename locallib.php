@@ -163,7 +163,7 @@ function get_admin_feedback_record ($course, $gradeitem, $summativeids) {
     $record->assessment = get_item_link($gradeitem);
     $record->type = get_item_type($gradeitem);
     $record->module = get_item_module($gradeitem);
-    $record->duedate = $gradeitem->duedate == 0 ? '--' : date($dateformat, $gradeitem->duedate);
+    $record->duedate = $gradeitem->duedate == 0 ? get_string('datenotset', 'report_feedback_tracker') : date($dateformat, $gradeitem->duedate);
     $record->duedateraw = $gradeitem->duedate == 0 ? 9999999999 : $gradeitem->duedate;
     $record->feedbackduedate = render_feedbackduedate($gradeitem, $feedbackperiod);
     $record->feedbackduedateraw = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
@@ -401,7 +401,7 @@ function get_admin_turnitin_records($course, $gradeitem, $summativeids, &$data) 
         $record->assessment = get_item_link($gradeitem, $tttpart->partname);
         $record->type = get_item_type($gradeitem);
         $record->module = get_item_module($gradeitem);
-        $record->duedate = $duedate == 0 ? '--' : date($dateformat, $duedate);
+        $record->duedate = $duedate == 0 ? get_string('datenotset', 'report_feedback_tracker') : date($dateformat, $duedate);
         $record->duedateraw = $duedate == 0 ? 9999999999 : $duedate;
         $record->feedbackduedate = render_feedbackduedate($gradeitem, $feedbackperiod);
         $record->feedbackduedateraw = $gradeitem->feedbackduedate ? $gradeitem->feedbackduedate :
@@ -1156,11 +1156,13 @@ function get_user_feedback_record($course, $userid, $gradeitem, $summativeids) {
     $record->type = get_item_type($gradeitem);
     $record->module = get_item_module($gradeitem);
     $record->summative = get_user_summative($gradeitem, $summativeids);
-    $record->duedate = $gradeitem->duedate == 0 ? '--' : date($dateformat, $gradeitem->duedate);
+    $record->duedate = $gradeitem->duedate == 0 ? get_string('datenotset', 'report_feedback_tracker') : date($dateformat, $gradeitem->duedate);
     $record->duedateraw = $gradeitem->duedate == 0 ? 9999999999 : $gradeitem->duedate;
-    $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date($dateformat, $feedbackduedate);
+    $record->feedbackduedate = $feedbackduedate == 0 ? get_string('datenotset', 'report_feedback_tracker') : date($dateformat, $feedbackduedate);
     $record->feedbackduedateraw = $feedbackduedate == 0 ? 9999999999 : $feedbackduedate;
-    $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
+    $record->grade = ($gradeitem->finalgrade ?
+        (int)$gradeitem->finalgrade . '/' . (int)$gradeitem->grademax :
+        get_string('feedback:notreleased', 'report_feedback_tracker'));
     $record->student = $gradeitem->student;
     $record->grader = $gradeitem->grader;
     $record->feedbackdate = $gradeitem->feedbackdate ? $gradeitem->feedbackdate : $gradeitem->gfdate;
@@ -1345,11 +1347,13 @@ function get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, 
         $record->type = get_item_type($gradeitem);
         $record->module = get_item_module($gradeitem);
         $record->summative = get_user_summative($gradeitem, $summativeids);
-        $record->duedate = $duedate == 0 ? '--' : date($dateformat, $duedate);
+        $record->duedate = $duedate == 0 ? get_string('datenotset', 'report_feedback_tracker') : date($dateformat, $duedate);
         $record->duedateraw = $duedate == 0 ? 9999999999 : $duedate;
-        $record->feedbackduedate = $feedbackduedate == 0 ? '--' : date($dateformat, $feedbackduedate);
+        $record->feedbackduedate = $feedbackduedate == 0 ? get_string('datenotset', 'report_feedback_tracker') : date($dateformat, $feedbackduedate);
         $record->feedbackduedateraw = $feedbackduedate == 0 ? 9999999999 : $feedbackduedate;
-        $record->grade = ($gradeitem->finalgrade ? (int)$gradeitem->finalgrade : '--') . '/' . (int)$gradeitem->grademax;
+        $record->grade = ($gradeitem->finalgrade ?
+            (int)$gradeitem->finalgrade . '/' . (int)$gradeitem->grademax :
+            get_string('feedback:notreleased', 'report_feedback_tracker'));
         $record->student = $gradeitem->student;
         $record->grader = $gradeitem->grader;
         $record->feedbackstatus = get_feedback_status($gradeitem, $feedbackduedate, $feedbackextendperiod, $submissiondate);
