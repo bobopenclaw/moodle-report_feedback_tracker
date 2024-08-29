@@ -49,18 +49,9 @@
 
     {{! Years. }}
     {{#hasyears}}
-        <hr>
-        Academic year:
-        <a href="{{mainurl}}" class="mr-2">Current</a>
-        {{#year}}
-            <a href="{{url}}" class="mr-2">{{{name}}}</a>
-        {{/year}}
-        <hr>
+        {{> report_feedback_tracker/ayselector }}
     {{/hasyears}}
 
-    {{#academicyearoptions}}
-        <div class="btn btn-sm" data-action="select-ay" data-value="{{key}}">{{value}}</div>
-    {{/academicyearoptions}}
 
     {{! Courses quickjump. }}
     <div class="ml-auto">

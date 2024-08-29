@@ -320,6 +320,13 @@ function get_admin_filter_options(&$data) {
             }
         }
     }
+
+    // Sort the academic year descending.
+    if (is_array($data->academicyearoptions)) {
+        usort($data->academicyearoptions, function($a, $b) {
+            return $b->value <=> $a->value; // For descending order
+        });
+    }
 }
 
 /**
@@ -1049,10 +1056,30 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
 
     $data->courses[] = $courseobject;
 
-    // Get the filter options where available.
-    get_user_filter_options($data);
+    // Get the options for academic years.
+    get_user_academic_years($data);
 }
 
+function get_user_academic_years(&$data) {
+    $data->academicyearoptions = [];
+
+    foreach ($data->courses as $course) {
+        $option = new stdClass();
+        $option->key = $course->academicyear;
+        $option->value = $course->academicyear;
+        if (!in_array($option, $data->academicyearoptions) && $option->key !== null) {
+            $data->academicyearoptions[] = $option;
+        }
+    }
+    // Sort the academic year descending.
+    if (is_array($data->academicyearoptions)) {
+        $data->hasyears = $data->academicyearoptions ? true : false;
+            usort($data->academicyearoptions, function($a, $b) {
+            return $b->value <=> $a->value; // For descending order
+        });
+    }
+
+}
 /**
  * Get a due date extension where available.
  *
@@ -1225,6 +1252,13 @@ function get_user_filter_options(&$data) {
                 $data->typeoptions[] = $option;
             }
         }
+    }
+
+    // Sort the academic year descending.
+    if (is_array($data->academicyearoptions)) {
+        usort($data->academicyearoptions, function($a, $b) {
+            return $b->value <=> $a->value; // For descending order
+        });
     }
 }
 

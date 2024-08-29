@@ -1,5 +1,12 @@
 export const init = () => {
     selectCoursesByAcademicYear();
+
+    // Click the leftmost (=current) year.
+    const elements = document.querySelectorAll('[data-action="select-ay"]');
+    if (elements.length > 0) {
+        // Click the leftmost element (the first one in the NodeList)
+        elements[0].click();
+    }
 };
 
 /**
@@ -12,10 +19,16 @@ export function selectCoursesByAcademicYear() {
         if (e.target.closest('[data-action="select-ay"]')) {
             const target = e.target;
             const filterAcademicYear = target.getAttribute('data-value');
+
+            // Loop through each element and enable it (again).
+            document.querySelectorAll('[data-action="select-ay"]').forEach(element => {
+                element.classList.remove('disabled');
+            });
+            // Disable the button for the current selection.
+            target.classList.add('disabled');
             filterCoursesByAcademicYear(filterAcademicYear);
         }
     });
-
 }
 
 /**
@@ -27,24 +40,9 @@ function filterCoursesByAcademicYear(filterAcademicYear) {
     const dataArea = document.getElementById('courses_area');
     const courses = dataArea.getElementsByClassName('course_row');
 
-    window.console.log(courses);
-
-    const getFilterValues = () => ({
-        academicyearValue: filterAcademicYear ? filterAcademicYear : null
-    });
-
-    const rowMatchesFilters = (courses, filterValues) => {
-        const academicYear = courses.querySelector('[data-action="select-ay"]');
-
-        return (
-            (!academicYear || academicYear.getAttribute('data-ay') ===
-                filterValues.academicyearValue || !filterValues.academicyearValue));
-    };
-
     const filterCourses = () => {
-        const filterValues = getFilterValues();
         Array.from(courses).forEach(course => {
-            course.style.display = rowMatchesFilters(course, filterValues) ? '' : 'none';
+            course.style.display = course.getAttribute('data-ay') === filterAcademicYear ? '' : 'none';
         });
     };
 
