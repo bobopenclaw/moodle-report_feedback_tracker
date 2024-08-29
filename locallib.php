@@ -1047,10 +1047,10 @@ function get_user_course_gradings($course, $userid, stdClass &$data) {
         }
     }
 
-    // Sort the courseobject records by feedback due date.
+    // Sort the courseobject records by due date.
     if (is_array($courseobject->records)) {
         usort($courseobject->records, function($a, $b) {
-            return strcmp($a->feedbackduedateraw, $b->feedbackduedateraw);
+            return strcmp($a->duedateraw, $b->duedateraw);
         });
     }
 
