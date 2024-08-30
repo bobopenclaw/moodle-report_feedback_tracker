@@ -46,16 +46,19 @@
 }}
 
 <div class="row">
+    
     <!-- Mod name. -->
     <div class="col-12 col-md-5 mb-3 mb-md-0">
         {{{type}}} {{{assessment}}}
     </div>
+    
     <!-- Mod metadata. -->
     <div class="col">
         <div class="row">
             <div class="col-4">
                 <small>
-                    <span class="text-muted">{{#str}}duedate, report_feedback_tracker{{/str}}:</span> {{duedate}}
+                    <span class="text-muted">{{#str}}duedate, report_feedback_tracker{{/str}}:</span> 
+                    <span class="text-nowrap">{{duedate}}</span>
                 </small>
                 <br>
                 {{#submissionstatus}}
@@ -66,11 +69,12 @@
             <!-- Feedback data. -->
             <div class="col-4">
                 <small>
-                    <span class="text-muted">{{#str}}feedback:due, report_feedback_tracker{{/str}}:</span> {{{feedbackduedate}}}
+                    <span class="text-muted">{{#str}}feedback:due, report_feedback_tracker{{/str}}:</span>
+                    <span class="text-nowrap">{{{feedbackduedate}}}</span>
                 </small>
                 {{#feedbackbadge}}
-                    <br>
-                    {{{feedbackbadge}}}
+                <br>
+                {{{feedbackbadge}}}
                 {{/feedbackbadge}}
             </div>
 
@@ -92,11 +96,10 @@
                     <span class="badge badge-secondary">{{#str}}formative, report_feedback_tracker{{/str}}</span>
                 {{/formative}}
             </div>
-
         </div>
     </div>
-
 </div>
+
 <div class="row">
     <!-- Free text fields. -->
 
