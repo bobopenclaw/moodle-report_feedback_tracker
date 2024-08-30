@@ -54,8 +54,8 @@ class report_feedback_tracker_external extends \core_external\external_api {
     public static function save_summative_state_parameters() {
         return new external_function_parameters(
             [
-                'itemid' => new external_value(PARAM_RAW, 'The ID of the grade item'),
-                'summativestate' => new external_value(PARAM_RAW, 'The summative state (0 or 1)'),
+                'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
+                'summativestate' => new external_value(PARAM_BOOL, 'The summative state (0 or 1)'),
             ]
         );
     }
@@ -89,7 +89,8 @@ class report_feedback_tracker_external extends \core_external\external_api {
      *
      * @return external_warnings
      */
-    public static function save_summative_state_returns() {
+    public static function save_summative_state_returns(): external_value {
+        return new external_value(PARAM_BOOL, 'Success');
     }
 
     /**
@@ -101,8 +102,8 @@ class report_feedback_tracker_external extends \core_external\external_api {
     public static function save_hiding_state_parameters() {
         return new external_function_parameters(
             [
-                'itemid' => new external_value(PARAM_RAW, 'The ID of the grade item'),
-                'hidingstate' => new external_value(PARAM_RAW, 'The hiding state (0 or 1)'),
+                'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
+                'hidingstate' => new external_value(PARAM_BOOL, 'The hiding state (0 or 1)'),
             ]
         );
     }
@@ -136,7 +137,8 @@ class report_feedback_tracker_external extends \core_external\external_api {
      *
      * @return external_warnings
      */
-    public static function save_hiding_state_returns() {
+    public static function save_hiding_state_returns(): external_value {
+        return new external_value(PARAM_BOOL, 'Success');
     }
 
     /**
@@ -148,8 +150,8 @@ class report_feedback_tracker_external extends \core_external\external_api {
     public static function save_cohort_state_parameters() {
         return new external_function_parameters(
             [
-                'itemid' => new external_value(PARAM_RAW, 'The ID of the grade item'),
-                'cohortstate' => new external_value(PARAM_RAW, 'The hiding state (0 or 1)'),
+                'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
+                'cohortstate' => new external_value(PARAM_BOOL, 'The hiding state (0 or 1)'),
             ]
         );
     }
@@ -183,7 +185,8 @@ class report_feedback_tracker_external extends \core_external\external_api {
      *
      * @return external_warnings
      */
-    public static function save_cohort_state_returns() {
+    public static function save_cohort_state_returns(): external_value {
+        return new external_value(PARAM_BOOL, 'Success');
     }
 
     /**
@@ -195,9 +198,9 @@ class report_feedback_tracker_external extends \core_external\external_api {
     public static function save_feedback_duedate_parameters() {
         return new external_function_parameters(
             [
-                'itemid' => new external_value(PARAM_RAW, 'The ID of the grade item'),
-                'duedate' => new external_value(PARAM_RAW, 'The due date in seconds'),
-                'duedatereason' => new external_value(PARAM_RAW, 'The reason for a manual due date'),
+                'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
+                'duedate' => new external_value(PARAM_INT, 'The due date in seconds'),
+                'duedatereason' => new external_value(PARAM_TEXT, 'The reason for a manual due date'),
             ]
         );
     }
@@ -241,7 +244,8 @@ class report_feedback_tracker_external extends \core_external\external_api {
      *
      * @return external_warnings
      */
-    public static function save_feedback_duedate_returns() {
+    public static function save_feedback_duedate_returns(): external_value {
+        return new external_value(PARAM_BOOL, 'Success');
     }
 
     /**
@@ -253,7 +257,7 @@ class report_feedback_tracker_external extends \core_external\external_api {
     public static function delete_feedback_duedate_parameters() {
         return new external_function_parameters(
             [
-                'itemid' => new external_value(PARAM_RAW, 'The ID of the grade item'),
+                'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
             ]
         );
     }
@@ -280,7 +284,8 @@ class report_feedback_tracker_external extends \core_external\external_api {
      *
      * @return external_warnings
      */
-    public static function delete_feedback_duedate_returns() {
+    public static function delete_feedback_duedate_returns(): external_value {
+        return new external_value(PARAM_BOOL, 'Success');
     }
 
     /**
@@ -292,9 +297,9 @@ class report_feedback_tracker_external extends \core_external\external_api {
     public static function update_general_feedback_parameters() {
         return new external_function_parameters(
             [
-                'itemid' => new external_value(PARAM_RAW, 'The ID of the grade item'),
-                'generalfeedback' => new external_value(PARAM_RAW, 'The general feedback'),
-                'gfurl' => new external_value(PARAM_RAW, 'The URL to general feedback'),
+                'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
+                'generalfeedback' => new external_value(PARAM_TEXT, 'The general feedback'),
+                'gfurl' => new external_value(PARAM_URL, 'The URL to general feedback'),
             ]
         );
     }
@@ -304,12 +309,12 @@ class report_feedback_tracker_external extends \core_external\external_api {
      *
      * @param int $itemid The ID of the grade item
      * @param string $generalfeedback The general feedback text
-     * @param int $gfurl The general feedback URL
+     * @param string $gfurl The general feedback URL
      * @return string
      * @throws coding_exception
      * @throws dml_exception
      */
-    public static function update_general_feedback(int $itemid, $generalfeedback, $gfurl): bool {
+    public static function update_general_feedback(int $itemid, string $generalfeedback, string $gfurl): bool {
         global $DB;
 
         if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid])) {
@@ -331,7 +336,8 @@ class report_feedback_tracker_external extends \core_external\external_api {
      *
      * @return external_warnings
      */
-    public static function update_general_feedback_returns() {
+    public static function update_general_feedback_returns(): external_value {
+        return new external_value(PARAM_BOOL, 'Success');
     }
 
     /**
@@ -343,8 +349,8 @@ class report_feedback_tracker_external extends \core_external\external_api {
     public static function render_student_feedback_parameters() {
         return new external_function_parameters(
             [
-                'studentid' => new external_value(PARAM_RAW, 'The ID of the student, 0 for admin'),
-                'courseid' => new external_value(PARAM_RAW, 'The ID of the course'),
+                'studentid' => new external_value(PARAM_INT, 'The ID of the student, 0 for admin'),
+                'courseid' => new external_value(PARAM_INT, 'The ID of the course'),
             ]
         );
     }
@@ -375,7 +381,8 @@ class report_feedback_tracker_external extends \core_external\external_api {
      *
      * @return external_warnings
      */
-    public static function render_student_feedback_returns() {
+    public static function render_student_feedback_returns(): external_value {
+        return new external_value(PARAM_TEXT, 'The rendered student assessments');
     }
 
 }

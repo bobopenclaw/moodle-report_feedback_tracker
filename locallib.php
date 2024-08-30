@@ -186,7 +186,7 @@ function get_admin_feedback_record ($course, $gradeitem, $summativeids) {
  *
  * @param int $courseid
  */
-function get_academic_year(int $courseid): ?string {
+function get_academic_year1(int $courseid): ?string {
     // Return a random academic year from the array.
     $dummyacademicyears = ['2021-22', '2022-23', '2023-24', '2024-25'];
     return $dummyacademicyears[array_rand($dummyacademicyears)];
@@ -197,7 +197,7 @@ function get_academic_year(int $courseid): ?string {
  *
  * @param int $courseid
  */
-function get_academic_year0(int $courseid): ?string {
+function get_academic_year(int $courseid): ?string {
     $academicyear = null;
     $handler = \core_course\customfield\course_handler::create();
     $data = $handler->get_instance_data($courseid, true);
@@ -1397,15 +1397,15 @@ function module_is_supported($gradeitem) {
         return false;
     }
 
+    // Invisible items are invisible unless you are editing.
+    if (($gradeitem->hidden || !$gradeitem->visible) && !$PAGE->user_is_editing()) {
+        return false;
+    }
+
     // Manual feedback is supported if checked in the settings.
     if ($gradeitem->itemtype == 'manual' && !$gradeitem->itemmodule &&
         get_config('report_feedback_tracker', 'supportmanual')) {
         return true;
-    }
-
-    // Invisible items are invisible unless you are editing.
-    if (($gradeitem->hidden || !$gradeitem->visible) && !$PAGE->user_is_editing()) {
-        return false;
     }
 
     $modulelist = [
