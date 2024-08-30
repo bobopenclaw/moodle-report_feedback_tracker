@@ -114,6 +114,6 @@ $string['submissiondate'] = 'Submitted';
 $string['summative'] = 'Summative';
 $string['summative:tooltip'] = 'This summative assessment will count towards the overall course mark.';
 $string['title:name'] = 'MyAssessments';
-$string['title:subtext'] = 'Below you can see provisional marks and feedback for Moodle assessments.';
+$string['title:subtext'] = 'Assessments with due dates, feedback dates, and marks from your courses in Moodle.';
 $string['type'] = 'Assessment type';
 $string['user'] = 'User';
