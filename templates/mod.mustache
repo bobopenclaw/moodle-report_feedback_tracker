@@ -87,8 +87,15 @@
                 {{#summative}}
                     <span data-toggle="tooltip"
                           title="{{#str}}summative:tooltip, report_feedback_tracker{{/str}}"
-                          class="badge badge-dark">
-                        {{summative}}
+                          class="badge badge-primary">
+                        {{#str}}summative, report_feedback_tracker{{/str}}
+                    </span>
+                {{/summative}}
+                {{^summative}}
+                    <span data-toggle="tooltip"
+                          title="{{#str}}formative:tooltip, report_feedback_tracker{{/str}}"
+                          class="badge badge-secondary">
+                        {{#str}}formative, report_feedback_tracker{{/str}}
                     </span>
                 {{/summative}}
 

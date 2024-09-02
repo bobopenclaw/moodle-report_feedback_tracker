@@ -15,6 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace report_feedback_tracker\local;
+use coding_exception;
 use context_course;
 use dml_exception;
 use html_writer;
@@ -1296,12 +1297,10 @@ class helper {
      *
      * @param stdClass $gradeitem
      * @param array $summativeids
-     * @return lang_string|string
-     * @throws coding_exception
+     * @return bool
      */
     protected static function get_user_summative($gradeitem, $summativeids) {
-        return $gradeitem->summative || in_array($gradeitem->itemid, $summativeids) ?
-            get_string('summative', 'report_feedback_tracker') : "";
+        return $gradeitem->summative || in_array($gradeitem->itemid, $summativeids);
     }
 
     /**
