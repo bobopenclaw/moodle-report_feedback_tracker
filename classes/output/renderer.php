@@ -25,6 +25,7 @@
 namespace report_feedback_tracker\output;
 
 use plugin_renderer_base;
+use report_feedback_tracker\local\datasource;
 
 
 /**
@@ -42,7 +43,7 @@ class renderer extends plugin_renderer_base {
      */
     public function render_feedback_tracker_user_table($userid, $courseid = 0): string {
         // Get the table data.
-        $feedbacktrackerdata = get_feedback_tracker_user_data($userid, $courseid);
+        $feedbacktrackerdata = datasource::get_feedback_tracker_user_data($userid, $courseid);
         // Render the table data.
         return $this->output->render_from_template('report_feedback_tracker/courses', $feedbacktrackerdata);
     }
@@ -56,7 +57,7 @@ class renderer extends plugin_renderer_base {
      */
     public function render_feedback_tracker_admin_wrapper($courseid): string {
         // Get the table data.
-        $feedbacktrackerdata = get_feedback_tracker_admin_data($courseid);
+        $feedbacktrackerdata = datasource::get_feedback_tracker_admin_data($courseid);
         $feedbacktrackerdata->courseid = $courseid;
         // Render the table data.
         if ($feedbacktrackerdata->editmode) {
@@ -74,7 +75,7 @@ class renderer extends plugin_renderer_base {
      */
     public function render_feedback_tracker_admin_table($courseid): string {
         // Get the table data.
-        $feedbacktrackerdata = get_feedback_tracker_admin_data($courseid);
+        $feedbacktrackerdata = datasource::get_feedback_tracker_admin_data($courseid);
         // Render the table data.
         return $this->output->render_from_template('report_feedback_tracker/admintable', $feedbacktrackerdata);
     }

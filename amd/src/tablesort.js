@@ -9,9 +9,9 @@ export function tableSort() {
     window.console.log('tablesort.js initialised');
 
     const dataTable = document.getElementById('feedback_table');
-    const headers = dataTable.querySelectorAll('th');
+    const headers = dataTable ? dataTable.querySelectorAll('th') : [];
     const directions = Array.from(headers).map(() => 1); // Initial sort directions
-    const indicators = dataTable.querySelectorAll('.indicator');
+    const indicators = dataTable ? dataTable.querySelectorAll('.indicator') : [];
 
     headers.forEach((header, index) => {
         header.addEventListener('click', function() {

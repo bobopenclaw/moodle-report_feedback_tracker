@@ -10,7 +10,7 @@ export function tableFilters() {
     window.console.log('tablefilters.js initialised');
 
     const dataTable = document.getElementById('feedback_table');
-    const rows = dataTable.getElementsByTagName('tr');
+    const rows = dataTable ? dataTable.getElementsByTagName('tr') : [];
 
     const filterAcademicYear = document.getElementById('filteracademicyear');
     const filterCourse = document.getElementById('filtercourse');
@@ -95,8 +95,8 @@ export function tableFilters() {
  */
 export function initialiseTextFilters() {
     const dataTable = document.getElementById('feedback_table');
-    const filterResponsibilityInputs = dataTable.querySelectorAll('.filterresponsibility-input');
-    const filterGeneralFeedbackInputs = dataTable.querySelectorAll('.filtergeneralfeedback-input');
+    const filterResponsibilityInputs = dataTable ? dataTable.querySelectorAll('.filterresponsibility-input') : [];
+    const filterGeneralFeedbackInputs = dataTable ? dataTable.querySelectorAll('.filtergeneralfeedback-input') : [];
 
     filterResponsibilityInputs.forEach(input => {
         input.addEventListener('input', function() {
