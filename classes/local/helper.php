@@ -18,8 +18,9 @@ namespace report_feedback_tracker\local;
 use coding_exception;
 use context_course;
 use dml_exception;
+use grade_item;
 use html_writer;
-use local_sitsgradepush\external\get_summative_grade_items;
+use local_assess_type\assess_type;
 use stdClass;
 
 /**
@@ -347,12 +348,18 @@ class helper {
     protected static function get_admin_summative($gradeitem, $summativeids) {
         global $PAGE;
 
-        // Check if an item is declared summative by SITS.
-        if (in_array($gradeitem->itemid, $summativeids)) {
-            $gradeitem->summative = 2;
+        // Check if an item is declared summative in assess type plugin.
+        if (array_key_exists($gradeitem->itemid, $summativeids)) {
+            // This is a summative item and locked.
+            if ($summativeids[$gradeitem->itemid] == 1) {
+                $gradeitem->summative = 2;
+                // This is a summative item and unlocked.
+            } else if ($summativeids[$gradeitem->itemid] == 0) {
+                $gradeitem->summative = 1;
+            }
         }
 
-        // If not set by SITS one may still declare summative manually.
+        // If not set in assess type plugin one may still declare summative manually.
         if ($PAGE->user_is_editing() && $gradeitem->summative < 2) {
             if ($gradeitem->summative) {
                 return "<input
@@ -892,20 +899,44 @@ class helper {
     protected static function get_summative_ids($courseid) {
         global $CFG;
 
-        $summativeids = [];
-        // Check if SITSgradepush is installed.
-        if (file_exists($CFG->dirroot.'/local/sitsgradepush/version.php')) {
-            require_once($CFG->dirroot . '/local/sitsgradepush/classes/external/get_summative_grade_items.php');
+        require_once($CFG->dirroot . '/grade/lib.php');
+        $assesstypegradeitems = [];
 
-            $instance = new get_summative_grade_items;
-            $result = $instance::execute($courseid);
-            $summativegradeitems = $result['gradeitems'];
-            // Build an array of summative IDs.
-            foreach ($summativegradeitems as $summativegradeitem) {
-                $summativeids[] = $summativegradeitem->id;
+        // Get all summative assessment type records from the assess type plugin.
+        $assesstyperecords = assess_type::get_assess_type_records_by_courseid($courseid, assess_type::ASSESS_TYPE_SUMMATIVE);
+
+        // No assess type records found.
+        if (empty($assesstyperecords)) {
+            return [];
+        }
+
+        foreach ($assesstyperecords as $assesstype) {
+            // Grade item id found. Return the assess type record and process the next record.
+            if ($assesstype->gradeitemid) {
+                $assesstypegradeitems[$assesstype->gradeitemid] = $assesstype->locked;
+                continue;
+            }
+
+            // Course module id found.
+            // Find the grade items of this course module and return their assess type records.
+            if ($assesstype->cmid) {
+                $cm = get_coursemodule_from_id('', $assesstype->cmid, $assesstype->courseid);
+                if (empty($cm)) {
+                    continue;
+                }
+                $gradeitems = grade_item::fetch_all(
+                  ['itemtype' => 'mod', 'iteminstance' => $cm->instance, 'itemmodule' => $cm->modname]
+                );
+                if (empty($gradeitems)) {
+                    continue;
+                }
+                foreach ($gradeitems as $gradeitem) {
+                    $assesstypegradeitems[$gradeitem->id] = $assesstype->locked;
+                }
             }
         }
-        return $summativeids;
+
+        return $assesstypegradeitems;
     }
 
     /**
@@ -1300,7 +1331,7 @@ class helper {
      * @return bool
      */
     protected static function get_user_summative($gradeitem, $summativeids) {
-        return $gradeitem->summative || in_array($gradeitem->itemid, $summativeids);
+        return $gradeitem->summative || array_key_exists($gradeitem->itemid, $summativeids);
     }
 
     /**
@@ -1409,7 +1440,7 @@ class helper {
         if ($gradeitem->itemtype == 'manual' && !$gradeitem->itemmodule &&
             get_config('report_feedback_tracker', 'supportmanual')) {
             // Do not show hidden manual items unless the user is editing.
-            if ($gradeitem->hidden  && !$PAGE->user_is_editing()) {
+            if ($gradeitem->hidden && !$PAGE->user_is_editing()) {
                 return false;
             }
             return true;

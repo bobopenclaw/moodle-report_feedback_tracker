@@ -19,6 +19,7 @@ namespace report_feedback_tracker\external;
 use core_external\external_api;
 use core_external\external_function_parameters;
 use core_external\external_value;
+use local_assess_type\assess_type;
 use stdClass;
 
 /**
@@ -62,15 +63,21 @@ class save_summative_state extends external_api {
         try {
             global $DB;
 
-            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid])) {
-                $record->summative = $summativestate;
-                $DB->update_record('report_feedback_tracker', $record);
-            } else {
-                $record = new stdClass();
-                $record->gradeitem = $itemid;
-                $record->summative = $summativestate;
-                $record->feedbackduedate = 0;
-                $DB->insert_record('report_feedback_tracker', $record);
+            // Prepare the type value for the local_assess_type table.
+            $type = $summativestate ? assess_type::ASSESS_TYPE_SUMMATIVE : assess_type::ASSESS_TYPE_FORMATIVE;
+
+            // Update summative state in local_assess_type table.
+            $gradeitem = $DB->get_record('grade_items', ['id' => $itemid]);
+            if (!empty($gradeitem)) {
+                // Update course module records.
+                if ($gradeitem->itemtype === 'mod') {
+                    if ($cm = get_coursemodule_from_instance($gradeitem->itemmodule, $gradeitem->iteminstance)) {
+                        assess_type::update_type($gradeitem->courseid, $type, $cm->id);
+                    }
+                } else {
+                    // Update the gradebook grade item and category.
+                    assess_type::update_type($gradeitem->courseid, $type, 0, $itemid);
+                }
             }
 
             return $summativestate;
