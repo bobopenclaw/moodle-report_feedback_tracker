@@ -232,7 +232,15 @@ class admin {
                 // Each ttt assessment part may have its own attributes.
                 $gradeitem->summative = $tttpart->summative;
                 $gradeitem->hidden = $tttpart->hidden;
-                $gradeitem->feedbackduedate = $tttpart->feedbackduedate ? $tttpart->feedbackduedate : $gradeitem->feedbackduedate;
+
+
+
+//                $gradeitem->feedbackduedate = $tttpart->feedbackduedate ? $tttpart->feedbackduedate : $gradeitem->feedbackduedate;
+                $gradeitem->feedbackduedate = $tttpart->feedbackduedate;
+
+
+
+
                 $gradeitem->duedate = $tttpart->dtdue;
                 $gradeitem->method = $tttpart->method;
                 $gradeitem->responsibility = $tttpart->responsibility;

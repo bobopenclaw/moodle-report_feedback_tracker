@@ -39,6 +39,7 @@ class save_summative_state extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
+            'partname' => new external_value(PARAM_TEXT, 'The optional part name used by turnitintooltwo only'),
             'summativestate' => new external_value(PARAM_BOOL, 'The summative state (0 or 1)'),
         ]);
     }
@@ -49,17 +50,19 @@ class save_summative_state extends external_api {
      * @return \external_value
      */
     public static function execute_returns() {
-        return new external_value(PARAM_RAW, 'Success');
+        return new external_value(PARAM_BOOL, 'Success');
     }
 
     /**
      * Saving the summative state for a grade item.
      *
      * @param int $itemid
+     * @param string|null $partname optional partname for turnitintooltwo assessments only.
      * @param bool $summativestate
-     * @return bool|array
+     * @return bool
+     * @throws \Exception
      */
-    public static function execute(int $itemid, bool $summativestate): bool|array {
+    public static function execute(int $itemid, string|null $partname, bool $summativestate): bool {
         try {
             global $DB;
 

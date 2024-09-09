@@ -38,6 +38,7 @@ class save_hiding_state extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
+            'partname' => new external_value(PARAM_TEXT, 'The optional part name used by turnitintooltwo only'),
             'hidingstate' => new external_value(PARAM_BOOL, 'The summative state (0 or 1)'),
         ]);
     }
@@ -55,19 +56,22 @@ class save_hiding_state extends external_api {
      * Saving the hiding state for a grade item.
      *
      * @param int $itemid
+     * @param string|null $partname optional partname for turnitintooltwo assessments only.
      * @param bool $hidingstate
-     * @return bool|array
+     * @return bool
+     * @throws \Exception
      */
-    public static function execute(int $itemid, bool $hidingstate): bool {
+    public static function execute(int $itemid, string|null $partname, bool $hidingstate): bool {
         try {
             global $DB;
 
-            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid])) {
+            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partname' => $partname])) {
                 $record->hidden = $hidingstate;
                 $DB->update_record('report_feedback_tracker', $record);
             } else {
                 $record = new stdClass();
                 $record->gradeitem = $itemid;
+                $record->partname = $partname;
                 $record->hidden = $hidingstate;
                 $record->feedbackduedate = 0;
                 $DB->insert_record('report_feedback_tracker', $record);

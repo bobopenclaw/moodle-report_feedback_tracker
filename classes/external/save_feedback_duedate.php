@@ -38,6 +38,7 @@ class save_feedback_duedate extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
+            'partname' => new external_value(PARAM_TEXT, 'The optional part name used by turnitintooltwo only'),
             'duedate' => new external_value(PARAM_INT, 'The due date in seconds'),
             'duedatereason' => new external_value(PARAM_TEXT, 'The reason for a manual due date'),
         ]);
@@ -56,21 +57,24 @@ class save_feedback_duedate extends external_api {
      * Saving the feedback due date and the reason for it for a grade item.
      *
      * @param int $itemid
+     * @param string|null $partname optional partname for turnitintooltwo assessments only.
      * @param int $duedate
      * @param string $duedatereason
-     * @return bool|array
+     * @return bool
+     * @throws \Exception
      */
-    public static function execute(int $itemid, int $duedate, string $duedatereason): bool {
+    public static function execute(int $itemid, string|null $partname, int $duedate, string $duedatereason): bool {
         try {
             global $DB, $USER;
 
             // Set or update the manual feedback due date.
-            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid])) {
+            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partname' => $partname])) {
                 $record->feedbackduedate = $duedate;
                 $DB->update_record('report_feedback_tracker', $record);
             } else {
                 $record = new stdClass();
                 $record->gradeitem = $itemid;
+                $record->partname = $partname;
                 $record->hidden = 0;
                 $record->feedbackduedate = $duedate;
                 $DB->insert_record('report_feedback_tracker', $record);
@@ -79,6 +83,7 @@ class save_feedback_duedate extends external_api {
             // Save the reason for a manual due date to the duedates table.
             $record = new stdClass();
             $record->gradeitem = $itemid;
+            $record->partname = $partname;
             $record->feedbackduedate = $duedate;
             $record->reason = $duedatereason;
             $record->userid = $USER->id;

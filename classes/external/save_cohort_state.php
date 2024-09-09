@@ -37,7 +37,8 @@ class save_cohort_state extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'itemid' => new external_value(PARAM_RAW, 'The ID of the grade item'),
+            'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
+            'partname' => new external_value(PARAM_TEXT, 'The optional part name used by turnitintooltwo only'),
             'cohortstate' => new external_value(PARAM_RAW, 'The hiding state (0 or 1)'),
         ]);
     }
@@ -55,19 +56,22 @@ class save_cohort_state extends external_api {
      * Saving the cohort state for a grade item.
      *
      * @param int $itemid
+     * @param string|null $partname optional partname for turnitintooltwo assessments only.
      * @param bool $cohortstate
-     * @return bool|array
+     * @return bool
+     * @throws \Exception
      */
-    public static function execute(int $itemid, bool $cohortstate): bool {
+    public static function execute(int $itemid, string|null $partname, bool $cohortstate): bool {
         try {
             global $DB;
 
-            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid])) {
+            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partname' => $partname])) {
                 $record->gfdate = $cohortstate ? time() : null;
                 $DB->update_record('report_feedback_tracker', $record);
             } else {
                 $record = new stdClass();
                 $record->gradeitem = $itemid;
+                $record->partname = $partname;
                 $record->gfdate = $cohortstate ? time() : null;
                 $record->feedbackduedate = 0;
                 $DB->insert_record('report_feedback_tracker', $record);

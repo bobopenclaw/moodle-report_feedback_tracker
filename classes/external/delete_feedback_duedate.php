@@ -38,6 +38,7 @@ class delete_feedback_duedate extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
+            'partname' => new external_value(PARAM_TEXT, 'The optional part name used by turnitintooltwo only'),
         ]);
     }
 
@@ -54,13 +55,15 @@ class delete_feedback_duedate extends external_api {
      * Removing the feedback due date for a grade item.
      *
      * @param int $itemid
-     * @return bool|array
+     * @param string|null $partname optional partname for turnitintooltwo assessments only.
+     * @return bool
+     * @throws \Exception
      */
-    public static function execute(int $itemid): bool {
+    public static function execute(int $itemid, string|null $partname): bool {
         try {
             global $DB;
 
-            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid])) {
+            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partname' => $partname])) {
                 $record->feedbackduedate = 0;
                 $DB->update_record('report_feedback_tracker', $record);
                 return true;

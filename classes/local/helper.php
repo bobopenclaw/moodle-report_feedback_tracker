@@ -71,7 +71,7 @@ class helper {
      * @return string
      * @throws dml_exception
      */
-    public static function get_feedbacks($gradeitem): string {
+    public static function get_feedbacks(stdClass $gradeitem): string {
         return $gradeitem->cmid ? html_writer::div("$gradeitem->feedbacks of $gradeitem->submissions") : '';
     }
 
@@ -85,7 +85,7 @@ class helper {
      * @return string
      * @throws coding_exception
      */
-    public static function get_feedback_badge($gradeitem, $feedbackduedate, $submissiondate): string {
+    public static function get_feedback_badge(stdClass $gradeitem, int $feedbackduedate, int $submissiondate): string {
 
         // If there is no general feedback date and no submission there is no feedback.
         if (!isset($gradeitem->gfdate) && $submissiondate == 0) {
@@ -129,7 +129,7 @@ class helper {
      * @return string
      * @throws coding_exception
      */
-    public static function get_feedback_method($gradeitem): string|null {
+    public static function get_feedback_method(stdClass $gradeitem): string|null {
         global $OUTPUT, $PAGE;
 
         if ($PAGE->user_is_editing()) {
@@ -156,7 +156,7 @@ class helper {
      * @return string
      * @throws coding_exception
      */
-    public static function get_feedback_responsibility($gradeitem): string {
+    public static function get_feedback_responsibility(stdClass $gradeitem): string {
         global $OUTPUT, $PAGE;
 
         if ($PAGE->user_is_editing()) {
@@ -184,7 +184,7 @@ class helper {
      * @return lang_string|string
      * @throws coding_exception
      */
-    public static function get_feedback_status($gradeitem, $feedbackduedate, $submissiondate): lang_string|string {
+    public static function get_feedback_status(stdClass $gradeitem, int $feedbackduedate, int $submissiondate): lang_string|string {
 
         // If there is no general feedback date and no submission there is no feedback(?).
         if (!isset($gradeitem->gfdate) && $submissiondate == 0) {
@@ -221,7 +221,7 @@ class helper {
      * @param stdClass $gradeitem
      * @return string
      */
-    public static function get_hidden_state($gradeitem): string {
+    public static function get_hidden_state(stdClass $gradeitem): string {
         global $PAGE;
 
         if ($PAGE->user_is_editing()) {
@@ -256,10 +256,9 @@ class helper {
      * Return a link to the module item where applicable.
      *
      * @param stdClass $gradeitem
-     * @param string $partname
      * @return mixed|string
      */
-    public static function get_item_link($gradeitem, $partname = ''): mixed {
+    public static function get_item_link(stdClass $gradeitem): mixed {
         global $CFG, $USER;
 
         if (!isset($gradeitem->cmid)) {
@@ -267,7 +266,7 @@ class helper {
         } else {
             $url = "$CFG->wwwroot/mod/$gradeitem->itemmodule/view.php?id=$gradeitem->cmid";
         }
-        $linktext = $partname ? "$gradeitem->itemname - $partname" : $gradeitem->itemname;
+        $linktext = $gradeitem->partname ? "$gradeitem->itemname - $gradeitem->partname" : $gradeitem->itemname;
         return html_writer::link($url, $linktext);
     }
 
@@ -277,7 +276,7 @@ class helper {
      * @param stdClass $gradeitem
      * @return mixed|string
      */
-    public static function get_item_type($gradeitem): mixed {
+    public static function get_item_type(stdClass $gradeitem): mixed {
 
         // If there is no itemmodule it is manual feedback.
         if (!$gradeitem->itemmodule) {
@@ -320,7 +319,7 @@ class helper {
      * @return \lang_string|string
      * @throws coding_exception
      */
-    public static function get_item_module($gradeitem): \lang_string|string {
+    public static function get_item_module(stdClass $gradeitem): \lang_string|string {
         switch ($gradeitem->itemmodule) {
             case 'assign':
                 return get_string('pluginname', 'mod_assign');
@@ -347,7 +346,7 @@ class helper {
      * @return int // The submission date in seconds since 1.1.1970.
      * @throws dml_exception
      */
-    public static function get_submissiondate($userid, $gradeitem): int {
+    public static function get_submissiondate(int $userid, stdClass $gradeitem): int {
         global $DB;
 
         $submissiondate = 0;
@@ -444,7 +443,7 @@ class helper {
      * @param int $warningperiod
      * @return string
      */
-    public static function get_submission_status($submissiondate, $duedate, $warningperiod): string {
+    public static function get_submission_status(int $submissiondate, int $duedate, int $warningperiod): string {
         $dateformat = get_config('report_feedback_tracker', 'dateformat');
 
         // Submission was in time.
@@ -491,7 +490,7 @@ class helper {
      * @param int $courseid
      * @return array
      */
-    public static function get_summative_ids($courseid): array {
+    public static function get_summative_ids(int $courseid): array {
         global $CFG;
 
         require_once($CFG->dirroot . '/grade/lib.php');
@@ -547,7 +546,7 @@ class helper {
      * @return mixed
      * @throws dml_exception
      */
-    protected static function get_ttt_submission_date($tttpart, $userid): mixed {
+    protected static function get_ttt_submission_date(stdClass $tttpart, int $userid): mixed {
         global $DB;
 
         if ($res = $DB->get_record('turnitintooltwo_submissions', ['submission_part' => $tttpart->id, 'userid' => $userid])) {
@@ -595,7 +594,7 @@ class helper {
      * @return false|mixed
      * @throws dml_exception
      */
-    public static function get_duedate_extension($gradeitem, $userid): mixed {
+    public static function get_duedate_extension(stdClass $gradeitem, int $userid): mixed {
         global $DB;
 
         switch ($gradeitem->itemmodule) {
@@ -632,7 +631,7 @@ class helper {
      * @return bool
      * @throws coding_exception
      */
-    public static function is_course_editor($courseid, $userid): bool {
+    public static function is_course_editor(int $courseid, int $userid): bool {
         if (!isset($courseid)) {
             return false;
         }
@@ -649,7 +648,7 @@ class helper {
      * @param stdClass $gradeitem
      * @return bool
      */
-    public static function module_is_supported($gradeitem): bool {
+    public static function module_is_supported(stdClass $gradeitem): bool {
         global $PAGE;
 
         // Course type is not supported.
@@ -702,7 +701,7 @@ class helper {
      * @return string
      * @throws coding_exception
      */
-    public static function render_feedbackduedate($gradeitem, $feedbackperiod = 0): string {
+    public static function render_feedbackduedate(stdClass $gradeitem, int $feedbackperiod = 0): string {
         global $PAGE;
 
         // Use a stored feedback due date if present, otherwise
@@ -756,7 +755,7 @@ class helper {
      * @return false|mixed|stdClass
      * @throws dml_exception
      */
-    protected static function get_feedback_module($gradeitem): mixed {
+    protected static function get_feedback_module(stdClass $gradeitem): mixed {
         global $DB, $USER;
 
         // Handle cases of module types here where needed.

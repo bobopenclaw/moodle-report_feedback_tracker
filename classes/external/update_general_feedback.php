@@ -38,6 +38,7 @@ class update_general_feedback extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
+            'partname' => new external_value(PARAM_TEXT, 'The optional part name used by turnitintooltwo only'),
             'generalfeedback' => new external_value(PARAM_TEXT, 'The general feedback'),
             'gfurl' => new external_value(PARAM_URL, 'The URL to general feedback'),
         ]);
@@ -56,21 +57,24 @@ class update_general_feedback extends external_api {
      * Saving the feedback due date and the reason for it for a grade item.
      *
      * @param int $itemid
+     * @param string|null $partname optional partname for turnitintooltwo assessments only.
      * @param string $generalfeedback
      * @param string $gfurl
-     * @return bool|array
+     * @return bool
+     * @throws \Exception
      */
-    public static function execute(int $itemid, string $generalfeedback, string $gfurl): bool {
+    public static function execute(int $itemid, string|null $partname, $generalfeedback, $gfurl): bool {
         try {
             global $DB;
 
-            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid])) {
+            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partname' => $partname])) {
                 $record->generalfeedback = $generalfeedback;
                 $record->gfurl = $gfurl;
                 $DB->update_record('report_feedback_tracker', $record);
             } else {
                 $record = new stdClass();
                 $record->gradeitem = $itemid;
+                $record->partname = $partname;
                 $record->generalfeedback = clean_param($generalfeedback, PARAM_TEXT);
                 $record->gfurl = clean_param($gfurl, PARAM_URL);
                 $DB->insert_record('report_feedback_tracker', $record);
