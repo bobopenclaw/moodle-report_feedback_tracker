@@ -867,7 +867,13 @@ class helper {
     protected static function compute_feedbackduedate(int $duedate): int {
         $oneday = 24 * 60 * 60; // Number of seconds in a day.
         $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
-        $closuredays = self::get_closuredays(); // Get the closure days including bank holidays for England and Wales.
+        static $closuredays = null;
+
+        if ($closuredays === null) {
+            // Get the closure days including bank holidays for England and
+            // Wales.  These are obtained from a URL so only do this once.
+            $closuredays = self::get_closuredays();
+        }
 
         // Initialize the start date.
         $currentdate = date('Y-m-d', $duedate);
