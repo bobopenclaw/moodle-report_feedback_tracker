@@ -849,15 +849,121 @@ class helper {
 
         // If there is a due date compute the feedback due date.
         if ($gradeitem->duedate) {
-            $oneday = 24 * 60 * 60; // Number of seconds in a day.
-            $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
-            // Calculate the period.
-            $feedbackperiod = $feedbackdeadlinedays * $oneday; // Number of seconds in the feedback period.
-            return $gradeitem->duedate + $feedbackperiod;
+            // Compute the due date.
+            return self::compute_feedbackduedate($gradeitem->duedate);
         }
 
         // If there is no due date there is no feedback due date.
         return 0;
     }
 
+    /**
+     * Compute the feedbackperiod.
+     *
+     * @param int $duedate The submission due date from which the feedback period starts.
+     * @return int the feedback due date in seconds since midnight 01.01.1970.
+     * @throws dml_exception
+     */
+    protected static function compute_feedbackduedate(int $duedate): int {
+        $oneday = 24 * 60 * 60; // Number of seconds in a day.
+        $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
+        $closuredays = self::get_closuredays(); // Get the closure days including bank holidays for England and Wales.
+
+        // Initialize the start date.
+        $currentdate = date('Y-m-d', $duedate);
+        $daysadded = 0;
+
+        // Loop until the required number of working days.
+        while ($daysadded < $feedbackdeadlinedays) {
+            // Increment the current date by one day.
+            $currentdate = date('Y-m-d', strtotime($currentdate . ' +1 day'));
+
+            // Check if the current date is a weekend.
+            $weekday = date('N', strtotime($currentdate)); // 6 = Saturday, 7 = Sunday
+
+            // Skip the day if it's a weekend (6 or 7) or a closure date.
+            if ($weekday < 6 && !in_array($currentdate, $closuredays)) {
+                $daysadded++;
+            }
+        }
+
+        return strtotime($currentdate);
+
+    }
+
+    protected static function get_closuredays() {
+
+        $closuredays = [];
+
+        // Get the official Bank holidays for England and Wales.
+        // Fetch data from the API and decode it into an array.
+        $jsondata = file_get_contents('https://www.gov.uk/bank-holidays.json');
+        $bankholidays = json_decode($jsondata, true);
+        // Accessing bank holidays for England and Wales.
+        $englandwalesholidays = $bankholidays['england-and-wales']['events'];
+
+        // We only need the dates.
+        foreach ($englandwalesholidays as $holiday) {
+            $closuredays[] = $holiday['date'];
+        }
+
+        // Now add the university closure days when not already covered.
+        // Loop over the current year and 4 years back.
+        $xmasstartsetting = 'closure_xmas_start';
+        $xmasendsetting = 'closure_xmas_end';
+        $easterstartsetting = 'closure_easter_start';
+        $easterendsetting = 'closure_easter_end';
+        for ($i = 0; $i <= 4; $i++) {
+            // Get the start and end dates for xmas and easter closures from the config.
+            $xstartname = $i == 0 ? $xmasstartsetting : $xmasstartsetting . '_' . $i;
+            $xendname = $i == 0 ? $xmasendsetting : $xmasendsetting . '_' . $i;
+            $estartname = $i == 0 ? $easterstartsetting : $easterstartsetting . '_' . $i;
+            $eendname = $i == 0 ? $easterendsetting : $easterendsetting . '_' . $i;
+
+            $xstart = get_config('report_feedback_tracker', $xstartname);
+            $xend = get_config('report_feedback_tracker', $xendname);
+            $estart = get_config('report_feedback_tracker', $estartname);
+            $eend = get_config('report_feedback_tracker', $eendname);
+
+            self::get_year_closuredays($closuredays, $xstart, $xend, $estart, $eend);
+        }
+
+        sort($closuredays);
+        return $closuredays;
+    }
+
+    /**
+     * Add the closure days for given xmas and easter periods of a year.
+     *
+     * @param array $closuredays
+     * @param string $xstart
+     * @param string $xend
+     * @param string $estart
+     * @param string $eend
+     * @return void
+     */
+    protected static function get_year_closuredays(
+        array &$closuredays, string $xstart, string $xend, string $estart, string $eend): void {
+        // Do the Xmas closure 1st.
+        $date = date('Y-m-d', ($xstart == '' ? 0 : strtotime($xstart)));
+        $enddate = date('Y-m-d', ($xend == '' ? 0 : strtotime($xend)));
+        while ($date < $enddate) {
+            $date = date('Y-m-d', strtotime($date . ' +1 day'));
+
+            if (!in_array($date, $closuredays)) {
+                $closuredays[] = $date;
+            }
+        }
+
+        // Then do the Easter closure.
+        $date = date('Y-m-d', ($estart == '' ? 0 : strtotime($estart)));
+        $enddate = date('Y-m-d', ($eend == '' ? 0 : strtotime($eend)));
+        while ($date < $enddate) {
+            $date = date('Y-m-d', strtotime($date . ' +1 day'));
+
+            if (!in_array($date, $closuredays)) {
+                $closuredays[] = $date;
+            }
+        }
+    }
 }
