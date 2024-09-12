@@ -126,5 +126,28 @@ function xmldb_report_feedback_tracker_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024090901, 'report', 'feedback_tracker');
     }
 
+    if ($oldversion < 2024091100.01) {
+        // Define index gradeitem (not unique) to be added to report_feedback_tracker.
+        $table = new xmldb_table('report_feedback_tracker');
+        $gradeitemindex = new xmldb_index('gradeitem', XMLDB_INDEX_NOTUNIQUE, ['gradeitem']);
+
+        // Conditionally launch add index gradeitem.
+        if (!$dbman->index_exists($table, $gradeitemindex)) {
+            $dbman->add_index($table, $gradeitemindex);
+        }
+
+        // Define index gradeitem (not unique) to be added to report_feedback_tracker_duedates.
+        $table = new xmldb_table('report_feedback_tracker_duedates');
+
+        // Conditionally launch add index gradeitem.
+        if (!$dbman->index_exists($table, $gradeitemindex)) {
+            $dbman->add_index($table, $gradeitemindex);
+        }
+
+        // Savepoint reached.
+        upgrade_plugin_savepoint(true, 2024091100.01, 'report', 'feedback_tracker');
+    }
+
+
     return true;
 }

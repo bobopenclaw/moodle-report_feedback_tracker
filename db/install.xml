@@ -21,6 +21,9 @@
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
+      <INDEXES>
+        <INDEX NAME="gradeitem" UNIQUE="false" FIELDS="gradeitem"/>
+      </INDEXES>
     </TABLE>
     <TABLE NAME="report_feedback_tracker_duedates" COMMENT="Storing information about manual feedback due dates">
       <FIELDS>
@@ -35,6 +38,9 @@
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
+      <INDEXES>
+        <INDEX NAME="gradeitem" UNIQUE="false" FIELDS="gradeitem"/>
+      </INDEXES>
     </TABLE>
   </TABLES>
 </XMLDB>
