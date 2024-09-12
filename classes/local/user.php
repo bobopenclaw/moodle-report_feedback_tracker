@@ -150,7 +150,7 @@ class user {
         $courseobject->fullname = $course->fullname;
         $courseobject->academicyear = helper::get_academic_year($course->id);
         $courseobject->image = \core_course\external\course_summary_exporter::get_course_image($course);
-
+        $courseobject->records = [];
         $itemlist = [];
         foreach ($gradeitems as $gradeitem) {
             // Check if the gradeitem module is supported
