@@ -865,7 +865,6 @@ class helper {
      * @throws dml_exception
      */
     protected static function compute_feedbackduedate(int $duedate): int {
-        $oneday = 24 * 60 * 60; // Number of seconds in a day.
         $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
         static $closuredays = null;
 

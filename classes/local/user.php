@@ -410,10 +410,8 @@ class user {
      */
     protected static function compile_user_record($course, $userid, $gradeitem, $summativeids): stdClass {
 
-        $oneday = 24 * 60 * 60; // Number of seconds in a day.
-
         $warningdays = get_config('report_feedback_tracker', 'warningdays');
-        $warningperiod = $warningdays * $oneday; // Number of seconds in the warning period.
+        $warningperiod = $warningdays * DAYSECS; // Number of seconds in the warning period.
         $dateformat = get_config('report_feedback_tracker', 'dateformat');
 
         // If there is a manual feedback due date use it, otherwise calculate it from the submission due date where set.
