@@ -29,8 +29,8 @@ Feature: As a student I want to see, sort and filter the results of the feredbac
   Scenario: As a student I should be able see contemt.
     Given I am on the "Course 1" "course" page logged in as "student1"
     And I follow "Profile" in the user menu
-    And I follow "Feedback Tracker"
-    Then I should see "Feedback Tracker"
+    And I follow "Feedback tracker"
+    Then I should see "Feedback tracker"
     And I should see "Due"
     And I should see "Test assignment"
     And I should see "Test quiz"

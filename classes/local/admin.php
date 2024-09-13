@@ -32,7 +32,7 @@ use stdClass;
  */
 class admin {
     /**
-     * Get the Feedback Tracker data for all enrolled users of a given course.
+     * Get the Feedback tracker data for all enrolled users of a given course.
      *
      * @param int $courseid
      * @return stdClass

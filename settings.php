@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Settings for the Feedback Tracker report.
+ * Settings for the Feedback tracker report.
  *
  * @package    report_feedback_tracker
  * @copyright  2024 UCL <m.opitz@ucl.ac.uk>

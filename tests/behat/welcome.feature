@@ -2,7 +2,7 @@
 Feature: In a course administration page, navigate through report page, test for feedback tracker report page
   In order to navigate through report page
   As an admin
-  Go to course administration -> Reports -> Feedback Tracker
+  Go to course administration -> Reports -> Feedback tracker
 
   Background:
     Given the following "courses" exist:
@@ -29,15 +29,15 @@ Feature: In a course administration page, navigate through report page, test for
   Scenario: For an admin the selector should be available in course feedback report report page
     Given I am on the "Course 1" "course" page logged in as "admin"
     When I navigate to "Reports" in current page administration
-    And I click on "Feedback Tracker" "link"
+    And I click on "Feedback tracker" "link"
     Then "Report" "field" should exist in the "tertiary-navigation" "region"
-    And I should see "Feedback Tracker" in the "tertiary-navigation" "region"
+    And I should see "Feedback tracker" in the "tertiary-navigation" "region"
     And I should see "Test quiz"
     And I should not see "Hide from report"
     And I am on "Course 1" course homepage with editing mode on
     When I navigate to "Reports" in current page administration
-    And I click on "Feedback Tracker" "link"
-    Then I should see "Feedback Tracker" in the "tertiary-navigation" "region"
+    And I click on "Feedback tracker" "link"
+    Then I should see "Feedback tracker" in the "tertiary-navigation" "region"
     And I should see "Test quiz"
     And I should see "Hide from report"
     And I log out
@@ -46,16 +46,16 @@ Feature: In a course administration page, navigate through report page, test for
   Scenario: For a teacher the selector should be available in course feedback report report page
     Given I am on the "Course 1" "course" page logged in as "teacher1"
     When I navigate to "Reports" in current page administration
-    And I click on "Feedback Tracker" "link"
+    And I click on "Feedback tracker" "link"
     Then "Report" "field" should exist in the "tertiary-navigation" "region"
-    And I should see "Feedback Tracker" in the "tertiary-navigation" "region"
+    And I should see "Feedback tracker" in the "tertiary-navigation" "region"
     And I should see "Test quiz"
 
   @javascript
   Scenario: For a student the feedback tracker report should be available in the profile.
     Given I am on the "Course 1" "course" page logged in as "student1"
     And I follow "Profile" in the user menu
-    And I follow "Feedback Tracker"
-    Then I should see "Feedback Tracker"
+    And I follow "Feedback tracker"
+    Then I should see "Feedback tracker"
     And I should see "Due"
     And I should see "Test quiz"
