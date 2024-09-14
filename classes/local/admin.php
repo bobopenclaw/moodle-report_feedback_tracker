@@ -166,6 +166,7 @@ class admin {
         $params['courseid'] = $course->id;
         $gradeitems = $DB->get_records_sql($sql, $params);
         $summativeids = helper::get_summative_ids($course->id);
+        $tttparts = helper::get_turnitin_records($course->id);
 
         $itemlist = [];
         foreach ($gradeitems as $gradeitem) {
@@ -178,7 +179,7 @@ class admin {
             // All good - now get and store the feedback record.
             // TurnitinToolTwo special treatment as one grading item may have several parts.
             if ($gradeitem->itemmodule == 'turnitintooltwo') {
-                self::get_admin_turnitin_records($course, $gradeitem, $summativeids, $data);
+                self::get_admin_turnitin_records($course, $gradeitem, $summativeids, $tttparts, $data);
             } else {
                 if (!$gradeitem->hidden || $PAGE->user_is_editing()) {
                     $record = self::get_admin_feedback_record($course, $gradeitem, $summativeids);
@@ -214,19 +215,17 @@ class admin {
      * @param stdClass $course
      * @param stdClass $gradeitem
      * @param array $summativeids
+     * @param array $tttparts
      * @param stdClass $data
      * @return void
      * @throws dml_exception
      * @throws coding_exception
      */
-    protected static function get_admin_turnitin_records($course, $gradeitem, $summativeids, &$data): void {
+    protected static function get_admin_turnitin_records($course, $gradeitem, $summativeids, $tttparts, &$data): void {
         global $PAGE;
 
-        // Get the parts.
-        $tttparts = helper::get_tttparts($gradeitem);
-
         // Make each part a record and store it in the data.
-        foreach ($tttparts as $tttpart) {
+        foreach ($tttparts[$gradeitem->itemid] as $tttpart) {
             if (!$tttpart->hidden || $PAGE->user_is_editing()) {
                 // Each ttt assessment part may have its own attributes.
                 $gradeitem->summative = $tttpart->summative;

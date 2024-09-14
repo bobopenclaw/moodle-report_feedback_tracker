@@ -153,6 +153,7 @@ class user {
         $courseobject->image = \core_course\external\course_summary_exporter::get_course_image($course);
         $courseobject->records = [];
         $itemlist = [];
+        $tttparts = helper::get_turnitin_records($course->id);
         $modinfo = get_fast_modinfo($course->id, $userid);
         foreach ($gradeitems as $gradeitem) {
             // Check if the gradeitem module is supported
@@ -174,7 +175,7 @@ class user {
             }
             // TurnitinToolTwo special treatment as one grading item may have several parts.
             if ($gradeitem->itemmodule == 'turnitintooltwo') {
-                self::get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, $data, $courseobject);
+                self::get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, $tttparts, $data, $courseobject);
             } else {
                 $record = self::get_user_feedback_record($course, $userid, $gradeitem, $summativeids);
                 $data->records[] = $record;
@@ -366,18 +367,15 @@ class user {
      * @param stdClass $gradeitem
      * @param int $userid
      * @param array $summativeids
+     * @param array $tttparts
      * @param stdClass $data
      * @param stdClass $courseobject
      * @return void
      * @throws dml_exception
      * @throws coding_exception
      */
-    protected static function get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, &$data, &$courseobject): void {
-        // Get the parts.
-        $tttparts = helper::get_tttparts($gradeitem);
-
-        // Make each visible part a record and store it in the data.
-        foreach ($tttparts as $tttpart) {
+    protected static function get_user_turnitin_records($course, $gradeitem, $userid, $summativeids, $tttparts, &$data, &$courseobject): void {
+        foreach ($tttparts[$gradeitem->itemid] as $tttpart) {
             if (!$tttpart->hidden) {
                 // Each ttt assessment may have its own attributes.
                 $gradeitem->summative = $tttpart->summative;

@@ -563,18 +563,19 @@ class helper {
     }
 
     /**
-     * Get the parts of a turnitintooltwo assessment.
+     * Get parts of turnitintooltwo assessments in the specified course.
      *
-     * @param stdClass $gradeitem
+     * @param int $courseid
      * @return array
      * @throws dml_exception
      */
-    public static function get_tttparts($gradeitem): array {
+    public static function get_tttparts($courseid): array {
         global $DB;
 
         $sql = "
     select
     tttp.*,
+    gi.id AS gradeitemid,
     rft.summative,
     rft.hidden,
     rft.feedbackduedate,
@@ -586,11 +587,42 @@ class helper {
     from {turnitintooltwo_parts} tttp
     join {grade_items} gi on gi.itemmodule = 'turnitintooltwo' and gi.iteminstance = tttp.turnitintooltwoid
     left join {report_feedback_tracker} rft on
-        rft.gradeitem = gi.id and rft.partname collate utf8mb4_unicode_ci = tttp.partname collate utf8mb4_unicode_ci
-    where tttp.turnitintooltwoid = $gradeitem->iteminstance
+        rft.gradeitem = gi.id and rft.partname = tttp.partname
+     WHERE gi.courseid = $courseid
     ";
 
         return $DB->get_records_sql($sql);
+    }
+
+    /**
+     * Get Turnitin part records for course indexed by grade item ID.
+     *
+     * @param int $courseid
+     * @return array Array of arrays.  The outer array is indexed by each grade
+     * item ID, the inner array contains each part for that grade item, for
+     * example, for grade item ID = 35 containing a single part:
+     *   Array
+     *   (
+     *       [35] => Array
+     *       (
+     *           [0] => stdClass Object
+     *           (
+     *               [id] => 1
+     *               [turnitintooltwoid] => 1
+     *               [partname] => Part 1
+     *               ⋮
+     *           )
+     *       )
+     *   )
+     */
+    public static function get_turnitin_records(int $courseid): array {
+        $tttparts = [];
+
+        foreach (helper::get_tttparts($courseid) as $tttpart) {
+            $tttparts[$tttpart->gradeitemid][] = $tttpart;
+        }
+
+        return $tttparts;
     }
 
     /**
