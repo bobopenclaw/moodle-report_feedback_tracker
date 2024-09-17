@@ -947,7 +947,7 @@ class helper {
     protected static function get_closuredays() {
 
         $cache = \cache::make('report_feedback_tracker', 'publicholidays');
-        $closuredays = $cache->get('england-and-wales');
+        $closuredays = $cache->get('england_and_wales');
         $timestamp = $cache->get('timestamp');
 
         if (!$closuredays || !$timestamp || ($timestamp < time() - DAYSECS)) {
@@ -965,7 +965,7 @@ class helper {
                 $closuredays[] = $holiday['date'];
             }
 
-            $cache->set('england-and-wales', $closuredays);
+            $cache->set('england_and_wales', $closuredays);
             $cache->set('timestamp', time());
         }
 
