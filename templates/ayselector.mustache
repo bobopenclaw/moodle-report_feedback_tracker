@@ -35,6 +35,11 @@
 <div>
 Academic year:
     {{#academicyearoptions}}
-        <button class="btn btn-outline-primary mr-2" data-action="select-ay" data-value="{{key}}">{{value}}</button>
+        {{^key}}
+            <strong>{{value}}</strong>
+        {{/key}}
+        {{#key}}
+            <a href="{{{ config.wwwroot }}}/report/feedback_tracker/user.php?year={{key}}">{{value}}</a>
+        {{/key}}
     {{/academicyearoptions}}
 </div>

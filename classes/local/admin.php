@@ -263,7 +263,6 @@ class admin {
         $record->course = $course->fullname;
         $record->courseid = $course->id;
         $record->coursename = $course->fullname;
-        $record->academicyear = helper::get_academic_year($gradeitem->courseid);
         $record->assessment = helper::get_item_link($gradeitem);
         $record->type = helper::get_item_type($gradeitem);
         $record->module = helper::get_item_module($gradeitem);
@@ -334,7 +333,6 @@ class admin {
      */
     protected static function get_admin_filter_options(&$data): void {
         // The filter options.
-        $data->academicyearoptions = [];
         $data->courseoptions = [];
         $data->typeoptions = [];
         $data->summativeoptions = [];
@@ -343,22 +341,11 @@ class admin {
 
         foreach ($data->records as $record) {
 
-            // Academic year options.
-            if ($record->academicyear) {
-                $option = new stdClass();
-                $option->key = $record->academicyear;
-                $option->value = $record->academicyear;
-                if (!in_array($option, $data->academicyearoptions)) {
-                    $data->academicyearoptions[] = $option;
-                }
-            }
-
             // Course options.
             if ($record->courseid) {
                 $option = new stdClass();
                 $option->key = $record->courseid;
                 $option->value = $record->coursename;
-                $option->academicyear = $record->academicyear;
                 if (!in_array($option, $data->courseoptions)) {
                     $data->courseoptions[] = $option;
                 }
@@ -393,13 +380,6 @@ class admin {
                     $data->typeoptions[] = $option;
                 }
             }
-        }
-
-        // Sort the academic year descending.
-        if (is_array($data->academicyearoptions)) {
-            usort($data->academicyearoptions, function($a, $b) {
-                return $b->value <=> $a->value; // For descending order.
-            });
         }
     }
 

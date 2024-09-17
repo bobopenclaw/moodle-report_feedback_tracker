@@ -35,20 +35,10 @@ use stdClass;
  */
 class helper {
     /**
-     * Get a random academic year for testing purposes only.
-     *
-     * @param int $courseid
-     */
-    public static function get_academic_year_dummy(int $courseid): ?string {
-        // Return a random academic year from the array.
-        $dummyacademicyears = ['2021-22', '2022-23', '2023-24', '2024-25'];
-        return $dummyacademicyears[array_rand($dummyacademicyears)];
-    }
-
-    /**
      * Get course academic year from custom course fields.
      *
      * @param int $courseid
+     * @return string|null
      */
     public static function get_academic_year(int $courseid): ?string {
         $academicyear = null;
@@ -58,10 +48,6 @@ class helper {
             if ($dta->get_field()->get('shortname') === "course_year") {
                 $academicyear = !empty($dta->get_value()) ? $dta->get_value() : null;
             }
-        }
-        if ($academicyear) {
-            $suffix = (int)substr($academicyear, -2) + 1;
-            $academicyear .= "-$suffix";
         }
         return $academicyear;
     }
@@ -587,7 +573,7 @@ class helper {
     from {turnitintooltwo_parts} tttp
     join {grade_items} gi on gi.itemmodule = 'turnitintooltwo' and gi.iteminstance = tttp.turnitintooltwoid
     left join {report_feedback_tracker} rft on
-        rft.gradeitem = gi.id and rft.partname = tttp.partname
+    rft.gradeitem = gi.id and rft.partname = tttp.partname
      WHERE gi.courseid = $courseid
     ";
 
@@ -889,12 +875,12 @@ class helper {
 
         // If there is a submission due date calculate the feedback due date.
         if ($gradeitem->duedate) {
-            $academicyear = self::get_academic_year($gradeitem->courseid);
+            $academicyear = (int) self::get_academic_year($gradeitem->courseid);
 
             // For assessments before academic year 2024-25 the feedback due date period was 1 calendar month.
             // From academic year 2024-25 on the feedback due date period is 20 working days.
-            if ($academicyear < "2024-25") {
-                return strtotime(date('Y-m-d', $gradeitem->duedate) . '+ 1 month');
+            if ($academicyear < 2024) {
+                return strtotime('+1 month', $gradeitem->duedate);
             }
 
             // Compute the due date.

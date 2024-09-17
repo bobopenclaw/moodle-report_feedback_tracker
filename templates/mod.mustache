@@ -85,16 +85,12 @@
                 {{^grade}} <small> {{#str}}feedback:notreleased, report_feedback_tracker{{/str}} </small> {{/grade}}
                 <br>
                 {{#summative}}
-                    <span data-toggle="tooltip" data-placement="bottom"
-                          title="{{#str}}summative:tooltip, report_feedback_tracker{{/str}}"
-                          class="badge badge-primary">
+                    <span class="badge badge-primary">
                         {{#str}}summative, report_feedback_tracker{{/str}}
                     </span>
                 {{/summative}}
                 {{^summative}}
-                    <span data-toggle="tooltip"
-                          title="{{#str}}formative:tooltip, report_feedback_tracker{{/str}}"
-                          class="badge badge-secondary">
+                    <span class="badge badge-secondary">
                         {{#str}}formative, report_feedback_tracker{{/str}}
                     </span>
                 {{/summative}}

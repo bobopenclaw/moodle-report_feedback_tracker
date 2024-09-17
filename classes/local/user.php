@@ -18,6 +18,7 @@ namespace report_feedback_tracker\local;
 use coding_exception;
 use dml_exception;
 use html_writer;
+use moodle_url;
 use stdClass;
 
 /**
@@ -28,6 +29,54 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class user {
+
+    /**
+     * Get the academic years of the user based on the courses s/he is/was enrolled in.
+     *
+     * @param stdClass $enrolledcourses
+     * @return array
+     */
+    public static function get_user_academic_years($enrolledcourses) {
+        $academicyears = [];
+        foreach ($enrolledcourses as $course) {
+            $academicyear = helper::get_academic_year($course->id);
+            if ($academicyear) {
+                $obj = new stdClass();
+                $obj->key = $academicyear;
+                $suffix = (int)substr($academicyear, -2) + 1;
+                $obj->value = $academicyear . "-$suffix";
+                if (!in_array($obj, $academicyears)) {
+                    $academicyears[] = $obj;
+                }
+            }
+        }
+        // Sort the years descending.
+        if (is_array($academicyears)) {
+            usort($academicyears, function($a, $b) {
+                return $b->value <=> $a->value; // For descending order.
+            });
+        }
+
+        return $academicyears;
+    }
+
+    /**
+     * Get the academic year to show.
+     *
+     * @param array $academicyears
+     * @return int|string
+     */
+    protected static function get_year_to_show(array $academicyears) {
+        if ($academicyears && false) {
+            return max($academicyears)->key;
+        } else {
+            // The user has not been enrolled into any course yet so use the current academic year.
+            $currentyear = date('Y');
+            $currentmonth = date('m');
+            return $currentmonth >= 8 ? $currentyear : $currentyear - 1; // Academic Year begins 1st of August.
+        }
+    }
+
     /**
      * Get the Feedback tracker data for one or all courses of a given user.
      *
@@ -41,6 +90,23 @@ class user {
         $data = new stdClass();
         $data->records = [];
         $data->courses = [];
+        $enrolledcourses = enrol_get_users_courses($userid);
+        // Get the academic years of the user.
+        if ($academicyears = self::get_user_academic_years($enrolledcourses)) {
+            $data->academicyearoptions = $academicyears;
+            $data->hasyears = true;
+        }
+
+        $year = optional_param('year', null, PARAM_INT);
+        $year = $year ? substr($year, 0, 4) : self::get_year_to_show($academicyears);
+
+        // Remove the key of the academic year to show.
+        // This is used by the template to identify the year selected.
+        foreach ($academicyears as $academicyear) {
+            if ($academicyear->key === $year) {
+                unset($academicyear->key);
+            }
+        }
 
         // Check if we want to show a module header.
         $data->modheader = get_config('report_feedback_tracker', 'modheader');
@@ -48,6 +114,7 @@ class user {
         // If a course ID is given return data for that course only
         // otherwise return data for all courses a user is enrolled in.
         if ($courseid) {
+            unset($data->hasyears); // Do not show academic year options when showing a single course.
             $course = get_course($courseid);
             try {
                 self::get_user_course_gradings($course, $userid, $data);
@@ -55,9 +122,16 @@ class user {
                 throw($e);
             }
         } else {
-            $enrolledcourses = enrol_get_users_courses($userid);
             foreach ($enrolledcourses as $course) {
-                self::get_user_course_gradings($course, $userid, $data);
+                $academicyear = helper::get_academic_year($course->id);
+
+                if ($academicyear === $year) {
+                    try {
+                        self::get_user_course_gradings($course, $userid, $data);
+                    } catch (\coding_exception $e) {
+                        throw($e);
+                    }
+                }
             }
         }
 
@@ -149,7 +223,6 @@ class user {
         $courseobject->url = helper::get_course_url($course->id);
         $courseobject->shortname = $course->shortname;
         $courseobject->fullname = $course->fullname;
-        $courseobject->academicyear = helper::get_academic_year($course->id);
         $courseobject->image = \core_course\external\course_summary_exporter::get_course_image($course);
         $courseobject->records = [];
         $itemlist = [];
@@ -192,35 +265,6 @@ class user {
         }
 
         $data->courses[] = $courseobject;
-
-        // Get the options for academic years.
-        self::get_user_academic_years($data);
-    }
-    /**
-     * Get the academic years a user is or has been enrolled into.
-     *
-     * @param stdClass $data
-     * @return void
-     */
-    protected static function get_user_academic_years(&$data): void {
-        $data->academicyearoptions = [];
-
-        foreach ($data->courses as $course) {
-            $option = new stdClass();
-            $option->key = $course->academicyear;
-            $option->value = $course->academicyear;
-            if (!in_array($option, $data->academicyearoptions) && $option->key !== null) {
-                $data->academicyearoptions[] = $option;
-            }
-        }
-        // Sort the academic year descending.
-        if (is_array($data->academicyearoptions)) {
-            $data->hasyears = $data->academicyearoptions ? true : false;
-            usort($data->academicyearoptions, function($a, $b) {
-                return $b->value <=> $a->value; // For descending order.
-            });
-        }
-
     }
 
     /**
@@ -248,7 +292,6 @@ class user {
      */
     protected static function get_user_filter_options(&$data): void {
         // The filter options.
-        $data->academicyearoptions = [];
         $data->courseoptions = [];
         $data->typeoptions = [];
         $data->summativeoptions = [];
@@ -257,22 +300,11 @@ class user {
 
         foreach ($data->records as $record) {
 
-            // Academic year options.
-            if ($record->academicyear) {
-                $option = new stdClass();
-                $option->key = $record->academicyear;
-                $option->value = $record->academicyear;
-                if (!in_array($option, $data->academicyearoptions)) {
-                    $data->academicyearoptions[] = $option;
-                }
-            }
-
             // Course options.
             if ($record->courseid) {
                 $option = new stdClass();
                 $option->key = $record->courseid;
                 $option->value = $record->coursename;
-                $option->academicyear = $record->academicyear;
                 if (!in_array($option, $data->courseoptions)) {
                     $data->courseoptions[] = $option;
                 }
@@ -317,13 +349,6 @@ class user {
                     $data->typeoptions[] = $option;
                 }
             }
-        }
-
-        // Sort the academic year descending.
-        if (is_array($data->academicyearoptions)) {
-            usort($data->academicyearoptions, function($a, $b) {
-                return $b->value <=> $a->value; // For descending order.
-            });
         }
     }
 
@@ -432,7 +457,6 @@ class user {
         $record->course = $course->fullname;
         $record->courseid = $course->id;
         $record->coursename = $course->fullname;
-        $record->academicyear = helper::get_academic_year($gradeitem->courseid);
         $record->assessment = helper::get_item_link($gradeitem);
         $record->type = helper::get_item_type($gradeitem);
         $record->module = helper::get_item_module($gradeitem);

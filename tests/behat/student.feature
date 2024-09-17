@@ -2,9 +2,14 @@
 Feature: As a student I want to see, sort and filter the results of the feredback tracker report
 
   Background:
-    Given the following "courses" exist:
-      | fullname | shortname  | category  | groupmode |
-      | Course 1 | C1         | 0         | 1         |
+    Given the following custom field exists:
+      | category  | CLC |
+      | shortname | course_year |
+      | name      | Course Year |
+      | type      | text        |
+    And the following "courses" exist:
+      | fullname | shortname | format | customfield_course_year |
+      | Course 1 | C1        | topics | ##now##%Y##             |
     And the following "users" exist:
       | username | firstname  | lastname  | email                 |
       | teacher1 | teacher    | 1         | teacher1@example.com  |
