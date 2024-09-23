@@ -96,6 +96,7 @@ $string['jumpto'] = 'Jump to';
 $string['mark'] = 'Mark';
 $string['marks'] = 'Marks';
 $string['method'] = 'Method';
+$string['method:tooltip'] = 'What feedback students will receive e.g. Written, Audio, Video, In class, Automatic marking, Peer feedback';
 $string['navigationlink'] = 'Feedback tracker';
 $string['no_courses_this_year'] = 'You are not yet enrolled in any courses this academic year. To view older assessments and feedback, select an academic year.';
 $string['pleasenote'] = 'Please note:';
