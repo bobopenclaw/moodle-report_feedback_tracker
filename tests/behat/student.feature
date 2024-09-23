@@ -2,7 +2,7 @@
 Feature: As a student I want to see, sort and filter the results of the feredback tracker report
 
   Background:
-    Given the following custom field exists:
+    Given the following custom field exists for feedback tracker:
       | category  | CLC |
       | shortname | course_year |
       | name      | Course Year |

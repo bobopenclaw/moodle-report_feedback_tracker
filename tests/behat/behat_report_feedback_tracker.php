@@ -51,9 +51,9 @@ class behat_report_feedback_tracker extends behat_base {
      * @param  TableNode $table
      * @throws \dml_exception
      *
-     * @Given /^the following custom field exists:$/
+     * @Given /^the following custom field exists for feedback tracker:$/
      */
-    public function the_following_custom_field_exists(TableNode $table): void {
+    public function the_following_custom_field_exists_for_feedback_tracker(TableNode $table): void {
         global $DB;
 
         $data = $table->getRowsHash();
@@ -80,27 +80,32 @@ class behat_report_feedback_tracker extends behat_base {
             );
         }
 
-        // Create the custom field.
-        $field = (object)[
-            'shortname' => $data['shortname'],
-            'name' => $data['name'],
-            'type' => $data['type'],
-            'categoryid' => $category->id,
-            'sortorder' => 0,
-            'configdata'   => json_encode([
-                "required" => 0,
-                "uniquevalues" => 0,
-                "maxlength" => 4,
-                "defaultvalue" => "",
-                "ispassword" => 0,
-                "displaysize" => 4,
-                "locked" => 1,
-                "visibility" => 0,
-            ]),
-            'timecreated' => time(),
-            'timemodified' => time(),
-        ];
-        $DB->insert_record('customfield_field', $field);
+        // Check if the field already exists.
+        $fieldexists = $DB->record_exists('customfield_field', ['shortname' => $data['shortname'], 'categoryid' => $category->id]);
+
+        // Create the custom field if not exists.
+        if (!$fieldexists) {
+            $field = (object)[
+                'shortname' => $data['shortname'],
+                'name' => $data['name'],
+                'type' => $data['type'],
+                'categoryid' => $category->id,
+                'sortorder' => 0,
+                'configdata'   => json_encode([
+                    "required" => 0,
+                    "uniquevalues" => 0,
+                    "maxlength" => 4,
+                    "defaultvalue" => "",
+                    "ispassword" => 0,
+                    "displaysize" => 4,
+                    "locked" => 1,
+                    "visibility" => 0,
+                ]),
+                'timecreated' => time(),
+                'timemodified' => time(),
+            ];
+            $DB->insert_record('customfield_field', $field);
+        }
     }
 
 }

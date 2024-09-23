@@ -5,7 +5,7 @@ Feature: In a course administration page, navigate through report page, test for
   Go to course administration -> Reports -> Feedback tracker
 
   Background:
-    Given the following custom field exists:
+    Given the following custom field exists for feedback tracker:
       | category  | CLC |
       | shortname | course_year |
       | name      | Course Year |

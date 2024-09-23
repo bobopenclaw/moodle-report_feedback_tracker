@@ -5,7 +5,7 @@ Feature: As an admin I want to be able to hide a grade item from the report, I w
   Go to course administration -> Reports -> Feedback tracker
 
   Background:
-    Given the following custom field exists:
+    Given the following custom field exists for feedback tracker:
       | category  | CLC |
       | shortname | course_year |
       | name      | Course Year |
