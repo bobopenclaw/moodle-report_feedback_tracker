@@ -44,57 +44,45 @@
     }
 
 }}
-<div class="sub-title">{{#str}} title:subtext, report_feedback_tracker {{/str}}</div>
-<div>
-    <span class="badge badge-primary">{{#str}} summative, report_feedback_tracker {{/str}}</span> {{#str}} summativekey, report_feedback_tracker {{/str}}
-    <br>
-    <span class="badge badge-secondary">{{#str}} formative, report_feedback_tracker {{/str}}</span> {{#str}} formativekey, report_feedback_tracker {{/str}}
-</div>
-<hr>
-<div class="d-flex">
+<div id="behat-feedback-area">
+    <div class="sub-title">{{#str}} title:subtext, report_feedback_tracker {{/str}}</div>
+    <div>
+        <span class="badge badge-primary">{{#str}} summative, report_feedback_tracker {{/str}}</span> {{#str}} summativekey, report_feedback_tracker {{/str}}
+        <br>
+        <span class="badge badge-secondary">{{#str}} formative, report_feedback_tracker {{/str}}</span> {{#str}} formativekey, report_feedback_tracker {{/str}}
+    </div>
+    <hr>
+    <div class="d-flex">
 
-    {{! Years. }}
-    {{#hasyears}}
-        {{> report_feedback_tracker/ayselector }}
-    {{/hasyears}}
+        {{! Years. }}
+        {{#hasyears}}
+            {{> report_feedback_tracker/ayselector }}
+        {{/hasyears}}
 
-    {{#donotshowfornow}}
-        <div class="ml-auto">
-            <div class="dropdown">
-                <button class="btn btn-sm dropdown-toggle" type="button" id="coursejump" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    {{#str}}jumpto, report_feedback_tracker{{/str}}
-                </button>
-                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="coursejump">
-                    {{#courses}}
-                        <a class="dropdown-item line-clamp-2" href="#{{courseid}}">{{{fullname}}}</a>
-                    {{/courses}}
-                </div>
+    </div>
+    <hr>
+
+    <div id="courses-area">
+        {{#courses}}
+            <div id="{{courseid}}" class="pb-4 courses-row" data-ay="{{academicyear}}">
+                <h3 class="d-flex align-items-center pb-4">
+                    {{#image}}
+                        <div class="flex-shrink-0 rounded-circle mr-2 bg-cover" style="height: 3rem; width: 3rem; background-image: url('{{image}}');"></div>
+                    {{/image}}
+                    <a href="{{{url}}}">{{{fullname}}}</a>
+                </h3>
+
+                {{#modheader}}
+                    {{> report_feedback_tracker/modheader }}
+                {{/modheader}}
+
+                {{#records}}
+                    {{> report_feedback_tracker/mod }}
+                {{/records}}
             </div>
-        </div>
-    {{/donotshowfornow}}
-</div>
-<hr>
-
-<div id="courses-area">
-    {{#courses}}
-        <div id="{{courseid}}" class="pb-4 course_row" data-ay="{{academicyear}}">
-            <h3 class="d-flex align-items-center pb-4">
-                {{#image}}
-                    <div class="flex-shrink-0 rounded-circle mr-2 bg-cover" style="height: 3rem; width: 3rem; background-image: url('{{image}}');"></div>
-                {{/image}}
-                <a href="{{{url}}}">{{{fullname}}}</a>
-            </h3>
-
-            {{#modheader}}
-                {{> report_feedback_tracker/modheader }}
-            {{/modheader}}
-
-            {{#records}}
-                {{> report_feedback_tracker/mod }}
-            {{/records}}
-        </div>
-    {{/courses}}
-    {{^courses}}
-        {{#str}}no_courses_this_year, report_feedback_tracker{{/str}}
-    {{/courses}}
+        {{/courses}}
+        {{^courses}}
+            {{#str}}no_courses_this_year, report_feedback_tracker{{/str}}
+        {{/courses}}
+    </div>
 </div>

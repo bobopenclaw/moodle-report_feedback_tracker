@@ -9,7 +9,7 @@ export const init = () => {
 export function tableFilters() {
     window.console.log('tablefilters.js initialised');
 
-    const dataTable = document.getElementById('feedback-table');
+    const dataTable = document.getElementById('js-feedback-table');
     const rows = dataTable ? dataTable.getElementsByTagName('tr') : [];
 
     const filterAcademicYear = document.getElementById('filteracademicyear');
@@ -94,7 +94,7 @@ export function tableFilters() {
  * Initialise the text filter.
  */
 export function initialiseTextFilters() {
-    const dataTable = document.getElementById('feedback-table');
+    const dataTable = document.getElementById('js-feedback-table');
     const filterResponsibilityInputs = dataTable ? dataTable.querySelectorAll('.filterresponsibility-input') : [];
     const filterGeneralFeedbackInputs = dataTable ? dataTable.querySelectorAll('.filtergeneralfeedback-input') : [];
 

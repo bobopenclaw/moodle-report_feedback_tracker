@@ -6,7 +6,7 @@ export const init = () => {
     window.console.log('studentview.js initialised');
 
     document.getElementById('report-feedback-tracker-studentdd').addEventListener('change', async function() {
-        var courseId = document.getElementById('feedback_tracker_studentdd').getAttribute('data-value');
+        var courseId = document.getElementById('feedback-tracker-studentdd').getAttribute('data-courseid');
         var studentId = this.value;
         if (studentId) {
             // Render the feedback table for the user using AJAX and push the result to the page.

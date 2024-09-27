@@ -38,7 +38,7 @@ require_login($course);
 $pageparams = ['id' => $course->id];
 
 $PAGE->set_url('/report/feedback_tracker/index.php', $pageparams);
-$PAGE->set_pagelayout('report');
+$PAGE->set_pagelayout('base'); // No drawers.
 
 $context = context_course::instance($course->id);
 
