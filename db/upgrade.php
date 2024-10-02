@@ -148,5 +148,24 @@ function xmldb_report_feedback_tracker_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024091100.01, 'report', 'feedback_tracker');
     }
 
+    if ($oldversion < 2024093000) {
+        // Remove the outdated settings.
+        $DB->execute(
+            "DELETE FROM {config_plugins}
+              WHERE name IN ('closure_xmas_start', 'closure_xmas_end',
+                     'closure_easter_start', 'closure_easter_end',
+                     'closure_xmas_start_1', 'closure_xmas_end_1',
+                     'closure_easter_start_1', 'closure_easter_end_1',
+                     'closure_xmas_start_2', 'closure_xmas_end_2',
+                     'closure_easter_start_2', 'closure_easter_end_2',
+                     'closure_xmas_start_3', 'closure_xmas_end_3',
+                     'closure_easter_start_3', 'closure_easter_end_3',
+                     'closure_xmas_start_4', 'closure_xmas_end_4',
+                     'closure_easter_start_4', 'closure_easter_end_4')"
+        );
+        // Upgrade savepoint.
+        upgrade_plugin_savepoint(true, 2024093000, 'report', 'feedback_tracker');
+    }
+
     return true;
 }

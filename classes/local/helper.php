@@ -33,6 +33,29 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class helper {
+
+    /**
+     * Return all academic years from the custom field.
+     * @return array
+     * @throws dml_exception
+     */
+    public static function get_academic_years() {
+        global $DB;
+
+        $academicyears = [];
+        // Get the field definition for the custom field 'course_year'.
+        if ($field = $DB->get_record('customfield_field', ['shortname' => 'course_year'])) {
+            // Use the field ID to get all records from customfield_data for this field and store the academic year array.
+            if ($records = $DB->get_records('customfield_data', ['fieldid' => $field->id], 'charvalue')) {
+                foreach ($records as $record) {
+                    $academicyears[$record->charvalue] = $record->charvalue;
+                }
+            }
+        }
+
+        return $academicyears;
+    }
+
     /**
      * Get course academic year from custom course fields.
      *
@@ -899,6 +922,8 @@ class helper {
         $closuredays = $cache->get('england_and_wales');
         $timestamp = $cache->get('timestamp');
 
+        $academicyears = self::get_academic_years();
+
         if (!$closuredays || !$timestamp || ($timestamp < time() - DAYSECS)) {
             $closuredays = [];
 
@@ -919,23 +944,22 @@ class helper {
         }
 
         // Now add the university closure days when not already covered.
-        // Loop over the current year and 4 years back.
-        $xmasstartsetting = 'closure_xmas_start';
-        $xmasendsetting = 'closure_xmas_end';
-        $easterstartsetting = 'closure_easter_start';
-        $easterendsetting = 'closure_easter_end';
-        for ($i = 0; $i <= 4; $i++) {
+        foreach ($academicyears as $year) {
+            // We only need closure dates from 2024-25 on so skipping prior dates.
+            if ((int) $year < 2024) {
+                continue;
+            }
             // Get the start and end dates for xmas and easter closures from the config.
-            $xstartname = $i == 0 ? $xmasstartsetting : $xmasstartsetting . '_' . $i;
-            $xendname = $i == 0 ? $xmasendsetting : $xmasendsetting . '_' . $i;
-            $estartname = $i == 0 ? $easterstartsetting : $easterstartsetting . '_' . $i;
-            $eendname = $i == 0 ? $easterendsetting : $easterendsetting . '_' . $i;
+            $xstart = get_config('report_feedback_tracker',
+                "closure_xmas_start_{$year}");
+            $xend = get_config('report_feedback_tracker',
+                "closure_xmas_end_{$year}");
+            $estart = get_config('report_feedback_tracker',
+                "closure_easter_start_{$year}");
+            $eend = get_config('report_feedback_tracker',
+                "closure_easter_end_{$year}");
 
-            $xstart = get_config('report_feedback_tracker', $xstartname);
-            $xend = get_config('report_feedback_tracker', $xendname);
-            $estart = get_config('report_feedback_tracker', $estartname);
-            $eend = get_config('report_feedback_tracker', $eendname);
-
+            // Add the closure days for the year.
             self::get_year_closuredays($closuredays, $xstart, $xend, $estart, $eend);
         }
 

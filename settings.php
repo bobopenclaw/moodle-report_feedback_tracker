@@ -22,6 +22,8 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use report_feedback_tracker\local\helper;
+
 defined('MOODLE_INTERNAL') || die;
 
 if ($ADMIN->fulltree) {
@@ -83,125 +85,42 @@ if ($ADMIN->fulltree) {
         get_string('settings:feedbackdeadlinedaysinfo', 'report_feedback_tracker'),
         $feedbackdeadlinedaysdefault, PARAM_RAW, 5));
 
-    // The closure dates.
-    // Current year.
+    // The closure dates for each academic year present in the system beginning with 2024-25.
+    $academicyears = helper::get_academic_years();
+
     $settings->add(new admin_setting_heading('report_feedback_tracker_closure_dates',
-        get_string('closure:currentyear', 'report_feedback_tracker'), ''));
+        get_string('settings:closuredatesheading', 'report_feedback_tracker'), ''));
 
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_start',
-        get_string('closure:xmas_start', 'report_feedback_tracker'),
-        get_string('closure:xmas_start_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
+    foreach ($academicyears as $year) {
+        // We only need closure dates from 2024-25 on so skipping prior dates.
+        if ((int) $year < 2024) {
+            continue;
+        }
+        $suffix = '-' . (string) ((int) substr($year, -2) + 1);
+        // The year.
+        $settings->add(new admin_setting_heading('report_feedback_tracker_closure_dates_' . $year,
+            $year . $suffix, ''));
 
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_end',
-        get_string('closure:xmas_end', 'report_feedback_tracker'),
-        get_string('closure:xmas_end_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
+        $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_start_' . $year,
+            get_string('closure:xmas_start', 'report_feedback_tracker'),
+            get_string('closure:xmas_start_info', 'report_feedback_tracker'),
+            $defaultdate, PARAM_RAW, 15));
 
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_start',
-        get_string('closure:easter_start', 'report_feedback_tracker'),
-        get_string('closure:easter_start_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
+        $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_end_' . $year,
+            get_string('closure:xmas_end', 'report_feedback_tracker'),
+            get_string('closure:xmas_end_info', 'report_feedback_tracker'),
+            $defaultdate, PARAM_RAW, 15));
 
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_end',
-        get_string('closure:easter_end', 'report_feedback_tracker'),
-        get_string('closure:easter_end_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
+        $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_start_' . $year,
+            get_string('closure:easter_start', 'report_feedback_tracker'),
+            get_string('closure:easter_start_info', 'report_feedback_tracker'),
+            $defaultdate, PARAM_RAW, 15));
 
-    // Last year.
-    $settings->add(new admin_setting_heading('report_feedback_tracker_closure_dates_1',
-        get_string('closure:currentyear-1', 'report_feedback_tracker'), ''));
+        $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_end_' . $year,
+            get_string('closure:easter_end', 'report_feedback_tracker'),
+            get_string('closure:easter_end_info', 'report_feedback_tracker'),
+            $defaultdate, PARAM_RAW, 15));
 
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_start_1',
-        get_string('closure:xmas_start', 'report_feedback_tracker'),
-        get_string('closure:xmas_start_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_end_1',
-        get_string('closure:xmas_end', 'report_feedback_tracker'),
-        get_string('closure:xmas_end_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_start_1',
-        get_string('closure:easter_start', 'report_feedback_tracker'),
-        get_string('closure:easter_start_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_end_1',
-        get_string('closure:easter_end', 'report_feedback_tracker'),
-        get_string('closure:easter_end_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    // 2 years ago.
-    $settings->add(new admin_setting_heading('report_feedback_tracker_closure_dates_2',
-        get_string('closure:currentyear-2', 'report_feedback_tracker'), ''));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_start_2',
-        get_string('closure:xmas_start', 'report_feedback_tracker'),
-        get_string('closure:xmas_start_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_end_2',
-        get_string('closure:xmas_end', 'report_feedback_tracker'),
-        get_string('closure:xmas_end_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_start_2',
-        get_string('closure:easter_start', 'report_feedback_tracker'),
-        get_string('closure:easter_start_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_end_2',
-        get_string('closure:easter_end', 'report_feedback_tracker'),
-        get_string('closure:easter_end_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    // 3 years ago.
-    $settings->add(new admin_setting_heading('report_feedback_tracker_closure_dates_3',
-        get_string('closure:currentyear-3', 'report_feedback_tracker'), ''));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_start_3',
-        get_string('closure:xmas_start', 'report_feedback_tracker'),
-        get_string('closure:xmas_start_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_end_3',
-        get_string('closure:xmas_end', 'report_feedback_tracker'),
-        get_string('closure:xmas_end_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_start_3',
-        get_string('closure:easter_start', 'report_feedback_tracker'),
-        get_string('closure:easter_start_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_end_3',
-        get_string('closure:easter_end', 'report_feedback_tracker'),
-        get_string('closure:easter_end_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    // 4 years ago.
-    $settings->add(new admin_setting_heading('report_feedback_tracker_closure_dates_4',
-        get_string('closure:currentyear-4', 'report_feedback_tracker'), ''));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_start_4',
-        get_string('closure:xmas_start', 'report_feedback_tracker'),
-        get_string('closure:xmas_start_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_xmas_end_4',
-        get_string('closure:xmas_end', 'report_feedback_tracker'),
-        get_string('closure:xmas_end_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_start_4',
-        get_string('closure:easter_start', 'report_feedback_tracker'),
-        get_string('closure:easter_start_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
-
-    $settings->add(new admin_setting_configtext('report_feedback_tracker/closure_easter_end_4',
-        get_string('closure:easter_end', 'report_feedback_tracker'),
-        get_string('closure:easter_end_info', 'report_feedback_tracker'),
-        $defaultdate, PARAM_RAW, 15));
+    }
 
 }
