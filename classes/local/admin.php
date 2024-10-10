@@ -163,8 +163,8 @@ class admin {
         $params['courseid'] = $course->id;
         $gradeitems = $DB->get_records_sql($sql, $params);
         $assessmenttypes = helper::get_assessment_types($course->id);
-
         $tttparts = helper::get_turnitin_records($course->id);
+        $modinfo = get_fast_modinfo($course->id);
 
         $itemlist = [];
         foreach ($gradeitems as $gradeitem) {
@@ -172,6 +172,11 @@ class admin {
             // and make sure only one (turnitintooltwo) assessment record is listed even if there are multiple parts.
             if (!helper::module_is_supported($gradeitem) || in_array($gradeitem->itemid, $itemlist)) {
                 continue;
+            }
+
+            // Get the module information for a grade item.
+            if (isset($gradeitem->cmid)) {
+                $gradeitem->modinfo = $modinfo->get_cm($gradeitem->cmid);
             }
 
             // All good - now get and store the feedback record.

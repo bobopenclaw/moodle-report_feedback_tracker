@@ -33,10 +33,10 @@ class user {
     /**
      * Get the academic years of the user based on the courses s/he is/was enrolled in.
      *
-     * @param stdClass $enrolledcourses
+     * @param array $enrolledcourses
      * @return array
      */
-    public static function get_user_academic_years($enrolledcourses) {
+    public static function get_user_academic_years(array $enrolledcourses): array {
         $academicyears = [];
         foreach ($enrolledcourses as $course) {
             $academicyear = helper::get_academic_year($course->id);
@@ -83,8 +83,7 @@ class user {
      * @param int $userid
      * @param int $courseid
      * @return stdClass
-     * @throws \coding_exception
-     * @throws \dml_exception
+     * @throws coding_exception
      */
     public static function get_feedback_tracker_user_data($userid, $courseid = 0): stdClass {
         $data = new stdClass();
@@ -116,21 +115,13 @@ class user {
         if ($courseid) {
             unset($data->hasyears); // Do not show academic year options when showing a single course.
             $course = get_course($courseid);
-            try {
-                self::get_user_course_gradings($course, $userid, $data);
-            } catch (\coding_exception $e) {
-                throw($e);
-            }
+            self::get_user_course_gradings($course, $userid, $data);
         } else {
             foreach ($enrolledcourses as $course) {
                 $academicyear = helper::get_academic_year($course->id);
 
                 if ($academicyear === $year) {
-                    try {
-                        self::get_user_course_gradings($course, $userid, $data);
-                    } catch (\coding_exception $e) {
-                        throw($e);
-                    }
+                    self::get_user_course_gradings($course, $userid, $data);
                 }
             }
         }
@@ -228,6 +219,13 @@ class user {
         $tttparts = helper::get_turnitin_records($course->id);
         $modinfo = get_fast_modinfo($course->id, $userid);
 
+        // Different modules use different field names for the due date.
+        $duedates = [
+            'assign' => 'duedate',
+            'lesson' => 'deadline',
+            'quiz' => 'timeclose',
+        ];
+
         $itemlist = [];
         foreach ($gradeitems as $gradeitem) {
             // Check if the gradeitem module is supported
@@ -236,9 +234,14 @@ class user {
                 continue;
             }
 
+            // Get the module information for a grade item.
+            if (isset($gradeitem->cmid)) {
+                $gradeitem->modinfo = $modinfo->get_cm($gradeitem->cmid);
+            }
+
             // If item is a module (e.g. not manual) check if a user is allowed to access it.
             if ($gradeitem->itemmodule
-                    && !$modinfo->get_cm($gradeitem->cmid)->uservisible) {
+                    && !$gradeitem->modinfo->uservisible) {
                 continue;
             }
 
@@ -250,12 +253,17 @@ class user {
                 continue;
             }
 
-            // All good - now get and store the feedback record.
-            // Check for due date extensions.
-            if ($extension = helper::get_duedate_extension($gradeitem, $userid)) {
-                $gradeitem->duedate = $extension;
+            // Get user due dates.
+            $customdata = $gradeitem->modinfo->customdata;
+            $itemmodule = $gradeitem->itemmodule;
+
+            if (is_array($customdata)
+                && array_key_exists($itemmodule, $duedates)
+                && isset($customdata[$duedates[$itemmodule]])) {
+                $gradeitem->duedate = $customdata[$duedates[$itemmodule]];
             }
 
+            // All good - now get and store the feedback record.
             // TurnitinToolTwo special treatment as one grading item may have several parts.
             if ($gradeitem->itemmodule == 'turnitintooltwo') {
                 self::get_user_turnitin_records($course, $gradeitem, $userid, $tttparts, $data, $courseobject);

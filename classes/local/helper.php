@@ -292,8 +292,7 @@ class helper {
             return '<i class="icon fa-regular fa-hand-spock"></i>';
         }
 
-        $modinfo = get_fast_modinfo($gradeitem->courseid)->get_cm($gradeitem->cmid);
-        $path = $modinfo->get_icon_url()->out(false);
+        $path = $gradeitem->modinfo->get_icon_url()->out(false);
 
         switch ($gradeitem->itemmodule) {
             case 'assign':
@@ -585,49 +584,10 @@ class helper {
      */
     public static function get_turnitin_records(int $courseid): array {
         $tttparts = [];
-
         foreach (self::get_tttparts($courseid) as $tttpart) {
             $tttparts[$tttpart->gradeitemid][] = $tttpart;
         }
-
         return $tttparts;
-    }
-
-    /**
-     * Get a due date extension where available.
-     *
-     * @param stdClass $gradeitem
-     * @param int $userid
-     * @return false|mixed
-     * @throws dml_exception
-     */
-    public static function get_duedate_extension(stdClass $gradeitem, int $userid): mixed {
-        global $DB;
-
-        switch ($gradeitem->itemmodule) {
-            case "assign":
-                return $DB->get_field('assign_user_flags', 'extensionduedate',
-                    ['assignment' => $gradeitem->iteminstance, 'userid' => $userid]);
-            case "quiz":
-                // Quizzes may have group and/or user due date extensions. Return whatever is higher.
-                $groupextension = 0;
-                if ($usergroups = groups_get_user_groups($gradeitem->courseid, $userid)[0]) {
-                    foreach ($usergroups as $usergroupid) {
-                        if ($gext = $DB->get_field('quiz_overrides', 'timeclose',
-                            ['quiz' => $gradeitem->iteminstance, 'groupid' => $usergroupid])) {
-                            $groupextension = $gext > $groupextension ? $gext : $groupextension;
-                        }
-                    }
-                }
-                $userextension = $DB->get_field('quiz_overrides', 'timeclose',
-                    ['quiz' => $gradeitem->iteminstance, 'userid' => $userid]);
-
-                return $groupextension > $userextension ? $groupextension : $userextension;
-            case "turnitintooltwo":
-                return false;
-            default:
-                return false;
-        }
     }
 
     /**
