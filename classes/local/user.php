@@ -254,13 +254,15 @@ class user {
             }
 
             // Get user due dates.
-            $customdata = $gradeitem->modinfo->customdata;
-            $itemmodule = $gradeitem->itemmodule;
+            if (isset($gradeitem->modinfo)) {
+                $customdata = $gradeitem->modinfo->customdata;
+                $itemmodule = $gradeitem->itemmodule;
 
-            if (is_array($customdata)
-                && array_key_exists($itemmodule, $duedates)
-                && isset($customdata[$duedates[$itemmodule]])) {
-                $gradeitem->duedate = $customdata[$duedates[$itemmodule]];
+                if (is_array($customdata)
+                        && array_key_exists($itemmodule, $duedates)
+                        && isset($customdata[$duedates[$itemmodule]])) {
+                    $gradeitem->duedate = $customdata[$duedates[$itemmodule]];
+                }
             }
 
             // All good - now get and store the feedback record.
