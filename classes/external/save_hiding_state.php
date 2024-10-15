@@ -38,7 +38,7 @@ class save_hiding_state extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
-            'partname' => new external_value(PARAM_TEXT, 'The optional part name used by turnitintooltwo only'),
+            'partid' => new external_value(PARAM_INT, 'The part ID used by turnitintooltwo only, 0 otherwise'),
             'hidingstate' => new external_value(PARAM_BOOL, 'The summative state (0 or 1)'),
         ]);
     }
@@ -56,30 +56,25 @@ class save_hiding_state extends external_api {
      * Saving the hiding state for a grade item.
      *
      * @param int $itemid
-     * @param string|null $partname optional partname for turnitintooltwo assessments only.
+     * @param int $partid part ID for turnitintooltwo assessments only, 0 for all other activities.
      * @param bool $hidingstate
      * @return bool
-     * @throws \Exception
      */
-    public static function execute(int $itemid, string|null $partname, bool $hidingstate): bool {
-        try {
-            global $DB;
+    public static function execute(int $itemid, int $partid, bool $hidingstate): bool {
+        global $DB;
 
-            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partname' => $partname])) {
-                $record->hidden = $hidingstate;
-                $DB->update_record('report_feedback_tracker', $record);
-            } else {
-                $record = new stdClass();
-                $record->gradeitem = $itemid;
-                $record->partname = $partname;
-                $record->hidden = $hidingstate;
-                $record->feedbackduedate = 0;
-                $DB->insert_record('report_feedback_tracker', $record);
-            }
-
-            return $hidingstate;
-        } catch (\Exception $e) {
-            throw($e);
+        if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partid' => $partid])) {
+            $record->hidden = $hidingstate;
+            $DB->update_record('report_feedback_tracker', $record);
+        } else {
+            $record = new stdClass();
+            $record->gradeitem = $itemid;
+            $record->partid = $partid;
+            $record->hidden = $hidingstate;
+            $record->feedbackduedate = 0;
+            $DB->insert_record('report_feedback_tracker', $record);
         }
+
+        return $hidingstate;
     }
 }

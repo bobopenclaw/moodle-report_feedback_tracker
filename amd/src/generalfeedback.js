@@ -17,8 +17,8 @@ export const init = async() => {
     document.addEventListener('click', async e => {
         if (e.target.closest(Selectors.actions.showGeneralfeedback)) {
             const target = e.target;
-            const itemid = target.getAttribute('cmid');
-            const partname = target.getAttribute('partname');
+            const itemid = target.getAttribute('data-cmid');
+            const partid = target.getAttribute('data-partid');
 
             // Get the current values for general feedback text, URL and date.
             var generalfeedback = target.getAttribute('data-generalfeedback');
@@ -26,7 +26,7 @@ export const init = async() => {
 
             // Show a modal with a text field and a URL field.
             const modal = await ModalSaveCancel.create({
-                title: await getString('generalfeedback', 'report_feedback_tracker'),
+                title: await getString('header:additionalinformation', 'report_feedback_tracker'),
                 body: Templates.render('report_feedback_tracker/generalfeedback_modal',
                     {
                         generalfeedbacklabel: await getString('generalfeedback:text', 'report_feedback_tracker'),
@@ -44,7 +44,7 @@ export const init = async() => {
                 const link = '<a href="' + gfurl + '">' + gfurl + '</a>';
 
                 // Update the database.
-                const response = await updateGeneralFeedback(itemid, partname, generalfeedback, gfurl);
+                const response = await updateGeneralFeedback(itemid, partid, generalfeedback, gfurl);
 
                 // Update the screen elements.
                 target.setAttribute('data-generalfeedback', generalfeedback);

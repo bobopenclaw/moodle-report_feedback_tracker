@@ -2,53 +2,53 @@ import {call as ajax} from 'core/ajax';
 
 export const updateAssessmentType = (
     itemid,
-    partname,
+    partid,
     assessmenttype,
 ) => ajax([{
     methodname: 'report_feedback_tracker_save_assessment_type',
     args: {
         itemid: itemid,
-        partname: partname,
+        partid: partid,
         assessmenttype: assessmenttype
     },
 }])[0];
 
 export const updateCohortState = (
     itemid,
-    partname,
+    partid,
     cohortstate,
 ) => ajax([{
     methodname: 'report_feedback_tracker_save_cohort_state',
     args: {
         itemid: itemid,
-        partname: partname,
+        partid: partid,
         cohortstate: cohortstate
     },
 }])[0];
 
 export const updateHidingState = (
     itemid,
-    partname,
+    partid,
     hidingstate,
 ) => ajax([{
     methodname: 'report_feedback_tracker_save_hiding_state',
     args: {
         itemid: itemid,
-        partname: partname,
+        partid: partid,
         hidingstate: hidingstate
     },
 }])[0];
 
 export const updateFeedbackDuedate = (
     itemid,
-    partname,
+    partid,
     duedate,
     duedatereason,
 ) => ajax([{
     methodname: 'report_feedback_tracker_save_feedback_duedate',
     args: {
         itemid: itemid,
-        partname: partname,
+        partid: partid,
         duedate: duedate,
         duedatereason: duedatereason
     },
@@ -56,25 +56,25 @@ export const updateFeedbackDuedate = (
 
 export const deleteFeedbackDuedate = (
     itemid,
-    partname,
+    partid,
 ) => ajax([{
     methodname: 'report_feedback_tracker_delete_feedback_duedate',
     args: {
         itemid: itemid,
-        partname: partname
+        partid: partid
     },
 }])[0];
 
 export const updateGeneralFeedback = (
     itemid,
-    partname,
+    partid,
     generalfeedback,
     gfurl,
 ) => ajax([{
     methodname: 'report_feedback_tracker_update_general_feedback',
     args: {
         itemid: itemid,
-        partname: partname,
+        partid: partid,
         generalfeedback: generalfeedback,
         gfurl: gfurl
     },

@@ -39,7 +39,7 @@ class save_assessment_type extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
-            'partname' => new external_value(PARAM_TEXT, 'The optional part name used by turnitintooltwo only'),
+            'partid' => new external_value(PARAM_INT, 'The part ID used by turnitintooltwo only, 0 otherwise'),
             'assessmenttype' => new external_value(PARAM_INT, 'The ID of the assessment type'),
         ]);
     }
@@ -57,35 +57,31 @@ class save_assessment_type extends external_api {
      * Saving the summative state for a grade item.
      *
      * @param int $itemid
-     * @param string|null $partname optional partname for turnitintooltwo assessments only.
+     * @param int $partid part ID for turnitintooltwo assessments only, 0 for all other activities.
      * @param int $assessmenttype
      * @return int
-     * @throws \Exception
      */
-    public static function execute(int $itemid, string|null $partname, int $assessmenttype): int {
-        try {
-            global $DB;
+    public static function execute(int $itemid, int $partid, int $assessmenttype): int {
+        // Note: $partid is unused here until it can be processed by local_assess_type.
+        global $DB;
 
-            // Prepare the type value for the local_assess_type table.
-            $type = $assessmenttype;
+        // Prepare the type value for the local_assess_type table.
+        $type = $assessmenttype;
 
-            // Update summative state in local_assess_type table.
-            $gradeitem = $DB->get_record('grade_items', ['id' => $itemid]);
-            if (!empty($gradeitem)) {
-                // Update course module records.
-                if ($gradeitem->itemtype === 'mod') {
-                    if ($cm = get_coursemodule_from_instance($gradeitem->itemmodule, $gradeitem->iteminstance)) {
-                        assess_type::update_type($gradeitem->courseid, $type, $cm->id);
-                    }
-                } else {
-                    // Update the gradebook grade item and category.
-                    assess_type::update_type($gradeitem->courseid, $type, 0, $itemid);
+        // Update summative state in local_assess_type table.
+        $gradeitem = $DB->get_record('grade_items', ['id' => $itemid]);
+        if (!empty($gradeitem)) {
+            // Update course module records.
+            if ($gradeitem->itemtype === 'mod') {
+                if ($cm = get_coursemodule_from_instance($gradeitem->itemmodule, $gradeitem->iteminstance)) {
+                    assess_type::update_type($gradeitem->courseid, $type, $cm->id);
                 }
+            } else {
+                // Update the gradebook grade item and category.
+                assess_type::update_type($gradeitem->courseid, $type, 0, $itemid);
             }
-
-            return $assessmenttype;
-        } catch (\Exception $e) {
-            throw($e);
         }
+
+        return $assessmenttype;
     }
 }

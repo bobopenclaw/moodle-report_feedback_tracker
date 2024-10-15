@@ -170,17 +170,18 @@ function report_feedback_tracker_inplace_editable(string $itemtype, string $idbl
         // Explode the idblob.
         $ids = explode(',', $idblob);
         $itemid = $ids[0];
-        $partname = $ids[1] ? $ids[1] : null;
+        $partid = (count($ids) === 2) ? $ids[1] : 0;
+
         // If no record for this grade item exists, create it first.
-        if (!$DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partname' => $partname])) {
+        if (!$DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partid' => $partid])) {
             $record = new stdClass();
             $record->gradeitem = $itemid;
-            $record->partname = $partname;
+            $record->partid = $partid;
             $DB->insert_record('report_feedback_tracker', $record);
         }
 
         // Update the database.
-        $DB->set_field('report_feedback_tracker', $itemtype, $newvalue, ['gradeitem' => $itemid, 'partname' => $partname]);
+        $DB->set_field('report_feedback_tracker', $itemtype, $newvalue, ['gradeitem' => $itemid, 'partid' => $partid]);
 
         // Return the result.
         return new inplace_editable(

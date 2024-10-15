@@ -142,8 +142,8 @@ class helper {
         global $OUTPUT, $PAGE;
 
         if ($PAGE->user_is_editing()) {
-            // We need to differentiate parts of ttt assessments - so include the partname in the identifying blob.
-            $idblob = implode(',', [$gradeitem->itemid, $gradeitem->partname]);
+            // We need to differentiate parts of ttt assessments - so include the part ID in the identifying blob.
+            $idblob = $gradeitem->itemid . ',' . $gradeitem->partid;
             $edititem = new \core\output\inplace_editable(
                 'report_feedback_tracker',
                 'method',
@@ -169,7 +169,7 @@ class helper {
         global $OUTPUT, $PAGE;
 
         if ($PAGE->user_is_editing()) {
-            $idblob = implode(',', [$gradeitem->itemid, $gradeitem->partname]);
+            $idblob = $gradeitem->itemid . ',' . $gradeitem->partid;
             $edititem = new \core\output\inplace_editable(
                 'report_feedback_tracker',
                 'responsibility',
@@ -239,8 +239,8 @@ class helper {
                 data-action='report_feedback_tracker/hiding_checkbox'
                 type='checkbox'
                 class='form-check-input hiding_checkbox'
-                cmid='$gradeitem->itemid'
-                partname='$gradeitem->partname'
+                data-cmid='$gradeitem->itemid'
+                data-partid='$gradeitem->partid'
                 checked='checked'
             >";
             } else {
@@ -248,8 +248,8 @@ class helper {
                 data-action='report_feedback_tracker/hiding_checkbox'
                 type='checkbox'
                 class='form-check-input hiding_checkbox'
-                cmid='$gradeitem->itemid'
-                partname='$gradeitem->partname'
+                data-cmid='$gradeitem->itemid'
+                data-partid='$gradeitem->partid'
             >";
             }
         } else {
@@ -265,9 +265,9 @@ class helper {
      * Return a link to the module item where applicable.
      *
      * @param stdClass $gradeitem
-     * @return mixed|string
+     * @return string
      */
-    public static function get_item_link(stdClass $gradeitem): mixed {
+    public static function get_item_link(stdClass $gradeitem): string {
         global $CFG, $USER;
 
         if (!isset($gradeitem->cmid)) {
@@ -275,7 +275,8 @@ class helper {
         } else {
             $url = "$CFG->wwwroot/mod/$gradeitem->itemmodule/view.php?id=$gradeitem->cmid";
         }
-        $linktext = $gradeitem->partname ? "$gradeitem->itemname - $gradeitem->partname" : $gradeitem->itemname;
+        $linktext = (isset($gradeitem->partname) && $gradeitem->partname) ?
+            "$gradeitem->itemname - $gradeitem->partname" : $gradeitem->itemname;
         return html_writer::link($url, $linktext);
     }
 
@@ -554,7 +555,7 @@ class helper {
     from {turnitintooltwo_parts} tttp
     join {grade_items} gi on gi.itemmodule = 'turnitintooltwo' and gi.iteminstance = tttp.turnitintooltwoid
     left join {report_feedback_tracker} rft on
-    rft.gradeitem = gi.id and rft.partname = tttp.partname
+    rft.gradeitem = gi.id and rft.partid = tttp.id
      WHERE gi.courseid = $courseid
     ";
 
@@ -576,7 +577,7 @@ class helper {
      *           (
      *               [id] => 1
      *               [turnitintooltwoid] => 1
-     *               [partname] => Part 1
+     *               [partid] => 1
      *               ⋮
      *           )
      *       )
@@ -682,8 +683,8 @@ class helper {
             $inputfield = html_writer::empty_tag('input', [
                 'type' => 'date',
                 'id' => $pickerid,
-                'itemid' => $gradeitem->itemid,
-                'partname' => $gradeitem->partname,
+                'data-itemid' => $gradeitem->itemid,
+                'data-partid' => $gradeitem->partid,
                 'class' => 'date-picker',
                 'data-action' => 'report_feedback_tracker/datepicker',
                 'value' => date('Y-m-d', $date),
@@ -1034,24 +1035,48 @@ class helper {
      * @return void
      */
     public static function get_assessment_type(stdClass &$gradeitem, array $assessmenttypes): void {
-        // If there is a course module ID use it to get the assessment type.
-        if (isset($gradeitem->cmid)) {
-            foreach ($assessmenttypes as $assessmenttype) {
-                if (isset($assessmenttype->cmid) && ($assessmenttype->cmid === $gradeitem->cmid)) {
-                    $gradeitem->assessmenttype = $assessmenttype->type;
-                    $gradeitem->locked = $assessmenttype->locked;
-                    break;
-                }
-            }
-        } else if (isset($gradeitem->itemid)) { // Otherwise use the grade item ID.
-            foreach ($assessmenttypes as $assessmenttype) {
-                if (isset($assessmenttype->gradeitemid) && ($assessmenttype->gradeitemid === $gradeitem->itemid)) {
-                    $gradeitem->assessmenttype = $assessmenttype->type;
-                    $gradeitem->locked = $assessmenttype->locked;
-                    break;
-                }
+        foreach ($assessmenttypes as $assessmenttype) {
+            // A course module with a part ID (e.g. turnitintooltwo).
+            // Currently the part ID is not used for checking different parts until it is supported by local_assess_type.
+            if (isset($gradeitem->cmid) && isset($gradeitem->partid) &&
+                    ($assessmenttype->cmid === $gradeitem->cmid)
+            ) {
+                $gradeitem->assessmenttype = $assessmenttype->type;
+                $gradeitem->locked = $assessmenttype->locked;
+                break;
+            } else if ( // A course module w/o a part.
+                    isset($gradeitem->cmid) && !isset($gradeitem->partid) &&
+                    ($assessmenttype->cmid === $gradeitem->cmid)
+            ) {
+                $gradeitem->assessmenttype = $assessmenttype->type;
+                $gradeitem->locked = $assessmenttype->locked;
+                break;
+            } else if ( // A grade item w/o a course module.
+                    !isset($gradeitem->cmid) && isset($gradeitem->itemid) &&
+                    ($assessmenttype->gradeitemid === $gradeitem->itemid)
+            ) {
+                $gradeitem->assessmenttype = $assessmenttype->type;
+                $gradeitem->locked = $assessmenttype->locked;
+                break;
             }
         }
     }
+
+    /**
+     * Get the part name.
+     *
+     * @param int $partid
+     * @return string
+     * @throws dml_exception
+     */
+    public static function get_partname($partid) {
+        global $DB;
+
+        if ($record = $DB->get_record('turnitintooltwo_parts', ['id' => $partid])) {
+            return $record->partname;
+        }
+        return '';
+    }
+
 }
 

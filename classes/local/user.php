@@ -184,7 +184,7 @@ class user {
         cm.visible,
         um.username as grader,
         gg.timemodified,
-        rft.partname,
+        rft.partid,
         rft.summative,
         rft.hidden,
         rft.feedbackduedate,
@@ -216,7 +216,6 @@ class user {
         $courseobject->fullname = $course->fullname;
         $courseobject->image = \core_course\external\course_summary_exporter::get_course_image($course);
         $courseobject->records = [];
-        $tttparts = helper::get_turnitin_records($course->id);
         $modinfo = get_fast_modinfo($course->id, $userid);
 
         // Different modules use different field names for the due date.
@@ -245,14 +244,6 @@ class user {
                 continue;
             }
 
-            // Add the assessment type information where available.
-            helper::get_assessment_type($gradeitem, $assessmenttypes);
-
-            // Exclude assessments of type DUMMY.
-            if (isset($gradeitem->assessmenttype) && (int) $gradeitem->assessmenttype === assess_type::ASSESS_TYPE_DUMMY) {
-                continue;
-            }
-
             // Get user due dates.
             if (isset($gradeitem->modinfo)) {
                 $customdata = $gradeitem->modinfo->customdata;
@@ -268,11 +259,12 @@ class user {
             // All good - now get and store the feedback record.
             // TurnitinToolTwo special treatment as one grading item may have several parts.
             if ($gradeitem->itemmodule == 'turnitintooltwo') {
-                self::get_user_turnitin_records($course, $gradeitem, $userid, $tttparts, $data, $courseobject);
+                self::get_user_turnitin_records($course, $gradeitem, $userid, $assessmenttypes, $data, $courseobject);
             } else {
-                $record = self::get_user_feedback_record($course, $userid, $gradeitem);
-                $data->records[] = $record;
-                $courseobject->records[] = $record;
+                if ($record = self::get_user_feedback_record($course, $userid, $gradeitem, $assessmenttypes)) {
+                    $data->records[] = $record;
+                    $courseobject->records[] = $record;
+                }
             }
             $itemlist[] = $gradeitem->itemid;
         }
@@ -293,14 +285,14 @@ class user {
      * @param stdClass $course
      * @param int $userid
      * @param stdClass $gradeitem
+     * @param array $assessmenttypes
      * @return stdClass
      * @throws dml_exception
      * @throws coding_exception
      */
-    protected static function get_user_feedback_record($course, $userid, $gradeitem): stdClass {
-        $gradeitem->partname = null; // Only turnitintooltwo assessments may have parts.
-
-        return self::compile_user_record($course, $userid, $gradeitem);
+    protected static function get_user_feedback_record($course, $userid, $gradeitem, $assessmenttypes): stdClass {
+        $gradeitem->partid = 0; // Only turnitintooltwo assessments may have parts.
+        return self::compile_user_record($course, $userid, $gradeitem, $assessmenttypes);
     }
 
     /**
@@ -399,7 +391,7 @@ class user {
      * @param stdClass $course
      * @param stdClass $gradeitem
      * @param int $userid
-     * @param array $tttparts
+     * @param array $assessmenttypes
      * @param stdClass $data
      * @param stdClass $courseobject
      * @return void
@@ -410,10 +402,13 @@ class user {
       $course,
       $gradeitem,
       $userid,
-      $tttparts,
+      $assessmenttypes,
       &$data,
       &$courseobject
     ): void {
+
+        $tttparts = helper::get_turnitin_records($course->id);
+
         foreach ($tttparts[$gradeitem->itemid] as $tttpart) {
             if (!$tttpart->hidden) {
                 // Each ttt assessment may have its own attributes.
@@ -426,11 +421,13 @@ class user {
                 $gradeitem->generalfeedback = $tttpart->generalfeedback;
                 $gradeitem->gfurl = $tttpart->gfurl;
                 $gradeitem->gfdate = $tttpart->gfdate;
-                $gradeitem->partname = $tttpart->partname;
+                $gradeitem->partid = $tttpart->id;
+                $gradeitem->partname = helper::get_partname($gradeitem->partid);
 
-                $record = self::compile_user_record($course, $userid, $gradeitem);
-                $data->records[] = $record;
-                $courseobject->records[] = $record;
+                if ($record = self::compile_user_record($course, $userid, $gradeitem, $assessmenttypes)) {
+                    $data->records[] = $record;
+                    $courseobject->records[] = $record;
+                }
             }
         }
     }
@@ -441,11 +438,20 @@ class user {
      * @param stdClass $course
      * @param int $userid
      * @param stdClass $gradeitem
-     * @return stdClass
+     * @param array $assessmenttypes
+     * @return stdClass|bool
      * @throws coding_exception
      * @throws dml_exception
      */
-    protected static function compile_user_record($course, $userid, $gradeitem): stdClass {
+    protected static function compile_user_record($course, $userid, $gradeitem, $assessmenttypes): stdClass|bool {
+
+        // Add the assessment type information where available.
+        helper::get_assessment_type($gradeitem, $assessmenttypes);
+
+        // Exclude assessments of type DUMMY.
+        if (isset($gradeitem->assessmenttype) && ($gradeitem->assessmenttype === assess_type::ASSESS_TYPE_DUMMY)) {
+            return false;
+        }
 
         $warningdays = get_config('report_feedback_tracker', 'warningdays');
         $warningperiod = $warningdays * DAYSECS; // Number of seconds in the warning period.

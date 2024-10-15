@@ -38,7 +38,7 @@
 {{/locked}}
 {{^locked}}
     <label for="report-feedback-tracker-assesstypes" class="sr-only">{{#str}} header:assessmenttype, report_feedback_tracker {{/str}}</label>
-    <select id="report-feedback-tracker-assesstypes" data-cmid="{{cmid}}" data-action="report_feedback_tracker/assesstype_select">
+    <select id="report-feedback-tracker-assesstypes" data-cmid="{{cmid}}" data-partid="{{partid}}" data-action="report_feedback_tracker/assesstype_select">
         {{#notset}}
             <option class="assesstype-notset">{{#str}} assesstype:notset, report_feedback_tracker {{/str}}</option>
         {{/notset}}

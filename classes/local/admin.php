@@ -145,7 +145,7 @@ class admin {
                 (select count(distinct ws.authorid) from {workshop_submissions} ws where ws.workshopid = gi.iteminstance)
             ELSE 0
         END as submissions,
-        rft.partname,
+        rft.partid,
         rft.summative,
         rft.hidden,
         rft.feedbackduedate,
@@ -163,7 +163,6 @@ class admin {
         $params['courseid'] = $course->id;
         $gradeitems = $DB->get_records_sql($sql, $params);
         $assessmenttypes = helper::get_assessment_types($course->id);
-        $tttparts = helper::get_turnitin_records($course->id);
         $modinfo = get_fast_modinfo($course->id);
 
         $itemlist = [];
@@ -180,15 +179,13 @@ class admin {
             }
 
             // All good - now get and store the feedback record.
-            // Set the assessment type of the grade item where available.
-            helper::get_assessment_type($gradeitem, $assessmenttypes);
 
             // TurnitinToolTwo special treatment as one grading item may have several parts.
             if ($gradeitem->itemmodule == 'turnitintooltwo') {
-                self::get_admin_turnitin_records($course, $gradeitem, $tttparts, $data);
+                self::get_admin_turnitin_records($course, $gradeitem, $assessmenttypes, $data);
             } else {
                 if (!$gradeitem->hidden || $PAGE->user_is_editing()) {
-                    $record = self::get_admin_feedback_record($course, $gradeitem);
+                    $record = self::get_admin_feedback_record($course, $gradeitem, $assessmenttypes);
                     $data->records[] = $record;
                 }
             }
@@ -204,14 +201,15 @@ class admin {
      *
      * @param stdClass $course
      * @param stdClass $gradeitem
+     * @param array $assessmenttypes
      * @return stdClass
      * @throws dml_exception
      * @throws coding_exception
      */
-    protected static function get_admin_feedback_record($course, $gradeitem): stdClass {
+    protected static function get_admin_feedback_record($course, $gradeitem, $assessmenttypes): stdClass {
         // Only turnitintooltwo assessments may have parts.
-        $gradeitem->partname = $gradeitem->partname ? $gradeitem->partname : null;
-        return self::compile_admin_record($course, $gradeitem);
+        $gradeitem->partid = $gradeitem->partid ? $gradeitem->partid : 0;
+        return self::compile_admin_record($course, $gradeitem, $assessmenttypes);
     }
 
     /**
@@ -219,18 +217,22 @@ class admin {
      *
      * @param stdClass $course
      * @param stdClass $gradeitem
-     * @param array $tttparts
+     * @param array $assessmenttypes
      * @param stdClass $data
      * @return void
      * @throws dml_exception
      * @throws coding_exception
      */
-    protected static function get_admin_turnitin_records($course, $gradeitem, $tttparts, &$data): void {
+    protected static function get_admin_turnitin_records($course, $gradeitem, $assessmenttypes, &$data): void {
         global $PAGE;
+
+        $tttparts = helper::get_turnitin_records($course->id);
 
         // Make each part a record and store it in the data.
         foreach ($tttparts[$gradeitem->itemid] as $tttpart) {
             if (!$tttpart->hidden || $PAGE->user_is_editing()) {
+                // Reset the assessment type for each part.
+                unset($gradeitem->assessmenttype);
                 // Each ttt assessment part may have its own attributes.
                 $gradeitem->summative = $tttpart->summative;
                 $gradeitem->hidden = $tttpart->hidden;
@@ -241,9 +243,10 @@ class admin {
                 $gradeitem->generalfeedback = $tttpart->generalfeedback;
                 $gradeitem->gfurl = $tttpart->gfurl;
                 $gradeitem->gfdate = $tttpart->gfdate;
-                $gradeitem->partname = $tttpart->partname;
+                $gradeitem->partid = $tttpart->id;
+                $gradeitem->partname = helper::get_partname($gradeitem->partid);
 
-                $data->records[] = self::compile_admin_record($course, $gradeitem);
+                $data->records[] = self::compile_admin_record($course, $gradeitem, $assessmenttypes);
             }
         }
     }
@@ -253,11 +256,15 @@ class admin {
      *
      * @param stdClass $course
      * @param stdClass $gradeitem
+     * @param array $assessmenttypes
      * @return stdClass
      * @throws coding_exception
      * @throws dml_exception
      */
-    protected static function compile_admin_record($course, $gradeitem): stdClass {
+    protected static function compile_admin_record($course, $gradeitem, $assessmenttypes): stdClass {
+
+        // Set the assessment type of the grade item where available.
+        helper::get_assessment_type($gradeitem, $assessmenttypes);
 
         $dateformat = get_config('report_feedback_tracker', 'dateformat');
         $feedbackduedate = helper::get_feedbackduedate($gradeitem);
@@ -286,7 +293,8 @@ class admin {
         $record->gfurl = $gradeitem->gfurl;
         $record->assesstypelabel = helper::get_assesstype_label($record->assessmenttype);
         $record->hidden = helper::get_hidden_state($gradeitem);
-        $record->partname = $gradeitem->partname;
+        $record->partid = $gradeitem->partid;
+        $record->partname = isset($gradeitem->partname) ? $gradeitem->partname : '';
 
         // Get the assessment types with the current selection.
         $record->assesstypes = helper::get_assess_types(isset($record->assessmenttype) ? $record->assessmenttype : null);
@@ -312,8 +320,8 @@ class admin {
                     [
                         'id' => html_writer::random_id('generalfeedback'),
                         'class' => 'icon fa fa-pencil fa-fw',
-                        'cmid' => $gradeitem->itemid,
-                        'partname' => $gradeitem->partname,
+                        'data-cmid' => $gradeitem->itemid,
+                        'data-partid' => $gradeitem->partid,
                         'data-action' => 'report_feedback_tracker/showgeneralfeedback',
                         'data-generalfeedback' => $gradeitem->generalfeedback,
                         'data-gfurl' => $gradeitem->gfurl,
@@ -411,8 +419,8 @@ class admin {
                 data-action='report_feedback_tracker/cohort_checkbox'
                 type='checkbox'
                 class='form-check-input cohort_checkbox'
-                cmid='$gradeitem->itemid'
-                partname='$gradeitem->partname'
+                data-cmid='$gradeitem->itemid'
+                data-partid='$gradeitem->partid'
                 checked='checked'
             >";
             } else {
@@ -420,8 +428,8 @@ class admin {
                 data-action='report_feedback_tracker/cohort_checkbox'
                 type='checkbox'
                 class='form-check-input cohort_checkbox'
-                cmid='$gradeitem->itemid'
-                partname='$gradeitem->partname'
+                data-cmid='$gradeitem->itemid'
+                data-partid='$gradeitem->partid'
             >";
             }
         } else {

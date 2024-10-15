@@ -38,7 +38,7 @@ class save_feedback_duedate extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
-            'partname' => new external_value(PARAM_TEXT, 'The optional part name used by turnitintooltwo only'),
+            'partid' => new external_value(PARAM_INT, 'The part ID used by turnitintooltwo only, 0 otherwise'),
             'duedate' => new external_value(PARAM_INT, 'The due date in seconds'),
             'duedatereason' => new external_value(PARAM_TEXT, 'The reason for a manual due date'),
         ]);
@@ -50,49 +50,44 @@ class save_feedback_duedate extends external_api {
      * @return \external_value
      */
     public static function execute_returns() {
-        return new external_value(PARAM_BOOL, 'Success');
+        return new external_value(PARAM_TEXT, 'Status message');
     }
 
     /**
      * Saving the feedback due date and the reason for it for a grade item.
      *
      * @param int $itemid
-     * @param string|null $partname optional partname for turnitintooltwo assessments only.
+     * @param int $partid part ID for turnitintooltwo assessments only, 0 for all other activities.
      * @param int $duedate
      * @param string $duedatereason
-     * @return bool
-     * @throws \Exception
+     * @return string
      */
-    public static function execute(int $itemid, string|null $partname, int $duedate, string $duedatereason): bool {
-        try {
-            global $DB, $USER;
+    public static function execute(int $itemid, int $partid, int $duedate, string $duedatereason): string {
+        global $DB, $USER;
 
-            // Set or update the manual feedback due date.
-            if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partname' => $partname])) {
-                $record->feedbackduedate = $duedate;
-                $DB->update_record('report_feedback_tracker', $record);
-            } else {
-                $record = new stdClass();
-                $record->gradeitem = $itemid;
-                $record->partname = $partname;
-                $record->hidden = 0;
-                $record->feedbackduedate = $duedate;
-                $DB->insert_record('report_feedback_tracker', $record);
-            }
-
-            // Save the reason for a manual due date to the duedates table.
+        // Set or update the manual feedback due date.
+        if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partid' => $partid])) {
+            $record->feedbackduedate = $duedate;
+            $DB->update_record('report_feedback_tracker', $record);
+        } else {
             $record = new stdClass();
             $record->gradeitem = $itemid;
-            $record->partname = $partname;
+            $record->partid = $partid;
+            $record->hidden = 0;
             $record->feedbackduedate = $duedate;
-            $record->reason = $duedatereason;
-            $record->userid = $USER->id;
-            $record->changedate = time();
-            $DB->insert_record('report_feedback_tracker_duedates', $record);
-
-            return get_string('feedbackduedate:updated', 'report_feedback_tracker');
-        } catch (\Exception $e) {
-            throw($e);
+            $DB->insert_record('report_feedback_tracker', $record);
         }
+
+        // Save the reason for a manual due date to the duedates table.
+        $record = new stdClass();
+        $record->gradeitem = $itemid;
+        $record->partid = $partid;
+        $record->feedbackduedate = $duedate;
+        $record->reason = $duedatereason;
+        $record->userid = $USER->id;
+        $record->changedate = time();
+        $DB->insert_record('report_feedback_tracker_duedates', $record);
+
+        return get_string('feedbackduedate:updated', 'report_feedback_tracker');
     }
 }
