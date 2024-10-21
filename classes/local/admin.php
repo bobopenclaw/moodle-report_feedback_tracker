@@ -18,6 +18,7 @@ namespace report_feedback_tracker\local;
 use coding_exception;
 use dml_exception;
 use html_writer;
+use local_assess_type\assess_type;
 use stdClass;
 
 /**
@@ -286,6 +287,10 @@ class admin {
         $record->locked = isset($gradeitem->locked) ? $gradeitem->locked : null;
         $record->moduletypeicon = helper::get_module_type_icon($gradeitem);
         $record->module = helper::get_item_module($gradeitem);
+        $record->formative = isset($record->assessmenttype) &&
+            $record->assessmenttype === assess_type::ASSESS_TYPE_FORMATIVE ? true : false;
+        $record->summative = isset($record->assessmenttype) &&
+            $record->assessmenttype === assess_type::ASSESS_TYPE_SUMMATIVE ? true : false;
         $record->duedate = $gradeitem->duedate == 0 ?
             get_string('datenotset', 'report_feedback_tracker') :
             date($dateformat, $gradeitem->duedate);

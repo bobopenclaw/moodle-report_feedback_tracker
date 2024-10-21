@@ -22,7 +22,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['assesstype:formative'] = 'Formative';
 $string['assesstype:notset'] = 'Not set';
+$string['assesstype:summative'] = 'Summative';
 $string['cachedef_publicholidays'] = 'Public holiday dates';
 $string['classification'] = 'Classification';
 $string['closure:currentyear'] = 'Closure dates current year';
@@ -104,6 +106,7 @@ $string['jumpto'] = 'Jump to';
 $string['method:tooltip'] = 'What feedback students will receive e.g. Written, Audio, Video, In class, Automatic marking, Peer feedback';
 $string['navigationlink'] = 'Feedback tracker';
 $string['no_courses_this_year'] = 'You are not yet enrolled in any courses this academic year. To view older assessments and feedback, select an academic year.';
+$string['notsetkey'] = 'An assessment type has not been set (yet).';
 $string['pleasenote'] = 'Please note:';
 $string['pluginname'] = 'Feedback tracker';
 $string['pluginname:bak'] = 'Feedback tracker report';
