@@ -41,13 +41,17 @@ class renderer extends plugin_renderer_base {
      * @return string
      * @throws \moodle_exception
      */
-    public function render_feedback_tracker_user_table($userid, $courseid = 0): string {
+    public function render_feedback_tracker_user_data($userid, $courseid = 0): string {
+        // Course ID 1 is not a standard Moodle course and is excluded.
+        if ($courseid < 2) {
+            $courseid = 0;
+        }
         // Get the table data.
         $feedbacktrackerdata = user::get_feedback_tracker_user_data($userid, $courseid);
 
-        // If no courseid is provided, then this is called from user.php (student view).
-        // When there are more than one courses, remove the ones without assessments.
-        // Otherwise, show the only course without assessments.
+        // If no course ID is provided, show assessments from all courses.
+        // While there are more than one courses, remove the ones without assessments.
+        // If there is only one course without assessments show it nevertheless.
         if (count($feedbacktrackerdata->courses) !== 1 && $courseid === 0) {
             $coursesremoved = false;
             foreach ($feedbacktrackerdata->courses as $key => $course) {
@@ -63,7 +67,48 @@ class renderer extends plugin_renderer_base {
         }
 
         // Render the table data.
-        return $this->output->render_from_template('report_feedback_tracker/courses', $feedbacktrackerdata);
+        if ($courseid) {
+            $feedbacktrackerdata->viewasstudent = true;
+            return $this->output->render_from_template('report_feedback_tracker/course/course',
+                $feedbacktrackerdata);
+        } else {
+            return $this->output->render_from_template('report_feedback_tracker/user/courses', $feedbacktrackerdata);
+        }
+    }
+
+    /**
+     * Render the user table.
+     *
+     * @param int $userid
+     * @param int $courseid optional course id to limit output.
+     * @return string
+     * @throws \moodle_exception
+     */
+    public function render_feedback_tracker_userview_data($userid, $courseid = 0): string {
+        // Get the table data.
+        $feedbacktrackerdata = user::get_feedback_tracker_user_data($userid, $courseid);
+
+        // If no course ID is provided, show assessments from all courses.
+        // While there are more than one courses, remove the ones without assessments.
+        // If there is only one course without assessments show it nevertheless.
+        if (count($feedbacktrackerdata->courses) !== 1 && $courseid === 0) {
+            $coursesremoved = false;
+            foreach ($feedbacktrackerdata->courses as $key => $course) {
+                if (empty($course->records)) {
+                    unset($feedbacktrackerdata->courses[$key]);
+                    $coursesremoved = true;
+                }
+            }
+            // If we removed any courses, reindex the array.
+            if ($coursesremoved) {
+                $feedbacktrackerdata->courses = array_values($feedbacktrackerdata->courses);
+            }
+        }
+
+        // Render the table data.
+        $feedbacktrackerdata->viewasstudent = true;
+        return $this->output->render_from_template('report_feedback_tracker/course/course',
+            $feedbacktrackerdata);
     }
 
     /**

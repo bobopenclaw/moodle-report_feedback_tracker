@@ -26,12 +26,23 @@ use core\report_helper;
 
 require_once(__DIR__ . '/../../config.php');
 
-$userid = $USER->id;
-$courseid = optional_param('id', null, PARAM_INT); // The optional course ID.
-$course = isset($courseid) ? get_course($courseid) : $COURSE;
+$course = ($courseid = optional_param('id', null, PARAM_INT)) ? get_course($courseid) : $COURSE;
+$context = context_course::instance($course->id);
 
+
+if ((!$userid = optional_param('userid', null, PARAM_INT)) ||
+        (!has_capability('moodle/grade:edit', $context))) {
+    $userid = $USER->id;
+}
+
+/*
+// Only a user that can edit the gradebook for this course
+if (!has_capability('moodle/grade:edit', $context)) {
+    $userid = $USER->id;
+}
+*/
 $pageparams = ['id' => $course->id];
-$PAGE->set_context(context_course::instance($COURSE->id));
+$PAGE->set_context($context);
 $PAGE->set_url('/report/feedback_tracker/index.php', $pageparams);
 $PAGE->set_pagelayout('report');
 
@@ -42,12 +53,17 @@ $PAGE->set_title(get_string('pluginname', 'report_feedback_tracker'));
 $PAGE->set_heading($course->fullname);
 echo $OUTPUT->header();
 
-// Print selector drop down.
+// Print report selector drop down.
 $pluginname = get_string('pluginname', 'report_feedback_tracker');
 report_helper::print_report_selector($pluginname);
 
 // Get the renderer and use it.
 $renderer = $PAGE->get_renderer('report_feedback_tracker');
-echo $renderer->render_feedback_tracker_user_table($userid);
+
+if ($course->id < 2) { // This is not a Moodle course.
+    echo $renderer->render_feedback_tracker_user_data($userid);
+} else {
+    echo $renderer->render_feedback_tracker_user_data($userid, $course->id);
+}
 
 echo $OUTPUT->footer();

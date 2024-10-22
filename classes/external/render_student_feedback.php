@@ -70,7 +70,7 @@ class render_student_feedback extends external_api {
             if ($studentid === 0) { // This is a course admin.
                 return $renderer->render_feedback_tracker_admin_table($courseid);
             }
-            return $renderer->render_feedback_tracker_user_table($studentid, $courseid);
+            return $renderer->render_feedback_tracker_user_data($studentid, $courseid);
         } catch (\Exception $e) {
             throw($e);
         }

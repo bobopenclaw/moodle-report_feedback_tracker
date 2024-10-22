@@ -42,15 +42,5 @@
 
 {{! Data. }}
 {{#records}}
-    {{#viewasstudent}}
-        {{> report_feedback_tracker/user/mod }}
-    {{/viewasstudent}}
-
-    {{^viewasstudent}}
-        {{> report_feedback_tracker/course/mod }}
-    {{/viewasstudent}}
-
-
-
-
+    {{> report_feedback_tracker/course/mod_studentview }}
 {{/records}}

@@ -27,8 +27,15 @@ use report_feedback_tracker\local\helper;
 
 require_once(__DIR__ . '/../../config.php');
 
+$courseid = optional_param('id', null, PARAM_INT);
+$userid = optional_param('userid', null, PARAM_INT);
+
+// If there is a userid redirect to the user report
+if ($userid) {
+    redirect(new moodle_url("$CFG->wwwroot/report/feedback_tracker/user.php?userid=$userid&id=$courseid"));
+}
 // If there is no course ID given redirect to the user report.
-if (!$courseid = optional_param('id', null, PARAM_INT)) {
+if (!$courseid) {
     redirect(new moodle_url("$CFG->wwwroot/report/feedback_tracker/user.php"));
 }
 
