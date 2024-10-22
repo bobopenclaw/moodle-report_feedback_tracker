@@ -34,11 +34,12 @@
                 "course": "",
                 "assessment": "",
                 "type": "",
-                "type": "",
-                "duedate": "",
-                "submissiondate": "",
-                "feedbackduedate": "",
-                "feedback": ""
+                "duedate": "0",
+                "submissiondate": "0",
+                "feedbackduedate": "0",
+                "feedback": [
+                    {"overdue": "overdue"}
+                ]
             }
         ]
     }
@@ -73,9 +74,16 @@
                     <span class="text-nowrap">{{{feedbackduedate}}}</span>
                 </small>
                 {{#feedback}}
-                <br>
-                    {{{feedback}}}
-                {{/feedback}}
+                    <br>
+                    {{#released}}
+                        <span class="badge badge-success">{{#str}} feedback:released, report_feedback_tracker {{/str}}</span>
+                    {{/released}}
+                    {{#late}}
+                        <span class="badge badge-warning">{{#str}} feedback:late, report_feedback_tracker {{/str}}</span>
+                    {{/late}}
+                    {{#overdue}}
+                        <span class="badge badge-danger">{{#str}} feedback:overdue, report_feedback_tracker {{/str}}</span>
+                    {{/overdue}}                {{/feedback}}
             </div>
 
             <!-- Mark data. -->
@@ -103,27 +111,27 @@
 
 
 {{#additionaldata}}
-<!-- Free text fields. -->
-<div class="row p-3 bg-light small mb-2">
-    <div class="col">
-        {{#contact}}
-            <span class="text-muted">{{#str}}header:contact, report_feedback_tracker{{/str}}:</span>
-            {{.}}
-            <br>
-        {{/contact}}
+    <!-- Free text fields. -->
+    <div class="row p-3 bg-light small mb-2">
+        <div class="col">
+            {{#contact}}
+                <span class="text-muted">{{#str}}header:contact, report_feedback_tracker{{/str}}:</span>
+                {{.}}
+                <br>
+            {{/contact}}
 
-        {{#method}}
-            <span class="text-muted">{{#str}}header:method, report_feedback_tracker{{/str}}:</span>
-            {{.}}
-            <br>
-        {{/method}}
+            {{#method}}
+                <span class="text-muted">{{#str}}header:method, report_feedback_tracker{{/str}}:</span>
+                {{.}}
+                <br>
+            {{/method}}
 
-        {{#generalfeedback}}
-            <span class="text-muted">{{#str}}header:additionalinformation, report_feedback_tracker{{/str}}:</span>
-            {{{.}}}
-            <br>
-        {{/generalfeedback}}
+            {{#generalfeedback}}
+                <span class="text-muted">{{#str}}header:additionalinformation, report_feedback_tracker{{/str}}:</span>
+                {{{.}}}
+                <br>
+            {{/generalfeedback}}
+        </div>
     </div>
-</div>
 {{/additionaldata}}
 <hr>
