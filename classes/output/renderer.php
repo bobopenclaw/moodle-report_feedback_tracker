@@ -61,7 +61,7 @@ class renderer extends plugin_renderer_base {
             $feedbacktrackerdata->courseid = $courseid;
             $feedbacktrackerdata->canedit = has_capability('moodle/grade:edit', $context);
             $feedbacktrackerdata->viewasstudent = true;
-            $feedbacktrackerdata->students = helper::get_students($courseid, $userid);
+            $feedbacktrackerdata->dropdownstudents = helper::get_students_for_dropdown($courseid, $userid);
 
             return $this->output->render_from_template('report_feedback_tracker/course/course',
                 $feedbacktrackerdata);
@@ -165,8 +165,9 @@ class renderer extends plugin_renderer_base {
 
         $dateformat = get_config('report_feedback_tracker', 'dateformat');
         $assessmenttypes = helper::get_assessment_types($courseid);
+        $users = get_enrolled_users($context);
 
-        $data->students = helper::get_students($courseid);
+        $data->dropdownstudents = helper::get_students_for_dropdown($courseid);
 
         // Get the course module for each grade item and add any manual grade items.
         $modules = [];
@@ -257,7 +258,7 @@ class renderer extends plugin_renderer_base {
         $feedbacktrackerdata = admin::get_feedback_tracker_admin_data($courseid);
         $feedbacktrackerdata->courseid = $courseid;
         $feedbacktrackerdata->canedit = true;
-        $feedbacktrackerdata->students = helper::get_students($courseid);
+        $feedbacktrackerdata->dropdownstudents = helper::get_students_for_dropdown($courseid);
 
 //        return $this->output->render_from_template('report_feedback_tracker/adminwrapper', $feedbacktrackerdata);
         return $this->output->render_from_template('report_feedback_tracker/course/course', $feedbacktrackerdata);

@@ -9,9 +9,9 @@
         <label class="sr-only" for="userid">View report</label>
         <select class="form-control" name="userid" id="userid">
         <option value="0" {{^viewasstudent}} selected {{/viewasstudent}}>Course report</option>
-        {{#students}}
+        {{#dropdownstudents}}
             <option value="{{id}}" {{#selected}} selected {{/selected}}>{{firstname}} {{lastname}}</option>
-        {{/students}}
+        {{/dropdownstudents}}
         </select>
         <input class="btn btn-primary ml-2" type="submit" value="View">
     </div>

@@ -1308,7 +1308,7 @@ class helper {
         return $o;
     }
 
-    public static function get_students(int $courseid, int $userid = 0): array {
+    public static function get_students_for_dropdown(int $courseid, int $userid = 0): array {
         // Get the students of the course.
         $context = \context_course::instance($courseid);
         $users = get_enrolled_users($context);
