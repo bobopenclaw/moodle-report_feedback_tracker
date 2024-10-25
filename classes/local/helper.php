@@ -271,18 +271,6 @@ class helper {
         $linktext = self::get_item_name($gradeitem);
         return html_writer::link($url, $linktext);
     }
-    public static function get_item_link0(stdClass $gradeitem): string {
-        global $CFG, $USER;
-
-        if (!isset($gradeitem->cmid)) {
-            $url = "$CFG->wwwroot/grade/report/user/index.php?id=$gradeitem->courseid&userid=$USER->id";
-        } else {
-            $url = "$CFG->wwwroot/mod/$gradeitem->itemmodule/view.php?id=$gradeitem->cmid";
-        }
-        $linktext = (isset($gradeitem->partname) && $gradeitem->partname) ?
-            "$gradeitem->itemname - $gradeitem->partname" : $gradeitem->itemname;
-        return html_writer::link($url, $linktext);
-    }
 
     /**
      * Return the name of the grade item combined with a part name where applicable.

@@ -201,9 +201,42 @@ class renderer extends plugin_renderer_base {
                     $record->feedbackduedateraw = $duedate ? helper::get_feedbackduedate_new($courseid, $duedate) : 9999999999;
                     $record->feedbackduedate = $duedate ? date($dateformat, $record->feedbackduedateraw) : false;
 
+                    // Get additional information for the record.
+                    $params = [
+                        'gradeitem' => $gradeitem->id,
+                        'partid' => $record->partid,
+                    ];
+                    if ($additionaldata = $DB->get_record('report_feedback_tracker', $params)) {
+                        $record->method = $additionaldata->method;
+                        $record->contact = $additionaldata->responsibility;
+                        $record->generalfeedback = $additionaldata->generalfeedback;
+                        if ($additionaldata->feedbackduedate) {
+                            $record->feedbackduedateraw = $additionaldata->feedbackduedate;
+                            $record->feedbackduedate = date($dateformat, $record->feedbackduedateraw);
+                        }
+                        $record->additionaldata = $record->generalfeedback || $record->method || $record->contact;
+                        $record->hiddenfromreport = $additionaldata->hidden;
+                    }
+
                     $data->records[] = clone $record;
                 }
             } else {
+                // Get additional information for the record.
+                $params = [
+                    'gradeitem' => $gradeitem->id,
+                ];
+                if ($additionaldata = $DB->get_record('report_feedback_tracker', $params)) {
+                    $record->method = $additionaldata->method;
+                    $record->contact = $additionaldata->responsibility;
+                    $record->generalfeedback = $additionaldata->generalfeedback;
+                    if ($additionaldata->feedbackduedate) {
+                        $record->feedbackduedateraw = $additionaldata->feedbackduedate;
+                        $record->feedbackduedate = date($dateformat, $record->feedbackduedateraw);
+                    }
+                    $record->additionaldata = $record->generalfeedback || $record->method || $record->contact;
+                    $record->hiddenfromreport = $additionaldata->hidden;
+                }
+
                 $data->records[] = $record;
             }
         }

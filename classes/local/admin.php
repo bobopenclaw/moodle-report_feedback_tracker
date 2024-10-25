@@ -71,12 +71,11 @@ class admin {
      */
     public static function get_module_record(grade_item $gradeitem, course_modinfo $modinfo, array $assessmenttypes): false|stdClass {
 
-        $dateformat = get_config('report_feedback_tracker', 'dateformat');
-        $cm = admin::get_cm_from_gradeitem($gradeitem);
-
-        if (!$cm) {
+        if (!$cm = admin::get_cm_from_gradeitem($gradeitem)) {
             return false;
         }
+
+        $dateformat = get_config('report_feedback_tracker', 'dateformat');
 
         // Get the module.
         $cmid = $cm->cmid;
@@ -84,6 +83,7 @@ class admin {
 
         // Build the record.
         $record = new stdClass();
+        $record->gradeitemid = $gradeitem->id;
         $record->name = $gradeitem->itemname; // The grade item name has more details.
         $record->moduletypeiconurl = $module->get_icon_url()->out(false);
 
@@ -95,6 +95,8 @@ class admin {
 
         // Assessment type.
         $assessmenttype = helper::get_assessment_type_new($record, $assessmenttypes);
+        $record->assessmenttype = $assessmenttype['type'];
+        $record->locked = $assessmenttype['locked'];
         $record->formative = (int) $assessmenttype['type'] === assess_type::ASSESS_TYPE_FORMATIVE ? true : false;
         $record->summative = (int) $assessmenttype['type'] === assess_type::ASSESS_TYPE_SUMMATIVE ? true : false;
         $record->dummy = (int) $assessmenttype['type'] === assess_type::ASSESS_TYPE_DUMMY ? true : false;
@@ -118,8 +120,7 @@ class admin {
         $grades = helper::get_grade_grades($gradeitem);
         $record->requiredfeedbacks = ($record->submissions - $grades) < 0 ? 0 :
             $record->submissions - $grades;
-        $record->feedbackpercentage = round($record->submissions ? $grades/$record->submissions * 100 : 0, 2);
-        $record->requiremarkingcount = false;
+        $record->feedbackpercentage = $record->submissions ? round($grades/$record->submissions * 100, 2) : 0;
         $record->url = $module->get_url();
 
         return $record;
@@ -400,11 +401,6 @@ class admin {
         $record->partid = $gradeitem->partid;
         $record->partname = isset($gradeitem->partname) ? $gradeitem->partname : '';
 
-//        $record->submissions = count(helper::get_submissions($gradeitem));
-        // If there are more feedbacks than submissions do not show negative values.
-//        $record->requiredfeedbacks = ($record->submissions - $gradeitem->feedbacks) < 0 ? 0 :
-//            $record->submissions - $gradeitem->feedbacks;
-//        $record->feedbackpercentage = $record->submissions ? $gradeitem->feedbacks/$record->submissions * 100 : 0;
         $record->method = $gradeitem->method;
         $record->generalfeedback = helper::get_generalfeedback($gradeitem);
         $record->contact = $gradeitem->responsibility;
@@ -413,56 +409,8 @@ class admin {
         // Get the assessment types with the current selection.
         $record->assesstypes = helper::get_assess_types(isset($record->assessmenttype) ? $record->assessmenttype : null);
         $record->notset = isset($record->assessmenttype) ? false : true;
-//        $record->overrides = self::get_overrides($gradeitem);
         $record->staffdata = true;
         return $record;
-    }
-
-    /**
-     * Get the number of students that have a submission due date override for a given course module.
-     *
-     * @param stdClass $gradeitem
-     * @return int
-     * @throws dml_exception
-     */
-    protected static function get_overrides0(stdClass $gradeitem): int {
-        global $DB;
-
-        $modulename = $gradeitem->itemmodule;
-        $overridetable = $modulename . "_overrides";
-
-        switch ($modulename) {
-            case 'assign':
-                $idfield = 'assignid';
-                break;
-            case 'lesson':
-                $idfield = 'lessonid';
-                break;
-            case 'quiz':
-                $idfield = 'quiz';
-                break;
-            default:
-                return 0; // Return no overrides.
-        }
-
-        // Get user overrides.
-        $useroverrides = $DB->get_records_sql("
-            SELECT userid
-            FROM {" . $overridetable . "}
-            WHERE $idfield = :moduleid AND userid IS NOT NULL", array('moduleid' => $gradeitem->iteminstance));
-
-        // Get group overrides and users in those groups.
-        $groupoverrides = $DB->get_records_sql("
-            SELECT gm.userid
-            FROM {" . $overridetable . "} ao
-            JOIN {groups_members} gm ON ao.groupid = gm.groupid
-            WHERE ao.$idfield = :moduleid AND ao.groupid IS NOT NULL", array('moduleid' => $gradeitem->iteminstance));
-
-        // Merge user ids from individual and group overrides.
-        $overrides = array_merge(array_keys($useroverrides), array_keys($groupoverrides));
-
-        // Count unique users.
-        return count(array_unique($overrides));
     }
 
     /**

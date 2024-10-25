@@ -49,8 +49,10 @@
     {{^viewasstudent}}
         {{> report_feedback_tracker/course/mod }}
     {{/viewasstudent}}
-
-
-
-
 {{/records}}
+
+{{#js}}
+    require(['report_feedback_tracker/editmodule'], function(Edit) {
+    Edit.init();
+    });
+{{/js}}

@@ -1,0 +1,22 @@
+<!-- Free text fields. -->
+<div class="row p-3 bg-light small mb-2">
+    <div class="col">
+        {{#contact}}
+            <span class="text-muted">{{#str}}header:contact, report_feedback_tracker{{/str}}:</span>
+            <span data-contact="{{contact}}">{{.}}</span>
+            <br>
+        {{/contact}}
+
+        {{#method}}
+            <span class="text-muted">{{#str}}header:method, report_feedback_tracker{{/str}}:</span>
+            <span data-method="{{method}}">{{.}}</span>
+            <br>
+        {{/method}}
+
+        {{#generalfeedback}}
+            <span class="text-muted">{{#str}}header:additionalinformation, report_feedback_tracker{{/str}}:</span>
+            <span data-generalfeedback="{{generalfeedback}}">{{{.}}}</span>
+            <br>
+        {{/generalfeedback}}
+    </div>
+</div>

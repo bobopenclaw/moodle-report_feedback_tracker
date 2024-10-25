@@ -80,6 +80,15 @@ $functions = [
         'capabilities'      => 'report/feedback_tracker:grade',
     ],
 
+    'report_feedback_tracker_update_module' => [
+        'classname'         => 'report_feedback_tracker\external\update_module',
+        'description'       => 'Update additional information for a module via ajax',
+        'type'              => 'write',
+        'readonlysession'   => true,
+        'ajax'              => true,
+        'capabilities'      => 'report/feedback_tracker:grade',
+    ],
+
     'report_feedback_tracker_render_student_feedback' => [
         'classname'         => 'report_feedback_tracker\external\render_student_feedback',
         'description'       => 'Render the feedback table for a student',
