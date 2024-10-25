@@ -16,7 +16,9 @@
 
 namespace report_feedback_tracker\local;
 use coding_exception;
+use course_modinfo;
 use dml_exception;
+use grade_item;
 use html_writer;
 use local_assess_type\assess_type;
 use stdClass;
@@ -36,7 +38,97 @@ class admin {
      * @return stdClass
      * @throws \dml_exception
      */
-    public static function get_feedback_tracker_admin_data($courseid): stdClass {
+    /**
+     * @param grade_item $gradeitem
+     * @return false|mixed
+     * @throws dml_exception
+     */
+    public static function get_cm_from_gradeitem(grade_item $gradeitem) {
+        global $DB;
+
+        // SQL query to get the course module ID from a grade item.
+        $sql = "
+                    SELECT cm.id AS cmid
+                    FROM {course_modules} cm
+                    JOIN {modules} m ON cm.module = m.id
+                    JOIN {grade_items} gi ON gi.iteminstance = cm.instance AND gi.itemmodule = m.name
+                    WHERE gi.id = :gradeitemid
+                ";
+
+        // Execute the query.
+        return $DB->get_record_sql($sql, ['gradeitemid' => $gradeitem->id]);
+    }
+
+
+    /**
+     * Create a module record from a grade item.
+     * x
+     * @param grade_item $gradeitem
+     * @param course_modinfo $modinfo
+     * @param array $assessmenttypes
+     * @return false|stdClass
+     * @throws dml_exception
+     */
+    public static function get_module_record(grade_item $gradeitem, course_modinfo $modinfo, array $assessmenttypes): false|stdClass {
+
+        $dateformat = get_config('report_feedback_tracker', 'dateformat');
+        $cm = admin::get_cm_from_gradeitem($gradeitem);
+
+        if (!$cm) {
+            return false;
+        }
+
+        // Get the module.
+        $cmid = $cm->cmid;
+        $module = $modinfo->get_cm($cmid);
+
+        // Build the record.
+        $record = new stdClass();
+        $record->name = $gradeitem->itemname; // The grade item name has more details.
+        $record->moduletypeiconurl = $module->get_icon_url()->out(false);
+
+        $record->hiddenfromstudents = !$module->visible;
+        $record->hiddenfromreport = false;
+
+        $record->cmid = $module->id;
+        $record->partid = false;
+
+        // Assessment type.
+        $assessmenttype = helper::get_assessment_type_new($record, $assessmenttypes);
+        $record->formative = (int) $assessmenttype['type'] === assess_type::ASSESS_TYPE_FORMATIVE ? true : false;
+        $record->summative = (int) $assessmenttype['type'] === assess_type::ASSESS_TYPE_SUMMATIVE ? true : false;
+        $record->dummy = (int) $assessmenttype['type'] === assess_type::ASSESS_TYPE_DUMMY ? true : false;
+        $record->notset = !$record->formative && !$record->summative && !$record->dummy;
+
+        $record->modname = $module->modname;
+
+        // Dates.
+        $duedate = helper::get_duedate($module);
+        $record->duedate = $duedate ? date($dateformat, $duedate) : false;
+        // The raw date is needed for sorting.
+        $record->feedbackduedateraw = $duedate ? helper::get_feedbackduedate_new($gradeitem->courseid, $duedate) : 9999999999;
+        $record->feedbackduedate = $duedate ? date($dateformat, $record->feedbackduedateraw) : false;
+        $record->markoverdue = false;
+
+        // Student data.
+        $record->overrides = helper::get_overrides($module);
+        $record->submissions = count(helper::get_submissions($module));
+
+        // Grades and markings.
+        $grades = helper::get_grade_grades($gradeitem);
+        $record->requiredfeedbacks = ($record->submissions - $grades) < 0 ? 0 :
+            $record->submissions - $grades;
+        $record->feedbackpercentage = round($record->submissions ? $grades/$record->submissions * 100 : 0, 2);
+        $record->requiremarkingcount = false;
+        $record->url = $module->get_url();
+
+        return $record;
+    }
+
+
+
+
+    public static function get_feedback_tracker_admin_data_old($courseid): stdClass {
         global $OUTPUT, $PAGE;
 
         $data = new stdClass();

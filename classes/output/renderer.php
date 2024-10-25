@@ -134,7 +134,7 @@ class renderer extends plugin_renderer_base {
      */
     public function render_feedback_tracker_admin_wrapper($courseid): string {
         // Get the table data.
-        $feedbacktrackerdata = admin::get_feedback_tracker_admin_data($courseid);
+        $feedbacktrackerdata = admin::get_feedback_tracker_admin_data_old($courseid);
         $feedbacktrackerdata->courseid = $courseid;
         // Render the table data.
         if ($feedbacktrackerdata->editmode) {
@@ -146,35 +146,30 @@ class renderer extends plugin_renderer_base {
     public function render_feedback_tracker_admin(int $courseid): string {
         global $DB, $OUTPUT;
 
-        $data = new stdClass();
-
         $context = context_course::instance($courseid);
         $modinfo = get_fast_modinfo($courseid);
+
+        $dateformat = get_config('report_feedback_tracker', 'dateformat');
+        $assessmenttypes = helper::get_assessment_types($courseid);
+        $users = get_enrolled_users($context);
 
         // Get all grade items for the course.
         $gradeitems = grade_item::fetch_all(['courseid' => $courseid]);
 
-        // Get all course modules for the course.
-        $coursemodules = get_fast_modinfo($courseid);
-
+        $data = new stdClass();
         $data->courseid = $courseid;
         $data->staffdata = true;
         $data->canedit = true;
         $data->outputedit = true;
         $data->records = [];
 
-        $dateformat = get_config('report_feedback_tracker', 'dateformat');
-        $assessmenttypes = helper::get_assessment_types($courseid);
-        $users = get_enrolled_users($context);
-
         $data->dropdownstudents = helper::get_students_for_dropdown($courseid);
 
-        // Get the course module for each grade item and add any manual grade items.
+        // Create records for manual grade items and supported course modules.
         foreach ($gradeitems as $gradeitem) {
 
             // If it is a 'manual' grade item there is no course module.
             if ($gradeitem->itemtype === 'manual') {
-                // Add a manual record to the data.
                 $record = new stdClass();
                 $record->name = $gradeitem->itemname;
                 $record->manual = true;
@@ -189,82 +184,27 @@ class renderer extends plugin_renderer_base {
                 continue;
             }
 
-            // SQL query to get the course module ID from a grade item.
-            $sql = "
-                    SELECT cm.id AS cmid
-                    FROM {course_modules} cm
-                    JOIN {modules} m ON cm.module = m.id
-                    JOIN {grade_items} gi ON gi.iteminstance = cm.instance AND gi.itemmodule = m.name
-                    WHERE gi.id = :gradeitemid
-                ";
+            if (!$record = admin::get_module_record($gradeitem, $modinfo, $assessmenttypes)) {
+                continue;
+            }
 
-            // Execute the query.
-            $cm = $DB->get_record_sql($sql, ['gradeitemid' => $gradeitem->id]);
+            // If it is a Turnitin module create a record for each part of it.
+            if ($gradeitem->itemmodule === 'turnitintooltwo') {
+                $tttparts = helper::get_tttparts_new($gradeitem);
 
-            if ($cm) {
-                // Get the module.
-                $cmid = $cm->cmid;
-                $module = $modinfo->get_cm($cmid);
+                foreach ($tttparts as $tttpart) {
+                    $record->name = $gradeitem->itemname . " - " . $tttpart->partname;
+                    $record->partid = $tttpart->id;
 
-                // Build the record.
-                $record = new stdClass();
-                $record->name = $gradeitem->itemname; // The grade item name has more details.
-                $record->moduletypeiconurl = $module->get_icon_url()->out(false);
+                    $duedate = $tttpart->dtdue;
+                    // The raw date is needed for sorting.
+                    $record->feedbackduedateraw = $duedate ? helper::get_feedbackduedate_new($courseid, $duedate) : 9999999999;
+                    $record->feedbackduedate = $duedate ? date($dateformat, $record->feedbackduedateraw) : false;
 
-                $record->hiddenfromstudents = !$module->visible;
-                $record->hiddenfromreport = false;
-
-                $record->cmid = $module->id;
-                $record->partid = false;
-
-                // Assessment type.
-                $assessmenttype = helper::get_assessment_type_new($record, $assessmenttypes);
-                $record->formative = (int) $assessmenttype['type'] === assess_type::ASSESS_TYPE_FORMATIVE ? true : false;
-                $record->summative = (int) $assessmenttype['type'] === assess_type::ASSESS_TYPE_SUMMATIVE ? true : false;
-                $record->dummy = (int) $assessmenttype['type'] === assess_type::ASSESS_TYPE_DUMMY ? true : false;
-                $record->notset = !$record->formative && !$record->summative && !$record->dummy;
-
-                $record->modname = $module->modname;
-
-                $duedate = helper::get_duedate($module);
-                $record->duedate = $duedate ? date($dateformat, $duedate) : false;
-                // The raw date is needed for sorting.
-                $record->feedbackduedateraw = $duedate ? helper::get_feedbackduedate_new($courseid, $duedate) : 9999999999;
-                $record->feedbackduedate = $duedate ? date($dateformat, $record->feedbackduedateraw) : false;
-                $record->markoverdue = false;
-
-                $record->overrides = helper::get_overrides($module);
-                $record->submissions = count(helper::get_submissions($module));
-                $grades = helper::get_grade_grades($gradeitem);
-                $record->requiredfeedbacks = ($record->submissions - $grades) < 0 ? 0 :
-                    $record->submissions - $grades;
-                $record->feedbackpercentage = round($record->submissions ? $grades/$record->submissions * 100 : 0, 2);
-                $record->requiremarkingcount = false;
-                $record->url = $module->get_url();
-
-                // If it is a Turnitin module create a record for each part of it.
-                if ($gradeitem->itemmodule === 'turnitintooltwo') {
-                    $tttparts = helper::get_tttparts_new($gradeitem);
-
-                    foreach ($tttparts as $tttpart) {
-//                        $record = new stdClass();
-                        $record->name = $gradeitem->itemname . " - " . $tttpart->partname;
-                        $record->partid = $tttpart->id;
-
-                        $duedate = $tttpart->dtdue;
-                        // The raw date is needed for sorting.
-                        $record->feedbackduedateraw = $duedate ? helper::get_feedbackduedate_new($courseid, $duedate) : 9999999999;
-                        $record->feedbackduedate = $duedate ? date($dateformat, $record->feedbackduedateraw) : false;
-
-                        $data->records[] = clone $record;
-                    }
-                } else {
-                    $data->records[] = $record;
+                    $data->records[] = clone $record;
                 }
-
-
-            } else { // There is no course module for this grade item.
-                $cmid = 0;
+            } else {
+                $data->records[] = $record;
             }
         }
 
@@ -285,7 +225,7 @@ class renderer extends plugin_renderer_base {
      */
     public function render_feedback_tracker_admin_table($courseid): string {
         // Get the table data.
-        $feedbacktrackerdata = admin::get_feedback_tracker_admin_data($courseid);
+        $feedbacktrackerdata = admin::get_feedback_tracker_admin_data_old($courseid);
         // Render the table data.
         return $this->output->render_from_template('report_feedback_tracker/admintable', $feedbacktrackerdata);
     }
