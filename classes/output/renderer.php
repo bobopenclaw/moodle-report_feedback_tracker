@@ -189,7 +189,6 @@ class renderer extends plugin_renderer_base {
                 continue;
             }
 
-
             // SQL query to get the course module ID from a grade item.
             $sql = "
                     SELECT cm.id AS cmid
@@ -231,7 +230,7 @@ class renderer extends plugin_renderer_base {
                 $record->duedate = $duedate ? date($dateformat, $duedate) : false;
                 // The raw date is needed for sorting.
                 $record->feedbackduedateraw = $duedate ? helper::get_feedbackduedate_new($courseid, $duedate) : 9999999999;
-                $record->feedbackduedate = $record->feedbackduedateraw ? date($dateformat, $record->feedbackduedateraw) : false;
+                $record->feedbackduedate = $duedate ? date($dateformat, $record->feedbackduedateraw) : false;
                 $record->markoverdue = false;
 
                 $record->overrides = helper::get_overrides($module);
@@ -243,7 +242,27 @@ class renderer extends plugin_renderer_base {
                 $record->requiremarkingcount = false;
                 $record->url = $module->get_url();
 
-                $data->records[] = $record;
+                // If it is a Turnitin module create a record for each part of it.
+                if ($gradeitem->itemmodule === 'turnitintooltwo') {
+                    $tttparts = helper::get_tttparts_new($gradeitem);
+
+                    foreach ($tttparts as $tttpart) {
+//                        $record = new stdClass();
+                        $record->name = $gradeitem->itemname . " - " . $tttpart->partname;
+                        $record->partid = $tttpart->id;
+
+                        $duedate = $tttpart->dtdue;
+                        // The raw date is needed for sorting.
+                        $record->feedbackduedateraw = $duedate ? helper::get_feedbackduedate_new($courseid, $duedate) : 9999999999;
+                        $record->feedbackduedate = $duedate ? date($dateformat, $record->feedbackduedateraw) : false;
+
+                        $data->records[] = clone $record;
+                    }
+                } else {
+                    $data->records[] = $record;
+                }
+
+
             } else { // There is no course module for this grade item.
                 $cmid = 0;
             }

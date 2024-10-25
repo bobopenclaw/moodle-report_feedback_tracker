@@ -688,6 +688,16 @@ class helper {
         return $DB->get_records_sql($sql);
     }
 
+    public static function get_tttparts_new($gradeitem) {
+        global $DB;
+
+        $sql ="SELECT * FROM {turnitintooltwo_parts} WHERE turnitintooltwoid = :iteminstance";
+        // Execute the query.
+        $tttparts = $DB->get_records_sql($sql, ['iteminstance' => $gradeitem->iteminstance]);
+
+        return $tttparts;
+
+    }
     /**
      * Get Turnitin part records for course indexed by grade item ID.
      *
