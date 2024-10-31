@@ -307,96 +307,6 @@ class user {
     }
 
     /**
-     * Get the options for filtering the user table.
-     *
-     * @param stdClass $data
-     * @return void
-     */
-    protected static function get_user_filter_options(&$data): void {
-        // The filter options.
-        $data->courseoptions = [];
-        $data->typeoptions = [];
-        $data->assesstypeoptions = [];
-        $data->feedbackoptions = [];
-        $data->methodoptions = [];
-
-        foreach ($data->records as $record) {
-
-            // Course options.
-            if ($record->courseid) {
-                $option = new stdClass();
-                $option->key = $record->courseid;
-                $option->value = $record->coursename;
-                if (!in_array($option, $data->courseoptions)) {
-                    $data->courseoptions[] = $option;
-                }
-            }
-
-            // Feedback options.
-            if ($record->feedbackstatus) {
-                $option = new stdClass();
-                $option->key = $record->feedbackstatus;
-                $option->value = $record->feedbackstatus;
-                if (!in_array($option, $data->feedbackoptions)) {
-                    $data->feedbackoptions[] = $option;
-                }
-            }
-
-            // Method options.
-            if ($record->method) {
-                $option = new stdClass();
-                $option->key = $record->method;
-                $option->value = $record->method;
-                if (!in_array($option, $data->methodoptions)) {
-                    $data->methodoptions[] = $option;
-                }
-            }
-
-            // Summative / formative options.
-            if ($record->summative) {
-                $option = new stdClass();
-                $option->key = $record->summative;
-                $option->value = $record->summative;
-                if (!in_array($option, $data->assesstypeoptions)) {
-                    $data->assesstypeoptions[] = $option;
-                }
-            }
-
-            // Type (module) options.
-            if ($record->module) {
-                $option = new stdClass();
-                $option->key = $record->module;
-                $option->value = $record->module;
-                if (!in_array($option, $data->typeoptions)) {
-                    $data->typeoptions[] = $option;
-                }
-            }
-        }
-    }
-
-    /**
-     * Show the general feedback and the gf URL to students.
-     *
-     * @param stdClass $gradeitem
-     * @return string
-     */
-    public static function get_user_generalfeedback($gradeitem): string {
-
-        $o = '';
-        if ($gradeitem->generalfeedback) {
-            $o .= html_writer::start_span('generalfeedback');
-            $o .= html_writer::span($gradeitem->generalfeedback, 'generalfeedbacktext',
-                ['id' => 'generalfeedbacktext_' . $gradeitem->itemid]);
-            $link = "<a href='$gradeitem->gfurl'>$gradeitem->gfurl</a>";
-            $o .= html_writer::span($link, 'gfurl',
-                ['id' => 'gfurl_' . $gradeitem->itemid]);
-
-            $o .= html_writer::end_span();
-        }
-        return $o;
-    }
-
-    /**
      * Get the parts of a turnitintooltwo grading item and list them as separate items.
      *
      * @param stdClass $course
@@ -456,8 +366,8 @@ class user {
      */
     protected static function compile_user_record($course, $userid, $gradeitem, $assessmenttypes): stdClass|bool {
 
-        // Add the assessment type information where available.
-        helper::get_assessment_type($gradeitem, $assessmenttypes);
+        // Append the assessment type information where available.
+        helper::append_assessment_type_to_gradeitem($gradeitem, $assessmenttypes);
 
         // Exclude assessments of type DUMMY.
         if (isset($gradeitem->assessmenttype) && ($gradeitem->assessmenttype === assess_type::ASSESS_TYPE_DUMMY)) {

@@ -4,12 +4,12 @@
         <div class="col-12 col-md-5 my-1">
             <a href="{{{url}}}">
                 {{#manual}}
-                    <i class="icon fa-regular fa-hand-spock"></i>
+                    <span data-icon><i class="icon fa-regular fa-hand-spock"></i></span>
                 {{/manual}}
                 {{^manual}}
-                    <img class='icon mr-0' src='{{{moduletypeiconurl}}}' alt='{{{name}}}'>
+                    <span data-icon><img class='icon mr-0' src='{{{moduletypeiconurl}}}' alt='{{{name}}}'></span>
                 {{/manual}}
-                {{{name}}}
+                <span data-name>{{{name}}}</span>
             </a>
 
             {{#hiddenfromstudents}}
@@ -20,7 +20,7 @@
                 <br><div class="badge badge-warning" data-hiddenfromreport="{{hiddenfromreport}}"><i class="fa-regular fa-eye-slash"></i> Hidden from report</div>
             {{/hiddenfromreport}}
 
-            <span data-assessmenttype="{{assessmenttype}}">
+            <span data-assessmenttype="{{assessmenttype}}" data-locked="{{locked}}" data-label="{{selectedassessmenttypelabel}}">
                 {{#summative}}
                     <br><div class="badge badge-primary">{{#str}} assesstype:summative, report_feedback_tracker {{/str}}</div>
                 {{/summative}}

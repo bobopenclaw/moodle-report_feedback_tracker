@@ -19,6 +19,7 @@ namespace report_feedback_tracker\external;
 use core_external\external_api;
 use core_external\external_function_parameters;
 use core_external\external_value;
+use local_assess_type\assess_type;
 use stdClass;
 
 /**
@@ -80,7 +81,6 @@ class update_module extends external_api {
             $record->responsibility = $contact;
             $record->method = $method;
             $record->hidden = $hidden;
-            $record->assessmenttype = $assessmenttype;
             $record->feedbackduedate = $feedbackduedate > -1 ? $feedbackduedate : null;
             $record->generalfeedback = $generalfeedback;
             $DB->update_record('report_feedback_tracker', $record);
@@ -91,11 +91,25 @@ class update_module extends external_api {
             $record->responsibility = clean_param($contact, PARAM_TEXT);
             $record->method = clean_param($method, PARAM_TEXT);
             $record->hidden = clean_param($hidden, PARAM_BOOL);
-            $record->assessmenttype = clean_param($assessmenttype, PARAM_INT);
             $record->feedbackduedate = $feedbackduedate > -1 ? clean_param($feedbackduedate, PARAM_INT) : null;
             $record->generalfeedback = clean_param($generalfeedback, PARAM_TEXT);
             $DB->insert_record('report_feedback_tracker', $record);
         }
+
+        // Update summative state in local_assess_type table.
+        $gradeitem = $DB->get_record('grade_items', ['id' => $gradeitemid]);
+        if (!empty($gradeitem)) {
+            // Update course module records.
+            if ($gradeitem->itemtype === 'mod') {
+                if ($cm = get_coursemodule_from_instance($gradeitem->itemmodule, $gradeitem->iteminstance)) {
+                    assess_type::update_type($gradeitem->courseid, $assessmenttype, $cm->id);
+                }
+            } else {
+                // Update the gradebook grade item and category.
+                assess_type::update_type($gradeitem->courseid, $assessmenttype, 0, $gradeitemid);
+            }
+        }
+
         return true;
     }
 }

@@ -19,17 +19,18 @@ namespace report_feedback_tracker\external;
 use core_external\external_api;
 use core_external\external_function_parameters;
 use core_external\external_value;
+use report_feedback_tracker\local\helper;
 use stdClass;
 
 /**
- * External API for saving the summative state.
+ * External API for getting assessment type options.
  *
  * @package    report_feedback_tracker
  * @copyright  2024 onwards University College London {@link https://www.ucl.ac.uk/}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @author     Matthias Opitz <m.opitz@ucl.ac.uk>
  */
-class save_hiding_state extends external_api {
+class get_assessment_types extends external_api {
     /**
      * Returns description of method parameters.
      *
@@ -37,9 +38,7 @@ class save_hiding_state extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'itemid' => new external_value(PARAM_INT, 'The ID of the grade item'),
-            'partid' => new external_value(PARAM_INT, 'The part ID used by turnitintooltwo only, 0 otherwise'),
-            'hidingstate' => new external_value(PARAM_BOOL, 'The summative state (0 or 1)'),
+            'selection' => new external_value(PARAM_INT, 'The value of the selected assessment type, -1 not set'),
         ]);
     }
 
@@ -49,32 +48,21 @@ class save_hiding_state extends external_api {
      * @return \external_value
      */
     public static function execute_returns() {
-        return new external_value(PARAM_BOOL, 'Success');
+        return new external_value(PARAM_TEXT, 'Assessment types');
     }
 
     /**
-     * Saving the hiding state for a grade item.
+     * Saving the feedback due date and the reason for it for a grade item.
      *
-     * @param int $itemid
-     * @param int $partid part ID for turnitintooltwo assessments only, 0 for all other activities.
-     * @param bool $hidingstate
-     * @return bool
+     * @param int|null $selection
+     * @return string
      */
-    public static function execute(int $itemid, int $partid, bool $hidingstate): bool {
-        global $DB;
-
-        if ($record = $DB->get_record('report_feedback_tracker', ['gradeitem' => $itemid, 'partid' => $partid])) {
-            $record->hidden = $hidingstate;
-            $DB->update_record('report_feedback_tracker', $record);
-        } else {
-            $record = new stdClass();
-            $record->gradeitem = $itemid;
-            $record->partid = $partid;
-            $record->hidden = $hidingstate;
-            $record->feedbackduedate = 0;
-            $DB->insert_record('report_feedback_tracker', $record);
+    public static function execute( $selection) {
+        $assessmenttypes = helper::get_assess_types($selection);
+        if ($selection < 0) { // Only if no selection has been made yet, add a 'not set' option.
+            $unselected = ['value' => -1, 'label' => 'Assessment type not set', 'isselected' => true];
+            array_unshift($assessmenttypes, $unselected); // Put unselected option on top.
         }
-
-        return $hidingstate;
+        return json_encode($assessmenttypes);
     }
 }

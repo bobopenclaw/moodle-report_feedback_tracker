@@ -1,9 +1,7 @@
 import ModalSaveCancel from 'core/modal_save_cancel';
 import ModalEvents from 'core/modal_events';
 import Templates from 'core/templates';
-import {updateModule} from "./repository";
-//import {updateGeneralFeedback} from "./repository";
-//import {getString} from 'core/str';
+import {getAssessmentTypes, updateModule} from "./repository";
 
 const Selectors = {
     actions: {
@@ -20,7 +18,13 @@ export const init = async() => {
             const partid = e.target.getAttribute('data-partid');
 
             const module = e.target.closest('.module');
+
+            const icon = module.querySelector('[data-icon]').innerHTML;
+            const name = module.querySelector('[data-name]').innerHTML;
+
             const assessmenttype = module.querySelector('[data-assessmenttype]').getAttribute('data-assessmenttype');
+            const locked = module.querySelector('[data-locked]').getAttribute('data-locked') * 1;
+            const assessmenttypelabel = module.querySelector('[data-label]').getAttribute('data-label');
             const feedbackduedate = module.querySelector('[data-feedbackduedate]').getAttribute('data-feedbackduedate');
             // Format the feedback due date for the date picker.
             const date = new Date(feedbackduedate * 1000); // Convert to milliseconds
@@ -41,6 +45,10 @@ export const init = async() => {
             const generalfeedback = generalfeedbackElement ? generalfeedbackElement.getAttribute('data-generalfeedback') : null;
             const hidden = hiddenElement ? hiddenElement.getAttribute('data-hiddenfromreport') : null;
 
+            // Get the assessment type options with the current selection.
+            const selection = assessmenttype * 1; // Make sure it is an integer.
+            const assessmenttypes = JSON.parse(await getAssessmentTypes(selection));
+
             // Show a modal to edit.
             const modal = await ModalSaveCancel.create({
                 large: true,
@@ -49,13 +57,18 @@ export const init = async() => {
                     {
                         gradeitemid: gradeitemid,
                         partid: partid,
+                        icon: icon,
+                        name: name,
                         contact: contact,
                         method: method,
                         generalfeedback: generalfeedback,
                         hidden: hidden,
                         assessmenttype: assessmenttype,
+                        assessmenttypelabel: assessmenttypelabel,
+                        locked: locked,
                         feedbackduedate: feedbackduedate,
-                        formatteddate: formatteddate
+                        formatteddate: formatteddate,
+                        assessmenttypes: assessmenttypes
                     }),
             });
             modal.show();

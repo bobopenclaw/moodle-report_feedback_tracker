@@ -26,60 +26,6 @@ defined('MOODLE_INTERNAL') || die();
 
 $functions = [
 
-    'report_feedback_tracker_save_assessment_type' => [
-        'classname'         => 'report_feedback_tracker\external\save_assessment_type',
-        'description'       => 'Update the summative state via ajax',
-        'type'              => 'write',
-        'readonlysession'   => true,
-        'ajax'              => true,
-        'capabilities'      => 'report/feedback_tracker:grade',
-    ],
-
-    'report_feedback_tracker_save_cohort_state' => [
-        'classname'         => 'report_feedback_tracker\external\save_cohort_state',
-        'description'       => 'Update the cohort state via ajax',
-        'type'              => 'write',
-        'readonlysession'   => true,
-        'ajax'              => true,
-        'capabilities'      => 'report/feedback_tracker:grade',
-    ],
-
-    'report_feedback_tracker_save_hiding_state' => [
-        'classname'         => 'report_feedback_tracker\external\save_hiding_state',
-        'description'       => 'Update the hiding state via ajax',
-        'type'              => 'write',
-        'readonlysession'   => true,
-        'ajax'              => true,
-        'capabilities'      => 'report/feedback_tracker:grade',
-    ],
-
-    'report_feedback_tracker_save_feedback_duedate' => [
-        'classname'         => 'report_feedback_tracker\external\save_feedback_duedate',
-        'description'       => 'Update the custom feedback due date via ajax',
-        'type'              => 'write',
-        'readonlysession'   => true,
-        'ajax'              => true,
-        'capabilities'      => 'report/feedback_tracker:grade',
-    ],
-
-    'report_feedback_tracker_delete_feedback_duedate' => [
-        'classname'         => 'report_feedback_tracker\external\delete_feedback_duedate',
-        'description'       => 'Delete the custom feedback due date via ajax',
-        'type'              => 'write',
-        'readonlysession'   => true,
-        'ajax'              => true,
-        'capabilities'      => 'report/feedback_tracker:grade',
-    ],
-
-    'report_feedback_tracker_update_general_feedback' => [
-        'classname'         => 'report_feedback_tracker\external\update_general_feedback',
-        'description'       => 'Update the general feedback via ajax',
-        'type'              => 'write',
-        'readonlysession'   => true,
-        'ajax'              => true,
-        'capabilities'      => 'report/feedback_tracker:grade',
-    ],
-
     'report_feedback_tracker_update_module' => [
         'classname'         => 'report_feedback_tracker\external\update_module',
         'description'       => 'Update additional information for a module via ajax',
@@ -89,9 +35,9 @@ $functions = [
         'capabilities'      => 'report/feedback_tracker:grade',
     ],
 
-    'report_feedback_tracker_render_student_feedback' => [
-        'classname'         => 'report_feedback_tracker\external\render_student_feedback',
-        'description'       => 'Render the feedback table for a student',
+    'report_feedback_tracker_get_assessment_types' => [
+        'classname'         => 'report_feedback_tracker\external\get_assessment_types',
+        'description'       => 'Get the assessment type options',
         'type'              => 'write',
         'readonlysession'   => true,
         'ajax'              => true,

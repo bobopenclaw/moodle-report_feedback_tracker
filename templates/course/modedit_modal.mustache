@@ -38,35 +38,56 @@
 
 }}
 <div class="modal-header">
-    <h4>{{title}}</h4>
+    <h5>{{{icon}}} {{{name}}}</h5>
 </div>
 <div class="modal-body">
-    <form id="modalForm">
-        <input type="hidden" id="js-gradeitemid" value="{{gradeitemid}}">
-        <input type="hidden" id="js-partid" value="{{partid}}">
+    <div class="row">
+        <form id="modalForm">
+            <input type="hidden" id="js-gradeitemid" value="{{gradeitemid}}">
+            <input type="hidden" id="js-partid" value="{{partid}}">
 
-        <div class="form-group">
-            <label for="contact">Contact</label>
-            <input type="text" class="form-control" id="js-contact" name="contact" value="{{{contact}}}">
-            <div class="form-check">
-                <label class="form-check-label">
-                    <input type="checkbox" class="form-check-input" value=""  id="js-hidden" name="hidden" {{#hidden}}checked{{/hidden}}>Hidden from student report
-                </label>
+            <div class="form-group">
+                <label for="contact" class="font-weight-bold">Contact</label>
+                <input type="text" class="form-control" id="js-contact" name="contact" value="{{{contact}}}">
+
             </div>
+            <div class="form-group">
+                <label for="method" class="font-weight-bold">Method</label>
+                <input type="text" class="form-control" id="js-method" name="method" value="{{{method}}}">
 
-            <label for="method">Method</label>
-            <input type="text" class="form-control" id="js-method" name="method" value="{{{method}}}">
+            </div>
+            <div class="form-group">
+                <label for="generalfeedback" class="font-weight-bold">Generalfeedback</label>
+                <textarea class="form-control" id="js-generalfeedback" name="generalfeedback" rows= "5">{{{generalfeedback}}}</textarea>
 
-            <label for="generalfeedback">Generalfeedback</label>
-            <textarea class="form-control" id="js-generalfeedback" name="generalfeedback" rows= "5">{{{generalfeedback}}}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="feedbackduedate" class="font-weight-bold">Feedbackduedate</label>
+                <input type="date" class="form-control" id="feedbackduedate" name="feedbackduedate" value="{{{formatteddate}}}">
+                <input type="hidden" id="js-formatteddate" value="{{formatteddate}}">
 
-            <label for="feedbackduedate">Feedbackduedate</label>
-            <input type="date" class="form-control" id="feedbackduedate" name="feedbackduedate" value="{{{formatteddate}}}">
-            <input type="hidden" id="js-formatteddate" value="{{formatteddate}}">
+            </div>
+            <div class="form-group">
+                <label for="js-assessmenttype" class="font-weight-bold">Assessmenttype</label>
 
-            <label for="assessmenttype">Assessmenttype</label>
-            <input type="text" class="form-control" id="js-assessmenttype" name="assessmenttype" value="{{{assessmenttype}}}">
-
-        </div>
-    </form>
+                {{#locked}}
+                    <div>{{assessmenttypelabel}}</div>
+                {{/locked}}
+                {{^locked}}
+                    <select id="js-assessmenttype" class="form-control">
+                        {{#assessmenttypes}}
+                            <option value="{{value}}" {{#isselected}}selected{{/isselected}}>{{label}}</option>
+                        {{/assessmenttypes}}
+                    </select>
+                {{/locked}}
+            </div>
+            <div class="form-group">
+                <div class="form-check">
+                    <label class="form-check-label">
+                        <input type="checkbox" class="form-check-input" value=""  id="js-hidden" name="hidden" {{#hidden}}checked{{/hidden}}>Hidden from student report
+                    </label>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>

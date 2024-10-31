@@ -49,9 +49,6 @@ $PAGE->set_pagelayout('base'); // No drawers.
 
 $context = context_course::instance($course->id);
 
-// Include the AMD module for manipulating general feedback output.
-$PAGE->requires->js_call_amd('report_feedback_tracker/generalfeedback', 'init');
-
 // Set the header and print it.
 $PAGE->set_title($course->shortname .':' . get_string('pluginname', 'report_feedback_tracker'));
 $PAGE->set_heading($course->fullname);
@@ -63,12 +60,6 @@ report_helper::print_report_selector($pluginname);
 
 // Get the renderer and use it.
 $renderer = $PAGE->get_renderer('report_feedback_tracker');
-
-// Allow switching to the old admin interface.
-if (get_config('report_feedback_tracker', 'oldadmin')) {
-    echo $renderer->render_feedback_tracker_admin_wrapper($courseid);
-} else {
-    echo $renderer->render_feedback_tracker_admin($courseid);
-}
+echo $renderer->render_feedback_tracker_admin_data($courseid);
 
 echo $OUTPUT->footer();

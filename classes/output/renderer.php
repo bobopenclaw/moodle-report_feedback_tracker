@@ -26,7 +26,6 @@ namespace report_feedback_tracker\output;
 
 use context_course;
 use grade_item;
-use local_assess_type\assess_type;
 use plugin_renderer_base;
 use report_feedback_tracker\local\admin;
 use report_feedback_tracker\local\helper;
@@ -90,68 +89,13 @@ class renderer extends plugin_renderer_base {
         }
     }
 
-    /**
-     * Render the user table.
-     *
-     * @param int $userid
-     * @param int $courseid optional course id to limit output.
-     * @return string
-     * @throws \moodle_exception
-     */
-    public function render_feedback_tracker_userview_data($userid, $courseid = 0): string {
-        // Get the table data.
-        $feedbacktrackerdata = user::get_feedback_tracker_user_data($userid, $courseid);
+    public function render_feedback_tracker_admin_data(int $courseid): string {
+        global $DB;
 
-        // If no course ID is provided, show assessments from all courses.
-        // While there are more than one courses, remove the ones without assessments.
-        // If there is only one course without assessments show it nevertheless.
-        if (count($feedbacktrackerdata->courses) !== 1 && $courseid === 0) {
-            $coursesremoved = false;
-            foreach ($feedbacktrackerdata->courses as $key => $course) {
-                if (empty($course->records)) {
-                    unset($feedbacktrackerdata->courses[$key]);
-                    $coursesremoved = true;
-                }
-            }
-            // If we removed any courses, reindex the array.
-            if ($coursesremoved) {
-                $feedbacktrackerdata->courses = array_values($feedbacktrackerdata->courses);
-            }
-        }
-
-        // Render the table data.
-        $feedbacktrackerdata->viewasstudent = true;
-        return $this->output->render_from_template('report_feedback_tracker/course/course',
-            $feedbacktrackerdata);
-    }
-
-    /**
-     * Render the wrapper containing the table for a course admin.
-     *
-     * @param int $courseid
-     * @return string
-     * @throws \moodle_exception
-     */
-    public function render_feedback_tracker_admin_wrapper($courseid): string {
-        // Get the table data.
-        $feedbacktrackerdata = admin::get_feedback_tracker_admin_data_old($courseid);
-        $feedbacktrackerdata->courseid = $courseid;
-        // Render the table data.
-        if ($feedbacktrackerdata->editmode) {
-            return $this->output->render_from_template('report_feedback_tracker/adminedittable', $feedbacktrackerdata);
-        }
-        return $this->output->render_from_template('report_feedback_tracker/adminwrapper', $feedbacktrackerdata);
-    }
-
-    public function render_feedback_tracker_admin(int $courseid): string {
-        global $DB, $OUTPUT;
-
-        $context = context_course::instance($courseid);
         $modinfo = get_fast_modinfo($courseid);
 
         $dateformat = get_config('report_feedback_tracker', 'dateformat');
         $assessmenttypes = helper::get_assessment_types($courseid);
-        $users = get_enrolled_users($context);
 
         // Get all grade items for the course.
         $gradeitems = grade_item::fetch_all(['courseid' => $courseid]);
@@ -180,17 +124,18 @@ class renderer extends plugin_renderer_base {
             }
 
             // Skip any gradeitem without a module or a with module that is not suported.
-            if (!$gradeitem->itemmodule || !helper::module_is_supported_new($gradeitem->itemmodule)) {
+            if (!$gradeitem->itemmodule || !helper::is_supported_module($gradeitem->itemmodule)) {
                 continue;
             }
 
+            // Skip if no module record can be found.
             if (!$record = admin::get_module_record($gradeitem, $modinfo, $assessmenttypes)) {
                 continue;
             }
 
-            // If it is a Turnitin module create a record for each part of it.
+            // If the module is a Turnitin module create a record for each part of it.
             if ($gradeitem->itemmodule === 'turnitintooltwo') {
-                $tttparts = helper::get_tttparts_new($gradeitem);
+                $tttparts = helper::get_turnitin_parts($gradeitem);
 
                 foreach ($tttparts as $tttpart) {
                     $record->name = $gradeitem->itemname . " - " . $tttpart->partname;
@@ -198,7 +143,7 @@ class renderer extends plugin_renderer_base {
 
                     $duedate = $tttpart->dtdue;
                     // The raw date is needed for sorting.
-                    $record->feedbackduedateraw = $duedate ? helper::get_feedbackduedate_new($courseid, $duedate) : 9999999999;
+                    $record->feedbackduedateraw = $duedate ? helper::calculate_feedback_duedate($courseid, $duedate) : 9999999999;
                     $record->feedbackduedate = $duedate ? date($dateformat, $record->feedbackduedateraw) : false;
 
                     // Get additional information for the record.
@@ -247,20 +192,6 @@ class renderer extends plugin_renderer_base {
         });
 
         return $this->output->render_from_template('report_feedback_tracker/course/course', $data);
-    }
-
-    /**
-     * Render the feedback tracker admin table.
-     *
-     * @param int $courseid
-     * @return string
-     * @throws \moodle_exception
-     */
-    public function render_feedback_tracker_admin_table($courseid): string {
-        // Get the table data.
-        $feedbacktrackerdata = admin::get_feedback_tracker_admin_data_old($courseid);
-        // Render the table data.
-        return $this->output->render_from_template('report_feedback_tracker/admintable', $feedbacktrackerdata);
     }
 
 }

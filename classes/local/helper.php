@@ -83,16 +83,6 @@ class helper {
     }
 
     /**
-     * Get the feedbacks and submissions.
-     *
-     * @param stdClass $gradeitem
-     * @return string
-     */
-    public static function get_feedbacks(stdClass $gradeitem): string {
-        return $gradeitem->cmid ? html_writer::div("$gradeitem->feedbacks of $gradeitem->submissions") : '';
-    }
-
-    /**
      * Get a feedback badge.
      *
      * @param stdClass $gradeitem
@@ -128,59 +118,6 @@ class helper {
         }
 
         return [];
-    }
-
-    /**
-     * Show / edit the feedback method for a grade item.
-     *
-     * @param stdClass $gradeitem
-     * @return string
-     * @throws coding_exception
-     */
-    public static function get_feedback_method(stdClass $gradeitem): string|null {
-        global $OUTPUT, $PAGE;
-
-        if ($PAGE->user_is_editing()) {
-            // We need to differentiate parts of ttt assessments - so include the part ID in the identifying blob.
-            $idblob = $gradeitem->itemid . ',' . $gradeitem->partid;
-            $edititem = new \core\output\inplace_editable(
-                'report_feedback_tracker',
-                'method',
-                $idblob,
-                true,
-                format_string($gradeitem->method),
-                $gradeitem->method,
-                get_string('edit:method', 'report_feedback_tracker')
-            );
-            return html_writer::div($OUTPUT->render($edititem), "d-flex align-items-center");
-        }
-        return $gradeitem->method;
-    }
-
-    /**
-     * Show/edit the responsibility of a grade item.
-     *
-     * @param stdClass $gradeitem
-     * @return string
-     * @throws coding_exception
-     */
-    public static function get_feedback_responsibility(stdClass $gradeitem): string {
-        global $OUTPUT, $PAGE;
-
-        if ($PAGE->user_is_editing()) {
-            $idblob = $gradeitem->itemid . ',' . $gradeitem->partid;
-            $edititem = new \core\output\inplace_editable(
-                'report_feedback_tracker',
-                'responsibility',
-                $idblob,
-                true,
-                format_string($gradeitem->responsibility),
-                $gradeitem->responsibility,
-                get_string('edit:responsibility', 'report_feedback_tracker')
-            );
-            return html_writer::div($OUTPUT->render($edititem));
-        }
-        return html_writer::div($gradeitem->responsibility);
     }
 
     /**
@@ -221,43 +158,6 @@ class helper {
 
         // The feedback is due within the due time - so do nothing and show a contact.
         return '';
-    }
-
-    /**
-     * Show / edit the hiding state of a grading item.
-     *
-     * @param stdClass $gradeitem
-     * @return string
-     */
-    public static function get_hidden_state(stdClass $gradeitem): string {
-        global $PAGE;
-
-        if ($PAGE->user_is_editing()) {
-            if ($gradeitem->hidden) {
-                return "<input
-                data-action='report_feedback_tracker/hiding_checkbox'
-                type='checkbox'
-                class='form-check-input hiding_checkbox'
-                data-cmid='$gradeitem->itemid'
-                data-partid='$gradeitem->partid'
-                checked='checked'
-            >";
-            } else {
-                return "<input
-                data-action='report_feedback_tracker/hiding_checkbox'
-                type='checkbox'
-                class='form-check-input hiding_checkbox'
-                data-cmid='$gradeitem->itemid'
-                data-partid='$gradeitem->partid'
-            >";
-            }
-        } else {
-            if ($gradeitem->hidden) {
-                return "<i class='fa fa-check'></i>";
-            } else {
-                return '';
-            }
-        }
     }
 
     /**
@@ -625,26 +525,6 @@ class helper {
     }
 
     /**
-     * Get the submission date for a ttt part.
-     *
-     * NOTE: This actually returns the modification date of a submission - which is also updated when
-     * a submission is graded - there is no separate submission date to use :(.
-     *
-     * @param stdClass $tttpart
-     * @param int $userid
-     * @return mixed
-     * @throws dml_exception
-     */
-    protected static function get_ttt_submission_date(stdClass $tttpart, int $userid): mixed {
-        global $DB;
-
-        if ($res = $DB->get_record('turnitintooltwo_submissions', ['submission_part' => $tttpart->id, 'userid' => $userid])) {
-            return $res->submission_modified;
-        }
-        return 0;
-    }
-
-    /**
      * Get parts of turnitintooltwo assessments in the specified course.
      *
      * @param int $courseid
@@ -676,16 +556,23 @@ class helper {
         return $DB->get_records_sql($sql);
     }
 
-    public static function get_tttparts_new($gradeitem) {
+    /**
+     *
+     * @param stdClass $gradeitem
+     * @return array
+     * @throws dml_exception
+     */
+    public static function get_turnitin_parts($gradeitem) {
         global $DB;
 
-        $sql ="SELECT * FROM {turnitintooltwo_parts} WHERE turnitintooltwoid = :iteminstance";
+        $sql = "SELECT * FROM {turnitintooltwo_parts} WHERE turnitintooltwoid = :iteminstance";
         // Execute the query.
         $tttparts = $DB->get_records_sql($sql, ['iteminstance' => $gradeitem->iteminstance]);
 
         return $tttparts;
 
     }
+
     /**
      * Get Turnitin part records for course indexed by grade item ID.
      *
@@ -737,23 +624,11 @@ class helper {
      * @param string $itemmodule the item module (e.g. 'assign', 'quiz' etc.)
      * @return bool
      */
-    public static function module_is_supported_new(string $itemmodule): bool {
-        global $PAGE;
-
-        $modulelist = [
-            'assign',
-            'lesson',
-            'manual',
-            'turnitintooltwo',
-            'quiz',
-            'workshop',
-        ];
-
-        if (in_array($itemmodule, $modulelist)) {
-            return true;
-        }
-        return false;
+    public static function is_supported_module(string $itemmodule): bool {
+        // Maybe chaching this?
+        return get_config('report_feedback_tracker', 'support' . $itemmodule);
     }
+
     public static function module_is_supported(stdClass $gradeitem): bool {
         global $PAGE;
 
@@ -800,148 +675,6 @@ class helper {
     }
 
     /**
-     * Render a date picker when in edit mode, return the date otherwise.
-     *
-     * @param stdClass $gradeitem
-     * @param int $date the feedback due date in seconds since midnight 01.01.1970.
-     * @return string
-     * @throws coding_exception
-     */
-    public static function render_feedbackduedate(stdClass $gradeitem, int $date = 0): string {
-        global $PAGE;
-
-        $o = html_writer::start_div("d-flex align-items-center");
-        if ($PAGE->user_is_editing()) { // Render a date picker.
-            // Default to current date if not specified.
-            $date = isset($date) && $date > 0 ? $date : time();
-            // Generate a unique ID for the date picker input field.
-            $pickerid = html_writer::random_id('date_picker');
-
-            // Generate the input field with the unique ID.
-            $inputfield = html_writer::empty_tag('input', [
-                'type' => 'date',
-                'id' => $pickerid,
-                'data-itemid' => $gradeitem->itemid,
-                'data-partid' => $gradeitem->partid,
-                'class' => 'date-picker',
-                'data-action' => 'report_feedback_tracker/datepicker',
-                'value' => date('Y-m-d', $date),
-                'data-deadlinedays' => get_config('report_feedback_tracker', 'feedbackdeadlinedays'),
-            ]);
-
-            $o .= $inputfield;
-        } else { // Just return the date.
-            $dateformat = get_config('report_feedback_tracker', 'dateformat');
-            $o .= $date ? date($dateformat, $date) : '--';
-        }
-
-        // Show a hint badge when date is set manually.
-        if ($date) {
-            $classes = 'fa fa-info-circle text-primary ml-1';
-            $style = $gradeitem->feedbackduedate ? '' : 'display: none;';
-            $title = get_string('feedbackduedate:custom', 'report_feedback_tracker');
-            $o .= " <i class='$classes' title='$title' data-itemid='$gradeitem->itemid'
-                data-action='report_feedback_tracker/customhint' style='$style'></i>";
-        }
-        $o .= html_writer::end_div();
-        return $o;
-    }
-
-    /**
-     * Get information about the module instance.
-     *
-     * Retired for now, but could still be useful...
-     *
-     * @param stdClass $gradeitem
-     * @return false|mixed|stdClass
-     * @throws dml_exception
-     */
-    protected static function get_feedback_module(stdClass $gradeitem): mixed {
-        global $DB, $USER;
-
-        // Handle cases of module types here where needed.
-        $userkey = 'userid';
-        switch ($gradeitem->itemmodule) {
-            case 'assign':
-                $moduletable = $gradeitem->itemmodule;
-                $submissiontable = 'assign_submission';
-                $submissionkey = 'assignment';
-                $filter = ['field' => 'status', 'value' => 'submitted'];
-                break;
-            case 'lesson':
-                $moduletable = $gradeitem->itemmodule;
-                $replacements = ['deadline' => 'duedate'];
-                $submissiontable = 'lesson_attempts';
-                $submissionkey = 'lessonid';
-                break;
-            case 'quiz':
-                $moduletable = $gradeitem->itemmodule;
-                $replacements = ['timeclose' => 'duedate'];
-                $submissiontable = 'quiz_attempts';
-                $submissionkey = 'quiz';
-                $filter = ['field' => 'state', 'value' => 'finished'];
-                break;
-            case 'scorm':
-                $moduletable = $gradeitem->itemmodule;
-                $replacements = ['timeclose' => 'duedate'];
-                $submissiontable = 'scorm_attempt';
-                $submissionkey = 'scormid';
-                break;
-            case 'turnitintooltwo':
-                $moduletable = $gradeitem->itemmodule;
-                // ToDo: Check source of due date.
-                $submissiontable = 'turnitintooltwo_submissions';
-                $submissionkey = 'turnitintooltwoid';
-                $filter = ['field' => 'submission_type', 'value' => 1];
-                break;
-            case 'workshop':
-                $moduletable = $gradeitem->itemmodule;
-                $replacements = ['submissionend' => 'duedate'];
-                $submissiontable = 'workshop_submissions';
-                $submissionkey = 'workshopid';
-                $userkey = 'authorid';
-                break;
-            case 'somethingelse':
-                // Do something specific here.
-                break;
-            default:
-                $moduletable = $gradeitem->itemmodule;
-                break;
-        }
-
-        $feedbackmodule = $DB->get_record($moduletable, ['id' => $gradeitem->iteminstance]);
-
-        // Compute replacement values.
-        if (isset($replacements)) {
-            foreach ($replacements as $from => $to) {
-                $feedbackmodule->$to = $feedbackmodule->$from;
-            }
-            unset($replacement);
-        }
-
-        // The admin bits.
-        if (self::is_course_editor($gradeitem->courseid, $USER->id)) {
-            // Get the submissions when available.
-            if (isset($submissiontable)) {
-                // Get the count of submissions for the specified course module.
-                $sql = "select
-            count(distinct $userkey) as submissions
-            from {" . $submissiontable . "}
-            where $submissionkey = :instance
-            ";
-                if (isset($filter)) {
-                    $sql .= 'and ' . $filter['field'] . ' = "' . $filter['value'] . '"';
-                }
-                $params = ['instance' => $gradeitem->iteminstance];
-                $result = $DB->get_record_sql($sql, $params);
-
-                $feedbackmodule->submissions = $result->submissions;
-            }
-        }
-        return $feedbackmodule;
-    }
-
-    /**
      * Get the feedback due date for a grade item.
      *
      * @param stdClass $gradeitem
@@ -972,7 +705,15 @@ class helper {
         return 0;
     }
 
-    public static function get_feedbackduedate_new(int $courseid, int $duedate): int {
+    /**
+     * Calculate the feedback due date based on the submission due date.
+     *
+     * @param int $courseid
+     * @param int $duedate the submission due date
+     * @return int
+     * @throws dml_exception
+     */
+    public static function calculate_feedback_duedate(int $courseid, int $duedate): int {
         $academicyear = (int) self::get_academic_year($courseid);
 
         // If there is no due date there is no feedback due date.
@@ -1139,6 +880,23 @@ class helper {
     }
 
     /**
+     * @param int $selection
+     * @return string
+     * @throws coding_exception
+     */
+    public static function get_selected_assess_type_label(int $selection): string {
+
+        $options = self::get_assesstype_options();
+
+        foreach ($options as $option) {
+            if ($option->value === $selection) {
+                return $option->label;
+            }
+        }
+        return '';
+    }
+
+    /**
      * Get the assessment type options.
      *
      * @return object[]
@@ -1180,13 +938,13 @@ class helper {
     }
 
     /**
-     * Try to get the assessment type of the grade item and add it where found.
+     * Try to get the assessment type of the grade item and append it where found.
      *
      * @param stdClass $gradeitem
      * @param array $assessmenttypes
      * @return void
      */
-    public static function get_assessment_type(stdClass &$gradeitem, array $assessmenttypes): void {
+    public static function append_assessment_type_to_gradeitem(stdClass &$gradeitem, array $assessmenttypes): void {
         foreach ($assessmenttypes as $assessmenttype) {
             // A course module with a part ID (e.g. turnitintooltwo).
             // Currently the part ID is not used for checking different parts until it is supported by local_assess_type.
@@ -1213,23 +971,31 @@ class helper {
             }
         }
     }
-    public static function get_assessment_type_new(stdClass $record, array $assessmenttypes): array {
+
+    /**
+     * Get the assessment type and lock status for a course module and its optional part.
+     *
+     * @param stdClass $record
+     * @param array $assessmenttypes
+     * @return array
+     */
+    public static function get_assessment_type(stdClass $record, array $assessmenttypes): array {
         foreach ($assessmenttypes as $assessmenttype) {
             // A course module with a part ID (e.g. turnitintooltwo).
             // Currently, the part ID is not used for checking different parts until it is supported by local_assess_type.
             if (
-                    isset($record->cmid) && isset($record->partid) &&
-                    ($assessmenttype->cmid === $record->cmid)
+                isset($record->cmid) && isset($record->partid) &&
+                ($assessmenttype->cmid === $record->cmid)
             ) {
                 return ['type' => $assessmenttype->type, 'locked' => $assessmenttype->locked];
             } else if ( // A course module w/o a part.
-                    isset($record->cmid) && !isset($record->partid) &&
-                    ($assessmenttype->cmid === $record->cmid)
+                isset($record->cmid) && !isset($record->partid) &&
+                ($assessmenttype->cmid === $record->cmid)
             ) {
                 return ['type' => $assessmenttype->type, 'locked' => $assessmenttype->locked];
             } else if ( // A grade item w/o a course module.
-                    !isset($record->cmid) && isset($record->itemid) &&
-                    ($assessmenttype->gradeitemid === $record->itemid)
+                !isset($record->cmid) && isset($record->itemid) &&
+                ($assessmenttype->gradeitemid === $record->itemid)
             ) {
                 return ['type' => $assessmenttype->type, 'locked' => $assessmenttype->locked];
             }
@@ -1402,14 +1168,14 @@ class helper {
         $useroverrides = $DB->get_records_sql("
             SELECT userid
             FROM {" . $overridetable . "}
-            WHERE $idfield = :moduleid AND userid IS NOT NULL", array('moduleid' => $module->instance));
+            WHERE $idfield = :moduleid AND userid IS NOT NULL", ['moduleid' => $module->instance]);
 
         // Get group overrides and users in those groups.
         $groupoverrides = $DB->get_records_sql("
             SELECT gm.userid
             FROM {" . $overridetable . "} ao
             JOIN {groups_members} gm ON ao.groupid = gm.groupid
-            WHERE ao.$idfield = :moduleid AND ao.groupid IS NOT NULL", array('moduleid' => $module->instance));
+            WHERE ao.$idfield = :moduleid AND ao.groupid IS NOT NULL", ['moduleid' => $module->instance]);
 
         // Merge user ids from individual and group overrides.
         $overrides = array_merge(array_keys($useroverrides), array_keys($groupoverrides));
@@ -1428,7 +1194,7 @@ class helper {
     public static function get_grade_grades(grade_item $gradeitem): int {
         global $DB;
         $sql = "select count(distinct gg.userid) as grades
-                from {grade_grades} gg 
+                from {grade_grades} gg
                 where gg.itemid = :gradeitemid and gg.finalgrade > -1";
 
         // Execute the query.
