@@ -389,6 +389,7 @@ class helper {
                         'user' => 'userid',
                         'date' => 'timemodified',
                         'status' => 'status',
+                        'latest' => 'latest',
                     ];
                     $validstatus = 'submitted'; // Only get dates from submissions with a valid status.
                     break;
@@ -438,7 +439,15 @@ class helper {
 
         // Compute the data.
         if (isset($details)) {
-            if ($details['status'] != '' && $validstatus != '') {
+            if (isset($details['latest']) && $details['latest'] == 1 && $details['status'] !== '' && $validstatus !== '') {
+                $submissionrecords = $DB->get_records($details['table'],
+                    [
+                        $details['index'] => $cm->instance,
+                        $details['status'] => $validstatus,
+                        $details['latest'] => 1,
+                    ]
+                );
+            } else if ($details['status'] !== '' && $validstatus !== '') {
                 $submissionrecords = $DB->get_records($details['table'],
                     [
                         $details['index'] => $cm->instance,
