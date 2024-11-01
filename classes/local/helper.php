@@ -383,84 +383,67 @@ class helper {
         if ($cm) {
             switch ($cm->modname) {
                 case 'assign':
-                    $details = [
-                        'table' => 'assign_submission',
-                        'index' => 'assignment',
-                        'user' => 'userid',
-                        'date' => 'timemodified',
-                        'status' => 'status',
-                        'latest' => 'latest',
-                    ];
+                    $table = 'assign_submission';
+                    $index = 'assignment';
+                    $userid = 'userid';
+                    $date = 'timemodified';
+                    $status = 'status';
                     $validstatus = 'submitted'; // Only get dates from submissions with a valid status.
+                    $latest = 'latest';
+                    $groupid = 'groupid';
                     break;
                 case 'lesson':
-                    $details = [
-                        'table' => 'lesson_attempts',
-                        'index' => 'lessonid',
-                        'user' => 'userid',
-                        'date' => 'timeseen',
-                        'status' => 'correct',
-                    ];
+                    $table = 'lesson_attempts';
+                    $index = 'lessonid';
+                    $userid = 'userid';
+                    $date = 'timeseen';
+                    $status = 'correct';
                     break;
                 case 'quiz':
-                    $details = [
-                        'table' => 'quiz_attempts',
-                        'index' => 'quiz',
-                        'user' => 'userid',
-                        'date' => 'timefinish',
-                        'status' => 'state',
-                    ];
+                    $table = 'quiz_attempts';
+                    $index = 'quiz';
+                    $userid = 'userid';
+                    $date = 'timefinish';
+                    $status = 'state';
                     $validstatus = 'finished'; // Only get dates from submissions with a valid status.
                     break;
                 case 'turnitintooltwo':
-                    $details = [
-                        'table' => 'turnitintooltwo_submissions',
-                        'index' => 'turnitintooltwoid',
-                        'user' => 'userid',
-                        'date' => 'submission_modified',
-                        'status' => '',
-                    ];
+                    $table = 'turnitintooltwo_submissions';
+                    $index = 'turnitintooltwoid';
+                    $userid = 'userid';
+                    $date = 'submission_modified';
+                    $status = '';
                     break;
                 case 'scorm':
                     break;
                 case 'workshop':
-                    $details = [
-                        'table' => 'workshop_submissions',
-                        'index' => 'workshopid',
-                        'user' => 'authorid',
-                        'date' => 'timemodified',
-                        'status' => '',
-                    ];
+                    $table = 'workshop_submissions';
+                    $index = 'workshopid';
+                    $userid = 'authorid';
+                    $date = 'timemodified';
+                    $status = '';
                     break;
                 default:
                     break;
             }
         }
 
-        // Compute the data.
-        if (isset($details)) {
-            if (isset($details['latest']) && $details['latest'] == 1 && $details['status'] !== '' && $validstatus !== '') {
-                $submissionrecords = $DB->get_records($details['table'],
-                    [
-                        $details['index'] => $cm->instance,
-                        $details['status'] => $validstatus,
-                        $details['latest'] => 1,
-                    ]
-                );
-            } else if ($details['status'] !== '' && $validstatus !== '') {
-                $submissionrecords = $DB->get_records($details['table'],
-                    [
-                        $details['index'] => $cm->instance,
-                        $details['status'] => $validstatus,
-                    ]
-                );
-            } else {
-                $submissionrecords = $DB->get_records($details['table'],
-                    [
-                        $details['index'] => $cm->instance,
-                    ]
-                );
-            }
+        $args = [];
+        $args[$index] = $cm->instance;
+        if ($status) {
+            $args[$status] = $validstatus;
+        }
+        if (isset($latest)) {
+            $args[$latest] = 1;
+        }
+
+        // If the assessment allows group submissions exclude them from counting
+        // as a group submission will create individual submissions for each group member.
+        if (isset($groupid)) {
+            $args[$groupid] = 0;
+        }
+
+        if ($submissionrecords = $DB->get_records($table, $args)) {
             return $submissionrecords;
         }
         return [];
