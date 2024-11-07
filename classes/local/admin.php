@@ -61,9 +61,6 @@ class admin {
         $record->name = $gradeitem->itemname; // The grade item name has more details.
         $record->moduletypeiconurl = $module->get_icon_url()->out(false);
 
-        $record->hiddenfromstudents = !$module->visible;
-        $record->hiddenfromreport = false;
-
         $record->cmid = $module->id;
         $record->partid = false;
 
@@ -76,6 +73,10 @@ class admin {
         $record->summative = (int) $assessmenttype['type'] === assess_type::ASSESS_TYPE_SUMMATIVE;
         $record->dummy = (int) $assessmenttype['type'] === assess_type::ASSESS_TYPE_DUMMY;
         $record->notset = !$record->formative && !$record->summative && !$record->dummy;
+
+        // Hiding attributes.
+        $record->hiddenfromstudents = !$module->visible;
+        $record->hiddenfromreport = $record->dummy;
 
         $record->assesstypes = helper::get_assess_types(isset($record->assessmenttype) ? $record->assessmenttype : null);
 

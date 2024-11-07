@@ -166,7 +166,7 @@ class renderer extends plugin_renderer_base {
                             $record->feedbackduedate = date($dateformat, $record->feedbackduedateraw);
                         }
                         $record->additionaldata = $record->generalfeedback || $record->method || $record->contact;
-                        $record->hiddenfromreport = $additionaldata->hidden;
+                        $record->hiddenfromreport = $additionaldata->hidden || $record->hiddenfromreport;
                     }
 
                     $data->records[] = clone $record;
@@ -185,7 +185,7 @@ class renderer extends plugin_renderer_base {
                         $record->feedbackduedate = date($dateformat, $record->feedbackduedateraw);
                     }
                     $record->additionaldata = $record->generalfeedback || $record->method || $record->contact;
-                    $record->hiddenfromreport = $additionaldata->hidden;
+                    $record->hiddenfromreport = $additionaldata->hidden || $record->hiddenfromreport;
                 }
 
                 $data->records[] = $record;

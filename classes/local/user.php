@@ -297,11 +297,11 @@ class user {
      * @param int $userid
      * @param stdClass $gradeitem
      * @param array $assessmenttypes
-     * @return stdClass
+     * @return stdClass|bool
      * @throws dml_exception
      * @throws coding_exception
      */
-    protected static function get_user_feedback_record($course, $userid, $gradeitem, $assessmenttypes): stdClass {
+    protected static function get_user_feedback_record($course, $userid, $gradeitem, $assessmenttypes): stdClass|bool {
         $gradeitem->partid = 0; // Only turnitintooltwo assessments may have parts.
         return self::compile_user_record($course, $userid, $gradeitem, $assessmenttypes);
     }
@@ -364,13 +364,13 @@ class user {
      * @throws coding_exception
      * @throws dml_exception
      */
-    protected static function compile_user_record($course, $userid, $gradeitem, $assessmenttypes): stdClass|bool {
+    protected static function compile_user_record(stdClass $course, int $userid, stdClass $gradeitem, array $assessmenttypes): stdClass|bool {
 
         // Append the assessment type information where available.
         helper::append_assessment_type_to_gradeitem($gradeitem, $assessmenttypes);
 
         // Exclude assessments of type DUMMY.
-        if (isset($gradeitem->assessmenttype) && ($gradeitem->assessmenttype === assess_type::ASSESS_TYPE_DUMMY)) {
+        if (isset($gradeitem->assessmenttype) && ((int)$gradeitem->assessmenttype === assess_type::ASSESS_TYPE_DUMMY)) {
             return false;
         }
 
