@@ -298,8 +298,6 @@ class user {
      * @param stdClass $gradeitem
      * @param array $assessmenttypes
      * @return stdClass|bool
-     * @throws dml_exception
-     * @throws coding_exception
      */
     protected static function get_user_feedback_record($course, $userid, $gradeitem, $assessmenttypes): stdClass|bool {
         $gradeitem->partid = 0; // Only turnitintooltwo assessments may have parts.
@@ -361,8 +359,6 @@ class user {
      * @param stdClass $gradeitem
      * @param array $assessmenttypes
      * @return stdClass|bool
-     * @throws coding_exception
-     * @throws dml_exception
      */
     protected static function compile_user_record(stdClass $course, int $userid, stdClass $gradeitem, array $assessmenttypes): stdClass|bool {
 
