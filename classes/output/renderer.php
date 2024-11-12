@@ -210,7 +210,7 @@ class renderer extends plugin_renderer_base {
                 $data->additionaldata = true;
             }
 
-            $data->hiddenfromreport = $record->hidden;
+            $data->hiddenfromreport = (isset($data->hiddenfromreport) && $data->hiddenfromreport) || $record->hidden;
         }
     }
 

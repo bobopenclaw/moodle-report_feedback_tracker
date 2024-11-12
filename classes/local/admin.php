@@ -55,14 +55,11 @@ class admin {
         $cmid = $cm->cmid;
         $module = $modinfo->get_cm($cmid);
 
-        // Build the record.
+        // Build the module data.
         $data = new stdClass();
         $data->gradeitemid = $gradeitem->id;
         $data->name = $gradeitem->itemname; // The grade item name has more details.
         $data->moduletypeiconurl = $module->get_icon_url()->out(false);
-
-        $data->hiddenfromstudents = !$module->visible;
-        $data->hiddenfromreport = false;
 
         $data->cmid = $module->id;
         $data->partid = false;
