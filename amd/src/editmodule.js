@@ -53,9 +53,13 @@ export const init = async() => {
             const selection = assessmenttype * 1; // Make sure it is an integer.
             const assessmenttypes = JSON.parse(await getAssessmentTypes(selection));
 
+            // If assessment type is either dummy or summative set by SITS disable 'hide from student report' option.
+            // TODO: Use assess_type::ASSESS_TYPE_DUMMY.
+            const assessTypeDummy = 2;
+            const hiddendisabled = (selection === assessTypeDummy) || locked;
+
             // Show a modal to edit.
             const modal = await ModalSaveCancel.create({
-                large: true,
                 title: 'Edit module',
                 body: Templates.render('report_feedback_tracker/course/modedit_modal',
                     {
@@ -67,6 +71,7 @@ export const init = async() => {
                         method: method,
                         generalfeedback: generalfeedback,
                         hidden: hidden,
+                        hiddendisabled: hiddendisabled,
                         assessmenttype: assessmenttype,
                         assessmenttypelabel: assessmenttypelabel,
                         locked: locked,
@@ -80,11 +85,11 @@ export const init = async() => {
             modal.getRoot().on(ModalEvents.save, async() => {
                 const gradeitemid = document.getElementById('js-gradeitemid').value;
                 const partid = document.getElementById('js-partid').value;
-                const contact = document.getElementById('js-contact').value;
-                const method = document.getElementById('js-method').value;
-                const hidden = document.getElementById('js-hidden').checked;
+                const contact = document.getElementById('contact').value;
+                const method = document.getElementById('method').value;
+                const hidden = document.getElementById('hidden').checked;
                 const assessmenttype = document.getElementById('js-assessmenttype').value;
-                const generalfeedback = document.getElementById('js-generalfeedback').value;
+                const generalfeedback = document.getElementById('generalfeedback').value;
 
                 // The feedback due date from date picker.
                 const feedbackduedate = document.getElementById('feedbackduedate').value;

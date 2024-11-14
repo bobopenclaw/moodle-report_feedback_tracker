@@ -37,7 +37,7 @@
     }
 
 }}
-<div class="modal-header">
+<div class="modal-header text-nowrap">
     <h5>{{{icon}}} {{{name}}}</h5>
 </div>
 <div class="modal-body">
@@ -48,17 +48,17 @@
 
             <div class="form-group">
                 <label for="contact" class="font-weight-bold">{{#str}} header:contact, report_feedback_tracker {{/str}}</label>
-                <input type="text" class="form-control" id="js-contact" name="contact" value="{{{contact}}}">
+                <input type="text" class="form-control" id="contact" name="contact" value="{{{contact}}}">
 
             </div>
             <div class="form-group">
                 <label for="method" class="font-weight-bold">{{#str}} header:method, report_feedback_tracker {{/str}}</label>
-                <input type="text" class="form-control" id="js-method" name="method" value="{{{method}}}">
+                <input type="text" class="form-control" id="method" name="method" value="{{{method}}}">
 
             </div>
             <div class="form-group">
                 <label for="generalfeedback" class="font-weight-bold">{{#str}} header:generalfeedback, report_feedback_tracker {{/str}}</label>
-                <textarea class="form-control" id="js-generalfeedback" name="generalfeedback" rows= "5">{{{generalfeedback}}}</textarea>
+                <textarea class="form-control" id="generalfeedback" name="generalfeedback" rows= "5">{{{generalfeedback}}}</textarea>
 
             </div>
             <div class="form-group">
@@ -83,11 +83,18 @@
             </div>
             <div class="form-group">
                 <div class="form-check">
-                    <label class="form-check-label">
-                        <input type="checkbox" class="form-check-input" value=""  id="js-hidden" name="hidden" {{#hidden}}checked{{/hidden}}>{{#str}} header:hiddenfromstudents, report_feedback_tracker {{/str}}
+                    <input type="checkbox" class="form-check-input" value="" id="hidden" name="hidden" {{#hidden}}checked{{/hidden}} {{#hiddendisabled}}disabled{{/hiddendisabled}}>
+                    <label for="hidden" class="form-check-label">
+                        {{#str}} header:hiddenfromstudents, report_feedback_tracker {{/str}}
                     </label>
                 </div>
             </div>
         </form>
     </div>
 </div>
+
+{{#js}}
+    require(['report_feedback_tracker/modal'], function(Edit) {
+    Edit.init();
+    });
+{{/js}}

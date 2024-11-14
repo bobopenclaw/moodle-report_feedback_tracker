@@ -78,6 +78,7 @@ class admin {
         $data->hiddenfromstudents = !$module->visible;
         $data->hiddenfromreport = $data->dummy;
 
+        $data->hiddendisabled = true;
         $data->assesstypes = helper::get_assess_types(isset($data->assessmenttype) ? $data->assessmenttype : null);
 
         $data->modname = $module->modname;
