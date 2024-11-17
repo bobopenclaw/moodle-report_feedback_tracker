@@ -72,7 +72,7 @@ export const init = () => {
         if (e.target.closest(Selectors.actions.datePicker)) {
             try {
                 const target = e.target;
-                const itemid = target.getAttribute('itemid');
+                const itemid = target.getAttribute('data-itemid');
                 const partid = target.getAttribute('data-partid') !== '' ? target.getAttribute('data-partid') : 0;
                 const date = new Date(e.target.value).getTime() / 1000;
                 const deadlinedays = target.getAttribute('data-deadlinedays');
