@@ -191,7 +191,8 @@ class renderer extends plugin_renderer_base {
             $params['partid'] = $data->partid;
         }
 
-        if ($record = $DB->get_record('report_feedback_tracker', $params)) {
+        // There should be only one record - make sure nevertheless...
+        if ($record = $DB->get_record('report_feedback_tracker', $params, '*', IGNORE_MULTIPLE)) {
             $data->method = $record->method;
             $data->contact = $record->responsibility;
             $data->generalfeedback = $record->generalfeedback;
