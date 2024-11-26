@@ -34,13 +34,6 @@ if ($ADMIN->fulltree) {
     $dateformatdefault = get_string('dateformat:default', 'report_feedback_tracker');
     $defaultdate = get_string('settings:defaultdate', 'report_feedback_tracker');
 
-    // Setting for module header.
-    $settings->add(new admin_setting_heading('report_feedback_tracker_layout',
-        get_string('settings:interfaceheading', 'report_feedback_tracker'), ''));
-
-    $settings->add(new admin_setting_configcheckbox('report_feedback_tracker/modheader',
-        get_string('settings:modheader', 'report_feedback_tracker'), '', false));
-
     // Supported modules.
     $settings->add(new admin_setting_heading('report_feedback_tracker_support',
         get_string('settings:supportheading', 'report_feedback_tracker'), ''));

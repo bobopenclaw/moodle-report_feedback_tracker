@@ -112,9 +112,6 @@ class user {
             }
         }
 
-        // Check if we want to show a module header.
-        $data->modheader = get_config('report_feedback_tracker', 'modheader');
-
         // If a course ID is given return data for that course only
         // otherwise return data for all courses a user is enrolled in.
         if ($courseid) {
