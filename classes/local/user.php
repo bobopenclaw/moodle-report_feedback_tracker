@@ -161,6 +161,7 @@ class user {
         gi.itemtype,
         gi.itemmodule,
         gi.iteminstance,
+        gi.hidden as hiddengrade,
         u.id as studentid,
         u.username as student,
         gi.gradepass,
@@ -230,6 +231,7 @@ class user {
 
         $itemlist = [];
         foreach ($gradeitems as $gradeitem) {
+            $gradeitem->hiddengrade = (int) $gradeitem->hiddengrade;
             // Check if the gradeitem module is supported
             // and make sure only one (turnitintooltwo) assessment record is listed even if there are multiple parts.
             if (!helper::module_is_supported($gradeitem) || in_array($gradeitem->itemid, $itemlist)) {
@@ -399,8 +401,7 @@ class user {
             get_string('datenotset', 'report_feedback_tracker') :
             date($dateformat, $feedbackduedate);
         $data->feedbackduedateraw = $feedbackduedate == 0 ? 9999999999 : $feedbackduedate;
-        $data->grade = ($gradeitem->finalgrade ?
-            (int)$gradeitem->finalgrade . '/' . (int)$gradeitem->grademax : false);
+        $data->grade = self::get_grade($gradeitem);
         $data->student = $gradeitem->student;
         $data->grader = $gradeitem->grader;
         $data->feedbackdate = $gradeitem->feedbackdate ? $gradeitem->feedbackdate : $gradeitem->gfdate;
@@ -415,6 +416,20 @@ class user {
         $data->isdummy = isset($data->assessmenttype) && $data->assessmenttype == assess_type::ASSESS_TYPE_DUMMY;
 
         return $data;
+    }
+
+    /**
+     * Return a grade string using the final grade or false if there is no final grade.
+     *
+     * @param stdClass $gradeitem
+     * @return string|false
+     */
+    private static function get_grade(stdClass $gradeitem): string|false {
+        if ((!$gradeitem->finalgrade) || ($gradeitem->hiddengrade === 1) || ($gradeitem->hiddengrade > time())) {
+            // No final grade or grade not (yet) released.
+            return false;
+        }
+        return (int)$gradeitem->finalgrade . '/' . (int)$gradeitem->grademax;
     }
 
 }

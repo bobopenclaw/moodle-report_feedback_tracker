@@ -92,12 +92,14 @@ class helper {
      * @throws coding_exception
      */
     public static function get_feedback_badge(stdClass $gradeitem, int $feedbackduedate, int $submissiondate): array {
-        // A general feedback date  will take precedence if present.
+        // A general feedback date will take precedence if present.
         $feedbackdate = $gradeitem->gfdate ? $gradeitem->gfdate : $gradeitem->feedbackdate;
 
         // If there is no feedback and
         // there is no feedback due date or there is no submission show no badge.
-        if (!$feedbackdate && (!$feedbackduedate || !$submissiondate)) {
+        if ((!$feedbackdate && (!$feedbackduedate || !$submissiondate)) ||
+                ((!$gradeitem->finalgrade) || ($gradeitem->hiddengrade === 1) || ($gradeitem->hiddengrade > time()))
+        ) {
             return [];
         }
         // If there is feedback but no feedback due date or
@@ -1241,4 +1243,3 @@ class helper {
         return count($groupgrades);
     }
 }
-
