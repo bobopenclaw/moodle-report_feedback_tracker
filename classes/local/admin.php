@@ -15,7 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace report_feedback_tracker\local;
+use assign;
 use coding_exception;
+use context_module;
 use course_modinfo;
 use dml_exception;
 use grade_item;
@@ -71,7 +73,7 @@ class admin {
         $data->modname = $module->modname;
 
         // Dates.
-        $duedate = helper::get_duedate($module);
+        $duedate = self::get_duedate($module);
         $data->duedate = $duedate ? userdate($duedate, $dateformat) : false;
         // The raw date is needed for sorting.
         $data->feedbackduedateraw = $duedate ? helper::calculate_feedback_duedate($gradeitem->courseid, $duedate) : 9999999999;
@@ -79,23 +81,223 @@ class admin {
         $data->markoverdue = false;
 
         // Student data.
-        $overrides = helper::get_overrides($module);
+        $overrides = self::get_overrides($module);
         if ($overrides === 1) {
             $data->overrides = get_string('users:extension', 'report_feedback_tracker');
         } else if ($overrides > 1) {
             $data->overrides = get_string('users:extensions', 'report_feedback_tracker', $overrides);
         }
-        $data->overridesurl = helper::get_overrides_url($module);
-        $data->submissions = helper::count_submissions($module);
+        $data->overridesurl = self::get_overrides_url($module);
+        $data->submissions = self::count_submissions($module);
 
         // Grades and markings.
-        $data->requiredfeedbacks = helper::count_missing_grades($gradeitem, $module, $data->submissions);
+        $data->requiredfeedbacks = self::count_missing_grades($gradeitem, $module);
         $data->feedbackpercentage = $data->submissions ?
             round(($data->submissions - $data->requiredfeedbacks) / $data->submissions * 100, 0) : 0;
         $data->url = $module->get_url();
         $data->markingurl = self::get_markingurl($module);
 
         return $data;
+    }
+
+    /**
+     * Get the due date of a course module.
+     *
+     * @param cm_info $cm
+     * @return int
+     */
+    private static function get_duedate(cm_info $cm): int {
+        global $DB;
+
+        switch ($cm->modname) {
+            case 'assign':
+                $record = $DB->get_record('assign', ['id' => $cm->instance], 'duedate');
+                $duedate = $record->duedate;
+                break;
+            case 'lesson':
+                $record = $DB->get_record('lesson', ['id' => $cm->instance], 'deadline');
+                $duedate = $record->deadline;
+                break;
+            case 'quiz':
+                $record = $DB->get_record('quiz', ['id' => $cm->instance], 'timeclose');
+                $duedate = $record->timeclose;
+                break;
+            case 'workshop':
+                $record = $DB->get_record('workshop', ['id' => $cm->instance], 'submissionend');
+                $duedate = $record->submissionend;
+                break;
+            default:
+                $duedate = 0;
+        }
+
+        return $duedate;
+    }
+
+    /**
+     * Get the number of students that have a submission due date override for a given course module.
+     *
+     * @param cm_info $module
+     * @return int
+     */
+    private static function get_overrides(cm_info $module): int {
+        global $DB;
+
+        switch ($module->modname) {
+            case 'assign':
+                $idfield = 'assignid';
+                break;
+            case 'lesson':
+                $idfield = 'lessonid';
+                break;
+            case 'quiz':
+                $idfield = 'quiz';
+                break;
+            default:
+                return 0; // Return no overrides.
+        }
+
+        $overrides = [];
+        // Get user overrides.
+        $overridetable = $module->modname . "_overrides";
+        $useroverrides = $DB->get_records_sql("
+            SELECT *
+            FROM {" . $overridetable . "}
+            WHERE $idfield = :moduleid AND userid IS NOT NULL", ['moduleid' => $module->instance]);
+
+        foreach ($useroverrides as $useroverride) {
+            $overrides[$useroverride->userid] = $useroverride->userid;
+        }
+
+        // Get group overrides and users in those groups.
+        $groupoverrides = $DB->get_records_sql("
+            SELECT gm.*
+            FROM {" . $overridetable . "} ao
+            JOIN {groups_members} gm ON ao.groupid = gm.groupid
+            WHERE ao.$idfield = :moduleid AND ao.groupid IS NOT NULL", ['moduleid' => $module->instance]);
+
+        foreach ($groupoverrides as $groupoverride) {
+            $overrides[$groupoverride->userid] = $groupoverride->userid;
+        }
+
+        // Count users.
+        return count($overrides);
+    }
+
+    /**
+     * Provide a URL of the override settings of a given course module where available.
+     *
+     * @param cm_info $module
+     * @return string
+     */
+    private static function get_overrides_url(cm_info $module): string {
+        $supportedmodules = ['assign', 'lesson', 'quiz'];
+        if (in_array($module->modname, $supportedmodules)) {
+            return "/mod/$module->modname/overrides.php?cmid=$module->id";
+        }
+        return "#";
+    }
+
+    /**
+     * Count all submissions of a course module.
+     *
+     * @param cm_info $cm
+     * @return int
+     */
+    private static function count_submissions(cm_info $cm): int {
+        global $DB;
+
+        if ($cm) {
+            if ($cm->modname === 'assign') {
+                $context = context_module::instance($cm->id);
+                $assignment = new assign($context, $cm, $cm->course);
+                return $assignment->count_submissions();
+            }
+
+            return count(self::get_module_submissions($cm));
+
+        }
+        return 0;
+    }
+
+    /**
+     * Get an array of distinct student IDs with submissions for lessons, quizzes, turnitin and workshop assessments.
+     *
+     * @param cm_info $cm
+     * @return array
+     */
+    public static function get_module_submissions(cm_info $cm): array {
+        global $DB;
+
+        if ($cm) {
+            switch ($cm->modname) {
+                case 'assign':
+                    // Not supported here, as assignments provide their own methods to count submissions and gradings.
+                    return [];
+                case 'lesson':
+                    $sql = "SELECT DISTINCT userid FROM {lesson_attempts} WHERE lessonid = :lessonid";
+                    $params = ['lessonid' => $cm->instance, 'correct' => 1];
+                    break;
+                case 'quiz':
+                    $sql = "SELECT DISTINCT userid FROM {quiz_attempts} WHERE quiz = :quiz AND state = :state";
+                    $params = ['quiz' => $cm->instance, 'state' => 'finished'];
+                    break;
+                case 'turnitintooltwo':
+                    $sql = "SELECT DISTINCT userid FROM {turnitintooltwo_submissions} WHERE turnitintooltwoid = :turnitintooltwoid";
+                    $params = ['turnitintooltwoid' => $cm->instance];
+                    break;
+                case 'scorm':
+                    return [];
+                case 'workshop':
+                    $sql = "SELECT DISTINCT authorid FROM {workshop_submissions} WHERE workshopid = :workshopid";
+                    $params = ['workshopid' => $cm->instance];
+                    break;
+                default:
+                    return [];
+            }
+            return $DB->get_fieldset_sql($sql, $params);
+        }
+        return [];
+    }
+
+    /**
+     * Count the missing grades for a given grade item.
+     *
+     * @param grade_item $gradeitem
+     * @param cm_info $cm
+     * @return int
+     * @throws dml_exception
+     */
+    private static function count_missing_grades(grade_item $gradeitem, cm_info $cm): int {
+        global $DB;
+
+        // Assignments provide a way to count submissions that needs grading.
+        if ($cm->modname === 'assign') {
+            // Get the group submission status.
+            $context = context_module::instance($cm->id);
+            $assignment = new assign($context, $cm, $cm->course);
+            return $assignment->count_submissions_need_grading();
+        }
+
+        // For modules other than assignments get the student IDs that have submissions.
+        if ($submissions = self::get_module_submissions($cm)) {
+            $sql = "SELECT DISTINCT gg.userid
+                    FROM {grade_grades} gg
+                    WHERE gg.itemid = :gradeitemid AND gg.finalgrade > :finalgrade";
+            $params = ['gradeitemid' => $gradeitem->id, 'finalgrade' => -1];
+
+            // Execute the query.
+            $studentids = $DB->get_fieldset_sql($sql, $params);
+            // Count and return all student IDs in submission that are not (yet) to be found in gradings.
+            $missinggrades = 0;
+            foreach ($submissions as $submitterid) {
+                if (!in_array($submitterid, $studentids)) {
+                    $missinggrades++;
+                }
+            }
+            return $missinggrades;
+        }
+        // No submissions - no missing grades.
+        return 0;
     }
 
     /**
@@ -110,12 +312,12 @@ class admin {
 
         // SQL query to get the course module ID from a grade item.
         $sql = "
-                    SELECT cm.id AS cmid
-                        FROM {course_modules} cm
-                        JOIN {modules} m ON cm.module = m.id
-                        JOIN {grade_items} gi ON gi.iteminstance = cm.instance AND gi.itemmodule = m.name
-                    WHERE gi.id = :gradeitemid
-                ";
+                SELECT cm.id AS cmid
+                FROM {course_modules} cm
+                JOIN {modules} m ON cm.module = m.id
+                JOIN {grade_items} gi ON gi.iteminstance = cm.instance AND gi.itemmodule = m.name
+                WHERE gi.id = :gradeitemid
+            ";
 
         // Execute the query.
         return $DB->get_record_sql($sql, ['gradeitemid' => $gradeitem->id]);

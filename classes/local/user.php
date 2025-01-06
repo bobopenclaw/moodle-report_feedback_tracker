@@ -153,62 +153,60 @@ class user {
 
         // Note: the uniqueid seems to be necessary for a correct query using Postgres SQL.
         $sql = "
-    select
-        ROW_NUMBER() OVER (ORDER BY gi.id) AS uniqueid,
-        gi.id as gradeitemid,
-        gi.courseid,
-        gi.itemname,
-        gi.itemtype,
-        gi.itemmodule,
-        gi.iteminstance,
-        gi.hidden as hiddengrade,
-        u.id as studentid,
-        u.username as student,
-        gi.gradepass,
-        gi.grademax,
-        CASE
-            WHEN gi.itemmodule = 'assign' THEN
-                (select duedate from {assign} where id = gi.iteminstance )
-            WHEN gi.itemmodule = 'lesson' THEN
-                (select deadline from {lesson} where id = gi.iteminstance)
-            WHEN gi.itemmodule = 'quiz' THEN
-                (select timeclose from {quiz} where id = gi.iteminstance)
-            WHEN gi.itemmodule = 'scorm' THEN
-                (select timeclose from {scorm} where id = gi.iteminstance)
-            WHEN gi.itemmodule = 'turnitintooltwo' THEN
-                0
-            WHEN gi.itemmodule = 'workshop' THEN
-                (select submissionend from {workshop} where id = gi.iteminstance)
-            ELSE 0
-        END as duedate,
-        gg.finalgrade,
-        gg.feedback,
-        gg.timemodified as feedbackdate,
-        cm.id as cmid,
-        cm.visible,
-        um.username as grader,
-        gg.timemodified,
-        rft.partid,
-        rft.summative,
-        rft.hidden,
-        rft.feedbackduedate,
-        rft.method,
-        rft.responsibility,
-        rft.generalfeedback,
-        rft.gfurl,
-        rft.gfdate
-    from {grade_items} gi
-        left JOIN {modules} m on m.name = gi.itemmodule
-        left JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
-        left JOIN {report_feedback_tracker} rft on rft.gradeitem = gi.id
-        left join {grade_grades} gg on gi.id = gg.itemid and gg.userid = :userid
-        left join {user} u on u.id = gg.userid
-        left join {user} um on um.id = gg.usermodified
-    where gi.courseid = :courseid
-";
+            SELECT
+                ROW_NUMBER() OVER (ORDER BY gi.id) AS uniqueid,
+                gi.id AS gradeitemid,
+                gi.courseid,
+                gi.itemname,
+                gi.itemtype,
+                gi.itemmodule,
+                gi.iteminstance,
+                gi.hidden AS hiddengrade,
+                u.id AS studentid,
+                u.username AS student,
+                gi.gradepass,
+                gi.grademax,
+                CASE
+                    WHEN gi.itemmodule = 'assign' THEN
+                        (SELECT duedate FROM {assign} WHERE id = gi.iteminstance )
+                    WHEN gi.itemmodule = 'lesson' THEN
+                        (SELECT deadline FROM {lesson} WHERE id = gi.iteminstance)
+                    WHEN gi.itemmodule = 'quiz' THEN
+                        (SELECT timeclose FROM {quiz} WHERE id = gi.iteminstance)
+                    WHEN gi.itemmodule = 'scorm' THEN
+                        (SELECT timeclose FROM {scorm} WHERE id = gi.iteminstance)
+                    WHEN gi.itemmodule = 'turnitintooltwo' THEN
+                        0
+                    WHEN gi.itemmodule = 'workshop' THEN
+                        (SELECT submissionend FROM {workshop} WHERE id = gi.iteminstance)
+                    ELSE 0
+                END AS duedate,
+                gg.finalgrade,
+                gg.feedback,
+                gg.timemodified AS feedbackdate,
+                cm.id AS cmid,
+                cm.visible,
+                um.username AS grader,
+                gg.timemodified,
+                rft.partid,
+                rft.summative,
+                rft.hidden,
+                rft.feedbackduedate,
+                rft.method,
+                rft.responsibility,
+                rft.generalfeedback,
+                rft.gfurl,
+                rft.gfdate
+            FROM {grade_items} gi
+            LEFT JOIN {modules} m ON m.name = gi.itemmodule
+            LEFT JOIN {course_modules} cm ON cm.instance = gi.iteminstance AND cm.course = gi.courseid AND m.id = cm.module
+            LEFT JOIN {report_feedback_tracker} rft ON rft.gradeitem = gi.id
+            LEFT JOIN {grade_grades} gg ON gi.id = gg.itemid AND gg.userid = :userid
+            LEFT JOIN {user} u ON u.id = gg.userid
+            LEFT JOIN {user} um ON um.id = gg.usermodified
+            WHERE gi.courseid = :courseid";
 
-        $params['courseid'] = $course->id;
-        $params['userid'] = $userid;
+        $params = ['courseid' => $course->id, 'userid' => $userid];
         $gradeitems = $DB->get_records_sql($sql, $params);
 
         $assesstypes = helper::get_assessment_types($course->id);

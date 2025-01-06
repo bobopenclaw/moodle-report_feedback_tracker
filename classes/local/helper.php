@@ -325,74 +325,6 @@ class helper {
     }
 
     /**
-     * Count all submissions of a course module.
-     *
-     * @param cm_info $cm
-     * @return array
-     */
-    public static function count_submissions(cm_info $cm): int {
-        global $DB;
-
-        if ($cm) {
-            $context = context_module::instance($cm->id);
-            switch ($cm->modname) {
-                case 'assign':
-                    // Get the group submission status.
-                    $assignment = new assign($context, $cm, $cm->course);
-                    return $assignment->count_submissions();
-                case 'lesson':
-                    $params = ['lessonid' => $cm->instance, 'correct' => 1];
-                    return count($DB->get_records('lesson_attempts', $params));
-                case 'quiz':
-                    $params = ['quiz' => $cm->instance, 'state' => 'finished'];
-                    return count($DB->get_records('quiz_attempts', $params));
-                case 'turnitintooltwo':
-                    $params = ['turnitintooltwoid' => $cm->instance];
-                    return count($DB->get_records('turnitintooltwo_submissions', $params));
-                case 'scorm':
-                    return 0;
-                case 'workshop':
-                    $params = ['workshopid' => $cm->instance];
-                    return count($DB->get_records('workshop_submissions', $params));
-                default:
-                    return 0;
-            }
-        }
-        return [];
-    }
-
-    /**
-     * Count the missing grades for a given grade item.
-     *
-     * @param grade_item $gradeitem
-     * @param cm_info $cm
-     * @param int $submissions the number of submissions for this course module.
-     * @return int
-     * @throws dml_exception
-     */
-    public static function count_missing_grades(grade_item $gradeitem, cm_info $cm, int $submissions): int {
-        global $DB;
-
-        // Assignments provide a way to count grades.
-        if ($cm->modname === 'assign') {
-            // Get the group submission status.
-            $context = context_module::instance($cm->id);
-            $assignment = new assign($context, $cm, $cm->course);
-            return $assignment->count_submissions_need_grading();
-        }
-
-        // For modules other than assignments fetch the grades from the grade-grades table.
-        $sql = "select distinct gg.userid
-                from {grade_grades} gg
-                where gg.itemid = :gradeitemid and gg.finalgrade > -1";
-
-        // Execute the query.
-        $grades = $DB->get_records_sql($sql, ['gradeitemid' => $gradeitem->id]);
-
-        return $submissions - count($grades);
-    }
-
-    /**
      * Get a submission status icon.
      *
      * @param stdClass $gradeitem
@@ -508,26 +440,23 @@ class helper {
     public static function get_tttparts($courseid): array {
         global $DB;
 
-        $sql = "
-    select
-    tttp.*,
-    gi.id AS gradeitemid,
-    rft.summative,
-    rft.hidden,
-    rft.feedbackduedate,
-    rft.method,
-    rft.responsibility,
-    rft.generalfeedback,
-    rft.gfurl,
-    rft.gfdate
-    from {turnitintooltwo_parts} tttp
-    join {grade_items} gi on gi.itemmodule = 'turnitintooltwo' and gi.iteminstance = tttp.turnitintooltwoid
-    left join {report_feedback_tracker} rft on
-    rft.gradeitem = gi.id and rft.partid = tttp.id
-     WHERE gi.courseid = $courseid
-    ";
-
-        return $DB->get_records_sql($sql);
+        $sql = "SELECT
+                tttp.*,
+                gi.id AS gradeitemid,
+                rft.summative,
+                rft.hidden,
+                rft.feedbackduedate,
+                rft.method,
+                rft.responsibility,
+                rft.generalfeedback,
+                rft.gfurl,
+                rft.gfdate
+                FROM {turnitintooltwo_parts} tttp
+                JOIN {grade_items} gi ON gi.itemmodule = 'turnitintooltwo' AND gi.iteminstance = tttp.turnitintooltwoid
+                LEFT JOIN {report_feedback_tracker} rft ON rft.gradeitem = gi.id AND rft.partid = tttp.id
+                WHERE gi.courseid = :courseid";
+        $params = ['courseid' => $courseid];
+        return $DB->get_records_sql($sql, $params);
     }
 
     /**
@@ -540,8 +469,9 @@ class helper {
         global $DB;
 
         $sql = "SELECT * FROM {turnitintooltwo_parts} WHERE turnitintooltwoid = :iteminstance";
+        $params = ['iteminstance' => $gradeitem->iteminstance];
         // Execute the query.
-        $tttparts = $DB->get_records_sql($sql, ['iteminstance' => $gradeitem->iteminstance]);
+        $tttparts = $DB->get_records_sql($sql, $params);
 
         return $tttparts;
 
@@ -854,9 +784,8 @@ class helper {
      * Get the assessment type options.
      *
      * @return object[]
-     * @throws coding_exception
      */
-    private static function get_assesstype_options() {
+    public static function get_assesstype_options() {
         return [
             (object)['value' => assess_type::ASSESS_TYPE_FORMATIVE,
                 'label' => get_string('formativeoption', 'local_assess_type')],
@@ -998,155 +927,4 @@ class helper {
         return $students;
     }
 
-    /**
-     * Get the due date of a course module.
-     *
-     * @param cm_info $cm
-     * @return int
-     * @throws dml_exception
-     */
-    public static function get_duedate(cm_info $cm): int {
-        global $DB;
-
-        switch ($cm->modname) {
-            case 'assign':
-                $record = $DB->get_record('assign', ['id' => $cm->instance], 'duedate');
-                $duedate = $record->duedate;
-                break;
-            case 'lesson':
-                $record = $DB->get_record('lesson', ['id' => $cm->instance], 'deadline');
-                $duedate = $record->deadline;
-                break;
-            case 'quiz':
-                $record = $DB->get_record('quiz', ['id' => $cm->instance], 'timeclose');
-                $duedate = $record->timeclose;
-                break;
-            case 'workshop':
-                $record = $DB->get_record('workshop', ['id' => $cm->instance], 'submissionend');
-                $duedate = $record->submissionend;
-                break;
-            default:
-                $duedate = 0;
-        }
-
-        return $duedate;
-    }
-
-    /**
-     * Get the number of students that have a submission due date override for a given course module.
-     *
-     * @param cm_info $module
-     * @return int
-     * @throws dml_exception
-     */
-    public static function get_overrides(cm_info $module): int {
-        global $DB;
-
-        switch ($module->modname) {
-            case 'assign':
-                $idfield = 'assignid';
-                break;
-            case 'lesson':
-                $idfield = 'lessonid';
-                break;
-            case 'quiz':
-                $idfield = 'quiz';
-                break;
-            default:
-                return 0; // Return no overrides.
-        }
-
-        $overrides = [];
-        // Get user overrides.
-        $overridetable = $module->modname . "_overrides";
-        $useroverrides = $DB->get_records_sql("
-            SELECT *
-            FROM {" . $overridetable . "}
-            WHERE $idfield = :moduleid AND userid IS NOT NULL", ['moduleid' => $module->instance]);
-
-        foreach ($useroverrides as $useroverride) {
-            $overrides[$useroverride->userid] = $useroverride->userid;
-        }
-
-        // Get group overrides and users in those groups.
-        $groupoverrides = $DB->get_records_sql("
-            SELECT gm.*
-            FROM {" . $overridetable . "} ao
-            JOIN {groups_members} gm ON ao.groupid = gm.groupid
-            WHERE ao.$idfield = :moduleid AND ao.groupid IS NOT NULL", ['moduleid' => $module->instance]);
-
-        foreach ($groupoverrides as $groupoverride) {
-            $overrides[$groupoverride->userid] = $groupoverride->userid;
-        }
-
-        // Count users.
-        return count($overrides);
-    }
-
-    /**
-     * Provide a URL of the override settings of a given course module where available.
-     *
-     * @param cm_info $module
-     * @return string
-     */
-    public static function get_overrides_url(cm_info $module): string {
-        $supportedmodules = ['assign', 'lesson', 'quiz'];
-        if (in_array($module->modname, $supportedmodules)) {
-            return "/mod/$module->modname/overrides.php?cmid=$module->id";
-        }
-        return "#";
-    }
-
-    /**
-     * Count the grades for a given grade item.
-     *
-     * @param grade_item $gradeitem
-     * @param cm_info $cm
-     * @return int
-     * @throws dml_exception
-     */
-    public static function count_grades(grade_item $gradeitem, cm_info $cm): int {
-        global $DB;
-
-        $sql = "select distinct gg.userid
-                from {grade_grades} gg
-                where gg.itemid = :gradeitemid and gg.finalgrade > -1";
-
-        // Execute the query.
-        $grades = $DB->get_records_sql($sql, ['gradeitemid' => $gradeitem->id]);
-
-        // Assignments may have group submissions.
-        if ($cm->modname === 'assign') {
-            // Get the group submission status.
-            $context = context_module::instance($cm->id);
-            $assignment = new assign($context, $cm, $cm->course);
-
-            // If group submissions are enabled count only group grades.
-            if ($assignment->get_instance()->teamsubmission) {
-                return self::count_group_grades($gradeitem->courseid, $grades);
-            }
-        }
-        return count($grades);
-    }
-
-    /**
-     * Extract the group grades from individual grades and count them.
-     *
-     * @param int $courseid
-     * @param array $grades the individual grades.
-     * @return int
-     */
-    public static function count_group_grades(int $courseid, array $grades): int {
-        $groupgrades = [];
-        foreach ($grades as $grade) {
-            // For the specified course get the groups the graded user belongs to.
-            $usergroups = groups_get_user_groups($courseid, $grade->userid);
-            foreach ($usergroups as $usergroup) {
-                // Add only one grade per group.
-                $groupindex = isset($usergroup[0]) ? $usergroup[0] : 0; // Group ID 0 is the default group.
-                $groupgrades[$groupindex] = true;
-            }
-        }
-        return count($groupgrades);
-    }
 }

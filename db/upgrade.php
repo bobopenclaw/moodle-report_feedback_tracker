@@ -184,15 +184,16 @@ function xmldb_report_feedback_tracker_upgrade($oldversion) {
         if ($dbman->field_exists($table, $field)) {
             // Update existing records based on partname and cmid.
             $sql = "
-        select
+        SELECT
             rft.id,
             gi.iteminstance,
             rft.partname
-        from
+        FROM
             {report_feedback_tracker} rft
-        join {grade_items} gi on rft.gradeitem = gi.id and gi.itemmodule = 'turnitintooltwo'
+        JOIN {grade_items} gi ON rft.gradeitem = gi.id AND gi.itemmodule = :itemmodule
         ";
-            $records = $DB->get_records_sql($sql);
+            $params = ['itemmodule' => 'turnitintooltwo'];
+            $records = $DB->get_records_sql($sql, $params);
             foreach ($records as $record) {
                 $parts = $DB->get_records('turnitintooltwo_parts', ['turnitintooltwoid' => $record->iteminstance]);
                 foreach ($parts as $part) {
@@ -223,15 +224,16 @@ function xmldb_report_feedback_tracker_upgrade($oldversion) {
         $field = new xmldb_field('partname', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
         if ($dbman->field_exists($table, $field)) {
             $sql = "
-        select
-            rftd.id,
-            gi.iteminstance,
-            rftd.partname
-        from
-            {report_feedback_tracker_duedates} rftd
-        join {grade_items} gi on rftd.gradeitem = gi.id and gi.itemmodule = 'turnitintooltwo'
-        ";
-            $records = $DB->get_records_sql($sql);
+                SELECT
+                    rftd.id,
+                    gi.iteminstance,
+                    rftd.partname
+                FROM
+                    {report_feedback_tracker_duedates} rftd
+                JOIN {grade_items} gi ON rftd.gradeitem = gi.id AND gi.itemmodule = :itemmodule
+            ";
+            $params = ['itemmodule' => 'turnitintooltwo'];
+            $records = $DB->get_records_sql($sql, $params);
             foreach ($records as $record) {
                 $parts = $DB->get_records('turnitintooltwo_parts', ['turnitintooltwoid' => $record->iteminstance]);
                 foreach ($parts as $part) {
