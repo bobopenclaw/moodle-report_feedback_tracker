@@ -104,7 +104,7 @@ class renderer extends plugin_renderer_base {
         $dateformat = get_string('strftimedatemonthabbr', 'langconfig');
 
         // Get all grade items for the course.
-        $gradeitems = grade_item::fetch_all(['courseid' => $courseid]);
+        $gradeitems = grade_item::fetch_all(['courseid' => $courseid]) ?: [];
 
         $data = new stdClass();
         $data->courseid = $courseid;
@@ -116,7 +116,7 @@ class renderer extends plugin_renderer_base {
         $assesstypes = helper::get_assessment_types($courseid);
         $data->dropdownstudents = helper::get_course_students($courseid);
 
-        // Create records for manual grade items and supported course modules.
+        // If present create records for manual grade items and supported course modules.
         foreach ($gradeitems as $gradeitem) {
             if (($gradeitem->itemtype === 'mod') &&
                     helper::is_supported_module($gradeitem->itemmodule) &&
