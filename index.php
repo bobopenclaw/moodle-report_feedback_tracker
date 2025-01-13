@@ -33,19 +33,18 @@ $userid = optional_param('userid', null, PARAM_INT);
 
 // If there is no course ID given redirect to the user report.
 if (!$courseid) {
-    redirect(new moodle_url("$CFG->wwwroot/report/feedback_tracker/user.php"));
+    redirect(new moodle_url('/report/feedback_tracker/user.php'));
 }
 // If there is a userid or the logged-in user has no rights redirect to the user report.
 if ($userid || (!helper::is_course_editor($courseid, $USER->id))) {
-    redirect(new moodle_url("$CFG->wwwroot/report/feedback_tracker/user.php?userid=$userid&id=$courseid"));
+    redirect(new moodle_url('/report/feedback_tracker/user.php', ['id' => $courseid, 'userid' => $userid]));
 }
 
 $course = isset($courseid) ? get_course($courseid) : $COURSE;
 require_login($course);
 
 // If this was called from a form take care of the form data.
-if ($_SERVER["REQUEST_METHOD"] == "POST" && confirm_sesskey()) {
-    $params = [];
+if (data_submitted() && confirm_sesskey()) {
     $params['itemid'] = required_param('itemid', PARAM_INT);
     $params['partid'] = optional_param('partid', null, PARAM_INT);
     $params['contact'] = optional_param('contact', null, PARAM_TEXT);

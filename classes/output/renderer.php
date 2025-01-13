@@ -27,6 +27,7 @@ namespace report_feedback_tracker\output;
 use context_course;
 use grade_item;
 use local_assess_type\assess_type;
+use moodle_url;
 use plugin_renderer_base;
 use report_feedback_tracker\local\admin;
 use report_feedback_tracker\local\helper;
@@ -159,12 +160,19 @@ class renderer extends plugin_renderer_base {
                 $item = new stdClass();
                 $item->name = $gradeitem->itemname;
                 $item->gradeitemid = $gradeitem->id;
-                $item->partid = false;
+                $item->partid = 0;
                 $item->manual = true;
                 $item->feedbackduedateraw = 9999999999; // Needed for sorting. Make sure they are listed last.
                 // Add a URL pointing to the gradebook item in single view.
-                $item->url = "$CFG->wwwroot/grade/report/singleview/index.php?id=$gradeitem->courseid&" .
-                    "item=grade&itemid=$gradeitem->id&gpr_type=report&gpr_plugin=grader&gpr_courseid=$gradeitem->courseid";
+                $item->url = new moodle_url('/grade/report/singleview/index.php', [
+                    'id' => $gradeitem->courseid,
+                    'item' => 'grade',
+                    'itemid' => $gradeitem->id,
+                    'gpr_type' => 'report',
+                    'gpr_plugin' => 'grader',
+                    'gpr_courseid' => $gradeitem->courseid,
+                ]);
+
                 // Get additional information for each part record.
                 self::add_additional_data($item, $assesstypes);
 
@@ -203,6 +211,17 @@ class renderer extends plugin_renderer_base {
         $item->notset = !$item->formative && !$item->summative && !$item->dummy;
 
         $item->hiddenfromreport = $item->dummy; // Dummy assessments are always hidden from the student report.
+
+        // If the item has been saved show a confirmation.
+        if (data_submitted() && confirm_sesskey()) {
+            $itemid = required_param('itemid', PARAM_INT);
+            $partid = required_param('partid', PARAM_INT);
+
+            if (($itemid === (int) $item->gradeitemid) &&
+                ($partid === (int) $item->partid)) {
+                $item->updated = true;
+            }
+        }
 
         // There should be only one record - make sure nevertheless...
         if ($record = $DB->get_record('report_feedback_tracker', $params, '*', IGNORE_MULTIPLE)) {

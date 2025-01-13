@@ -23,6 +23,7 @@
  */
 
 $string['additionalinformationhint'] = 'Additional information shown in feedback tracker to all students for this assessment.';
+$string['assessment:has_been_updated'] = 'Assessment data has been updated.';
 $string['assesstype:dummy'] = 'Dummy';
 $string['assesstype:formative'] = 'Formative';
 $string['assesstype:notset'] = 'Not set';
@@ -31,6 +32,7 @@ $string['badge:hiddenfromreport'] = 'Hidden from report';
 $string['badge:hiddenfromstudents'] = 'Hidden from students';
 $string['cachedef_publicholidays'] = 'Public holiday dates';
 $string['classification'] = 'Classification';
+$string['close'] = 'Close';
 $string['closure:currentyear'] = 'Closure dates current year';
 $string['closure:currentyear-1'] = 'Closure dates last year';
 $string['closure:currentyear-2'] = 'Closure dates 2 years ago';

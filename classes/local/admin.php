@@ -62,7 +62,7 @@ class admin {
         $data->moduletypeiconurl = $module->get_icon_url()->out(false);
 
         $data->cmid = $module->id;
-        $data->partid = false;
+        $data->partid = 0;
 
         // Hiding attributes.
         $data->hiddenfromstudents = !$module->visible;
