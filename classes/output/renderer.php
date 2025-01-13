@@ -192,9 +192,7 @@ class renderer extends plugin_renderer_base {
 
         $dateformat = get_string('strftimedatemonthabbr', 'langconfig');
         $params = ['gradeitem' => $item->gradeitemid];
-        if ($item->partid) {
-            $params['partid'] = $item->partid;
-        }
+        $params['partid'] = $item->partid ?: null;
 
         // Assessment type.
         helper::append_assess_type_to_gradeitem($item, $assesstypes);

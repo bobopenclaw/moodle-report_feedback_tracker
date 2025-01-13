@@ -352,7 +352,7 @@ class admin {
         global $DB, $USER;
 
         $itemid = $params['itemid'];
-        $partid = $params['partid'];
+        $partid = $params['partid'] ?: null;
         $contact = $params['contact'];
         $method = $params['method'];
         $hidden = $params['hidden'];
