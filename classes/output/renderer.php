@@ -261,13 +261,20 @@ class renderer extends plugin_renderer_base {
     private static function get_reason(int $gradeitemid, string $feedbackduedate): string {
         global $DB;
 
+        // SQL query to fetch the record with the highest ID.
+        // This will contain the latest reason for a given feedback due date if any.
+        $sql = "SELECT t.reason
+                FROM {report_feedback_tracker_duedates} t
+                INNER JOIN (
+                    SELECT MAX(id) AS maxid
+                    FROM {report_feedback_tracker_duedates}
+                    WHERE gradeitem = :gradeitem
+                      AND feedbackduedate = :feedbackduedate
+                ) sub ON t.id = sub.maxid";
         $params = ['gradeitem' => $gradeitemid, 'feedbackduedate' => strtotime($feedbackduedate)];
-        $record = $DB->get_record('report_feedback_tracker_duedates', $params, '*', IGNORE_MULTIPLE);
-        if (isset($record->reason)) {
-            return $record->reason;
-        }
+        $record = $DB->get_record_sql($sql, $params);
 
-        return "";
+        return isset($record->reason) ? $record->reason : '';
     }
 
 }

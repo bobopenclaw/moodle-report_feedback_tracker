@@ -256,27 +256,35 @@ function xmldb_report_feedback_tracker_upgrade($oldversion) {
     }
 
     // For partid convert existing 0 into NULL value and remove duplicate records.
-    if ($oldversion < 2025011000) {
+    if ($oldversion < 2025011400) {
 
+        // Update table report_feedback_tracker.
         // Update 0 into null.
         $sql = "UPDATE {report_feedback_tracker}
-                    SET partid = NULL
-                    WHERE partid = :partid";
-        $params = ['partid' => 0];
-        $DB->execute($sql, $params);
+                SET partid = NULL
+                WHERE partid = 0";
+        $DB->execute($sql);
 
         // Remove any duplicate records while keeping the older one.
         $sql = "DELETE t1
-                    FROM {report_feedback_tracker} t1
-                    JOIN {report_feedback_tracker} t2
-                    ON t1.gradeitem = t2.gradeitem
-                        AND t1.id > t2.id
-                    WHERE t1.partid IS NULL
-                        AND t2.partid IS NULL";
+                FROM {report_feedback_tracker} t1
+                JOIN {report_feedback_tracker} t2
+                ON t1.gradeitem = t2.gradeitem
+                    AND t1.id > t2.id
+                WHERE t1.partid IS NULL
+                    AND t2.partid IS NULL";
+        $DB->execute($sql);
+
+        // Update table report_feedback_tracker_duedates.
+        // Update 0 into null.
+        $sql = "UPDATE {report_feedback_tracker_duedates}
+                SET partid = NULL
+                WHERE partid = 0";
         $DB->execute($sql);
 
         // Savepoint reached.
-        upgrade_plugin_savepoint(true, 2025011000, 'report', 'feedback_tracker');
+        upgrade_plugin_savepoint(true, 2025011400, 'report', 'feedback_tracker');
     }
+
     return true;
 }
