@@ -62,7 +62,7 @@ class admin {
         $data->moduletypeiconurl = $module->get_icon_url()->out(false);
 
         $data->cmid = $module->id;
-        $data->partid = 0;
+        $data->partid = null;
 
         // Hiding attributes.
         $data->hiddenfromstudents = !$module->visible;
@@ -352,6 +352,7 @@ class admin {
         $feedbackduedate = $params['feedbackduedate'];
         $feedbackreleaseddate = $params['feedbackreleaseddate'];
         $reason = $params['reason'];
+        $prevreason = helper::get_reason($itemid, $partid, $feedbackduedate);
         $previousfeedbackduedate = $params['previousfeedbackduedate'];
         $assesstype = $params['assesstype'];
         $cohortfeedback = $params['cohortfeedback'];
@@ -366,25 +367,16 @@ class admin {
             $record->hidden = isset($hidden);
             $record->generalfeedback = $generalfeedback;
 
-            // If custom feedback due date is checked.
             if (isset($customfeedbackduedatecheckbox)) {
-                // Only save a feedback due date when it has changed.
-                if ($feedbackduedate !== $previousfeedbackduedate) {
-                    $record->feedbackduedate = strtotime($feedbackduedate);
-                }
+                $record->feedbackduedate = strtotime($feedbackduedate);
             } else { // Remove the custom feedback due date.
                 $record->feedbackduedate = null;
             }
 
-            // Update the current time as gfdate only if the cohort feedback state has changed.
             if (isset($customfeedbackreleaseddatecheckbox)) {
-                if (!$record->gfdate) {
-                    $record->gfdate = strtotime($feedbackreleaseddate);
-                }
-            } else { // If cohort feedback is disabled remove the date.
-                if ($record->gfdate) {
-                    $record->gfdate = null;
-                }
+                $record->gfdate = strtotime($feedbackreleaseddate);
+            } else { // Remove the custom feedback released date.
+                $record->gfdate = null;
             }
 
             $DB->update_record('report_feedback_tracker', $record);
@@ -396,22 +388,22 @@ class admin {
             $record->method = $method;
             $record->hidden = isset($hidden);
             $record->generalfeedback = $generalfeedback;
+            $record->feedbackduedate = strtotime($feedbackduedate);
 
-            // Save a feedback due date only when it has changed.
-            if ($feedbackduedate !== $previousfeedbackduedate) {
-                $record->feedbackduedate = strtotime($feedbackduedate);
-            }
-
-            // Save the current time as gfdate if cohort feedback is set.
-            if ($cohortfeedback) {
-                $record->gfdate = time();
+            if (isset($customfeedbackreleaseddatecheckbox)) {
+                $record->gfdate = strtotime($feedbackreleaseddate);
+            } else { // Remove the custom feedback released date.
+                $record->gfdate = null;
             }
 
             $DB->insert_record('report_feedback_tracker', $record);
         }
 
-        // If there is a new manually set feedback due date store the reason for it in a different table.
-        if (($feedbackduedate !== $previousfeedbackduedate) && $reason) {
+        // If the reason or the date has changed log it.
+        if ($reason &&
+                (($feedbackduedate !== $previousfeedbackduedate) ||
+                ($reason !== $prevreason))
+        ) {
             $record = new stdClass();
             $record->gradeitem = $itemid;
             $record->partid = $partid;

@@ -919,4 +919,114 @@ class helper {
         return $students;
     }
 
+    /**
+     * Add additional data for the grade item where available.
+     *
+     * @param stdClass $item
+     * @param array $assesstypes
+     * @return void
+     */
+    public static function add_additional_data(stdClass $item, array $assesstypes): void {
+        global $DB;
+
+        $params['gradeitem'] = $item->gradeitemid;
+        $params['partid'] = $item->partid ?: null;
+        // Assessment type.
+        self::append_assess_type_to_gradeitem($item, $assesstypes);
+        $item->formative = (int) $item->assesstype === assess_type::ASSESS_TYPE_FORMATIVE;
+        $item->summative = (int) $item->assesstype === assess_type::ASSESS_TYPE_SUMMATIVE;
+        $item->dummy = (int) $item->assesstype === assess_type::ASSESS_TYPE_DUMMY;
+
+        $item->notset = !$item->formative && !$item->summative && !$item->dummy;
+
+        $item->hiddenfromreport = $item->dummy; // Dummy assessments are always hidden from the student report.
+
+        // If the item has been saved show a confirmation.
+        if (data_submitted() && confirm_sesskey()) {
+            $itemid = required_param('itemid', PARAM_INT);
+            $partid = required_param('partid', PARAM_INT);
+
+            if (($itemid === (int) $item->gradeitemid) &&
+                    ($partid === (int) $item->partid)) {
+                $item->updated = true;
+            }
+        }
+
+        // There should be only one record - make sure nevertheless...
+        if ($record = $DB->get_record('report_feedback_tracker', $params, '*', IGNORE_MULTIPLE)) {
+            $item->method = $record->method;
+            $item->contact = $record->responsibility;
+            $item->generalfeedback = $record->generalfeedback;
+
+            if ($record->feedbackduedate) {
+                $item->customfeedbackduedate = date('Y-m-d', $record->feedbackduedate);
+                $item->feedbackduedateraw = $record->feedbackduedate;
+                $item->feedbackduedate = userdate($record->feedbackduedate,
+                    get_string('strftimedatemonthabbr', 'langconfig'));
+
+                // Get a custom feedback due date reason entry for the grade item where available.
+                $item->feedbackduedatereason = self::get_reason($item->gradeitemid, $item->partid, $item->feedbackduedate);
+            }
+
+            // Check if there is additional data to show.
+            if ($item->generalfeedback || $item->method || $item->contact) {
+                $item->additionaldata = true;
+            }
+
+            if ($record->gfdate) {
+                $item->customfeedbackreleaseddate = date('Y-m-d', $record->gfdate);
+            }
+
+            $item->hiddenfromreport = (isset($item->hiddenfromreport) && $item->hiddenfromreport) || $record->hidden;
+        }
+    }
+
+    /**
+     * Return the current reason for a custom feedback due date or false.
+     *
+     * @param int $gradeitemid
+     * @param int|null $partid
+     * @param string $feedbackduedate
+     * @return string
+     */
+    public static function get_reason(int $gradeitemid, int|null $partid, string $feedbackduedate): string {
+        global $DB;
+
+        // SQL query to fetch the record with the highest ID.
+        // This will contain the latest reason for a given feedback due date if any.
+        if (isset($partid)) {
+            $sql = "SELECT dd.reason
+                FROM {report_feedback_tracker_duedates} dd
+                INNER JOIN (
+                    SELECT MAX(id) AS maxid
+                    FROM {report_feedback_tracker_duedates}
+                    WHERE gradeitem = :gradeitem
+                      AND partid = :partid
+                      AND feedbackduedate = :feedbackduedate
+                ) sub ON dd.id = sub.maxid";
+            $params = [
+                'gradeitem' => $gradeitemid,
+                'partid' => $partid,
+                'feedbackduedate' => strtotime($feedbackduedate),
+            ];
+        } else {
+            $sql = "SELECT dd.reason
+                FROM {report_feedback_tracker_duedates} dd
+                INNER JOIN (
+                    SELECT MAX(id) AS maxid
+                    FROM {report_feedback_tracker_duedates}
+                    WHERE gradeitem = :gradeitem
+                      AND partid IS NULL
+                      AND feedbackduedate = :feedbackduedate
+                ) sub ON dd.id = sub.maxid";
+            $params = [
+                'gradeitem' => $gradeitemid,
+                'feedbackduedate' => strtotime($feedbackduedate),
+            ];
+        }
+        $record = $DB->get_record_sql($sql, $params);
+
+        return isset($record->reason) ? $record->reason : '';
+    }
+
 }
