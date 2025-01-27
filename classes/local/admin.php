@@ -340,7 +340,7 @@ class admin {
             case 'assign':
                 return new moodle_url('/mod/assign/view.php', ['id' => $module->id, 'action' => 'grading']);
             case 'quiz':
-                return new moodle_url('/mod/quiz/report.php', ['id' => $module->id, 'mode' => 'overview']);
+                return new moodle_url('/mod/quiz/report.php', ['id' => $module->id, 'mode' => 'grading']);
         }
 
         return $module->get_url();
