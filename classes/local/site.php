@@ -1,0 +1,294 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+namespace report_feedback_tracker\local;
+
+use block_portico_enrolments;
+use coding_exception;
+use context_course;
+use course_modinfo;
+use dml_exception;
+use grade_item;
+use local_assess_type\assess_type;
+use stdClass;
+
+/**
+ * This file contains the site functions used by the feedback tracker report.
+ *
+ * @package    report_feedback_tracker
+ * @copyright  2025 UCL <m.opitz@ucl.ac.uk>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class site {
+    /**
+     * Get the data for the site report.
+     *
+     * @return stdClass
+     */
+    public static function get_feedback_tracker_site_data(): stdClass {
+        global $USER;
+
+        // Start an optional timer.
+        $time = optional_param('time', null, PARAM_INT);
+        if ($time) {
+            $starttime = microtime(true);
+        }
+
+        $data = new stdClass();
+        $data->staffdata = true;
+        $data->canedit = true;
+        $data->outputedit = true;
+        $data->courses = [];
+
+        $courses = enrol_get_users_courses($USER->id);
+
+        $year = optional_param('year', null, PARAM_INT);
+        $year = $year ? substr($year, 0, 4) : helper::get_current_academic_year();
+        $data->selectedyear = $year;
+
+        // Get the last three academic years.
+        $academicyears = helper::get_last_three_academic_years();
+        // Remove the key of the selected academic year.
+        // This is used by the template to identify the selection.
+        unset($academicyears[$year]->key);
+        $data->academicyearoptions = array_values($academicyears);
+        $data->hasyears = true;
+
+        // Get the terms.
+        $terms = helper::get_terms();
+        $data->termoptions = $terms;
+        $data->hasterms = true;
+
+        $termcode = optional_param('term', null, PARAM_TEXT);
+        $termcode = $termcode ?: helper::get_current_termcode();
+        $data->selectedterm = $termcode;
+
+        // Remove the code of the selected term.
+        // This is used by the template to identify the selection.
+        $delkey = (int)substr($termcode, -1) - 1;
+        unset($terms[$delkey]->code);
+
+        // Courses.
+        foreach ($courses as $course) {
+            $courseay = helper::get_academic_year($course->id); // Get the academic year from the course custom field.
+            // Only show courses for the selected year visible to students.
+            if ($course->visible && $courseay === $year) {
+                // Only show courses for the selected academic year and term and where the user is a teacher.
+                list($courseacademicyears, $courseterms) = self::get_course_academic_years_and_terms($course);
+                if (in_array($year, $courseacademicyears) &&
+                        in_array($termcode, $courseterms[$year]) &&
+                        self::is_teacher($course->id)) {
+                    $courseitem = self::build_courseitem($course);
+
+                    // Show only courses with assessments to show.
+                    if (isset($courseitem->items)) {
+                        $data->courses[] = $courseitem;
+                    }
+                }
+            }
+        }
+
+        // If timer option is set show the execution time.
+        if ($time) {
+            $endtime = microtime(true);
+            $executiontime = $endtime - $starttime;
+
+            $data->executiontime = "Execution time: " . number_format($executiontime, 4) . " seconds\n";
+        }
+        return $data;
+    }
+
+    /**
+     * Build a course item.
+     *
+     * @param stdClass $course
+     * @return stdClass|null
+     */
+    private static function build_courseitem(stdClass $course): ?stdClass {
+        $gradeitems = grade_item::fetch_all(['courseid' => $course->id]);
+        // Only build course items from courses with grade items.
+        if (!$gradeitems) {
+            return null;
+        }
+
+        $modinfo = get_fast_modinfo($course->id);
+        $assesstypes = helper::get_assessment_types($course->id);
+
+        $courseitem = new stdClass();
+        $courseitem->url = helper::get_course_url($course->id);
+        $courseitem->fullname = $course->fullname;
+
+        foreach ($gradeitems as $gradeitem) {
+            // Get course module ID for the grade item where it exists.
+            $cmid = helper::get_cmid($gradeitem->id);
+            $assesstype = helper::get_assesstype($gradeitem->id,  $cmid, $assesstypes);
+
+            // Process summative modules and manual grade items only.
+            if (((int) $assesstype->type === assess_type::ASSESS_TYPE_SUMMATIVE) &&
+                    (($gradeitem->itemtype == 'mod') || ($gradeitem->itemtype === 'manual'))) {
+                if ($gradeitem->itemmodule === 'turnitintooltwo') {
+                    self::build_turnitin_gradeitems($courseitem, $gradeitem, $modinfo, $assesstypes);
+                } else {
+                    self::build_gradeitem($courseitem, $gradeitem, $modinfo, $assesstype);
+                }
+            }
+        }
+        return $courseitem;
+    }
+
+    /**
+     * Build a grade item.
+     *
+     * @param stdClass $courseitem
+     * @param grade_item $gradeitem
+     * @param course_modinfo $modinfo
+     * @param stdClass $assesstype
+     * @return void
+     */
+    private static function build_gradeitem(stdClass $courseitem,
+                                            grade_item $gradeitem,
+                                            course_modinfo $modinfo,
+                                            stdClass $assesstype
+    ): void {
+        // Get the corresponding course module where it exists.
+        if (($cm = admin::get_module_data($modinfo, $gradeitem))
+                && !$cm->hiddenfromstudents) {
+            helper::add_assesstype($cm, $assesstype);
+            helper::add_additional_data($cm);
+
+            $courseitem->items[] = $cm;
+        }
+    }
+
+    /**
+     * Build grade items from Turnitin parts.
+     *
+     * @param stdClass $courseitem
+     * @param grade_item $gradeitem
+     * @param course_modinfo $modinfo
+     * @param array $assesstypes
+     * @return void
+     */
+    private static function build_turnitin_gradeitems(stdClass $courseitem,
+                                            grade_item $gradeitem,
+                                            course_modinfo $modinfo,
+                                            array $assesstypes
+    ): void {
+        // Get the corresponding course module where it exists.
+        if (($cm = admin::get_module_data($modinfo, $gradeitem))
+                && !$cm->hiddenfromstudents) {
+            // Add separate data for each summative Turnitin part.
+            helper::add_ttt_data($courseitem, $gradeitem, $cm, $assesstypes, assess_type::ASSESS_TYPE_SUMMATIVE);
+        }
+    }
+
+    /**
+     * Return if user has archetype editingteacher.
+     *
+     * @param int $courseid
+     * @return bool
+     */
+    public static function is_teacher(int $courseid = 0): bool {
+        global $DB, $USER;
+        // Get id's from role where archetype is teacher or editingteacher.
+        $params = ['role1' => 'editingteacher', 'role2' => 'teacher'];
+        $roles = $DB->get_fieldset_select('role', 'id', 'archetype IN (:role1, :role2)', $params);
+
+        if ($courseid) {
+            // Check if user has expected role in the given course.
+            $context = context_course::instance($courseid);
+            foreach ($roles as $role) {
+                if (user_has_role_assignment($USER->id, (int) $role, $context->id)) {
+                    return true;
+                }
+            }
+            return false;
+
+        } else {
+            // Check if user has editingteacher role on any courses.
+            list($roles, $params) = $DB->get_in_or_equal($roles, SQL_PARAMS_NAMED);
+            $params['userid'] = $USER->id;
+            $sql = "SELECT id
+                FROM {role_assignments}
+                WHERE userid = :userid
+                AND roleid $roles";
+            return  $DB->record_exists_sql($sql, $params);
+        }
+    }
+
+    /**
+     * Return the academic years and terms a course is mapped to.
+     *
+     * @param stdClass $course
+     * @return array[]
+     */
+    public static function get_course_academic_years_and_terms(stdClass $course): array {
+        $mappings = block_portico_enrolments\manager::get_modocc_mappings($course->id);
+
+        foreach ($mappings as $mapping) {
+            $ayitem = new stdClass();
+            $ayitem->courseyear = $mapping->mod_occ_year_code;
+            $ayitem->rawterms = $mapping->mod_occ_psl_code;
+            $ayitem->courseterms = self::parse_mappingtermcode($mapping->mod_occ_psl_code);
+
+            $ayitems[] = $ayitem;
+        }
+        // If Portico does not provide an academic year try to get it from Moodle data.
+        // As then there is no term specified show it in the "other" term (t4).
+        if (!isset($ayitems) || empty($ayitems)) {
+            $ayitem = new stdClass();
+            $ayitem->courseyear = helper::get_academic_year($course->id);
+            $ayitem->courseterms = [4 => 't4'];
+            $ayitems[] = $ayitem;
+        }
+
+        $courseacademicyears = [];
+        $courseterms = [];
+        foreach ($ayitems as $ayitem) {
+            $courseacademicyears[$ayitem->courseyear] = $ayitem->courseyear;
+            // Merge possible multiple course terms.
+            if (isset($courseterms[$ayitem->courseyear])) {
+                $courseterms[$ayitem->courseyear] = array_merge($courseterms[$ayitem->courseyear], $ayitem->courseterms);
+            } else {
+                $courseterms[$ayitem->courseyear] = $ayitem->courseterms;
+            }
+        }
+
+        return [$courseacademicyears, $courseterms];
+    }
+
+    /**
+     * Parse the term string returned from portico enrolment mapping.
+     *
+     * @param string $rawterm
+     * @return array
+     */
+    private static function parse_mappingtermcode(string $rawterm): array {
+        $courseterms = [];
+        if ($rawterm) {
+            // A rawterm string may contain several term IDs like 'T1/2' so we need to parse it.
+            // Use a regular expression to match all numbers in the string.
+            preg_match_all('/\d+/', $rawterm, $matches);
+            // Get the matched numbers as an array of integers.
+            $processterms = array_map('intval', $matches[0]);
+            foreach ($processterms as $processterm) {
+                $courseterms[$processterm] = 't'.$processterm;
+            }
+        }
+        return $courseterms;
+    }
+
+}

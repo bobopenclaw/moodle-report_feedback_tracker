@@ -14,7 +14,7 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template report_feedback_tracker/ayselector
+    @template report_feedback_tracker/termselector
 
     Sub-template for displaying a selector for academic years.
 
@@ -33,13 +33,13 @@
 
 }}
 <div>
-    {{#str}} academicyear, report_feedback_tracker {{/str}}
-    {{#academicyearoptions}}:
-        {{^key}}
-            <strong>{{value}}</strong>
-        {{/key}}
-        {{#key}}
-            <a href="{{{ config.wwwroot }}}/report/feedback_tracker/user.php?year={{key}}">{{value}}</a>
-        {{/key}}
-    {{/academicyearoptions}}
+    {{#str}} term, report_feedback_tracker {{/str}}:
+    {{#termoptions}}
+        {{^code}}
+            <strong>{{title}}</strong>
+        {{/code}}
+        {{#code}}
+            <a href="{{{ config.wwwroot }}}/report/feedback_tracker/site.php?year={{selectedyear}}&term={{code}}">{{title}}</a>
+        {{/code}}
+    {{/termoptions}}
 </div>

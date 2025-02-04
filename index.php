@@ -25,6 +25,7 @@
 use core\report_helper;
 use report_feedback_tracker\local\admin;
 use report_feedback_tracker\local\helper;
+use report_feedback_tracker\local\site;
 
 require_once(__DIR__ . '/../../config.php');
 
@@ -33,6 +34,10 @@ $userid = optional_param('userid', null, PARAM_INT);
 
 // If there is no course ID given redirect to the user report.
 if (!$courseid) {
+    // A user with a teacher role will see the site report if it is enabled in the settigs.
+    if (site::is_teacher() && get_config('report_feedback_tracker', 'sitereport')) {
+        redirect(new moodle_url('/report/feedback_tracker/site.php'));
+    }
     redirect(new moodle_url('/report/feedback_tracker/user.php'));
 }
 // If there is a userid or the logged-in user has no rights redirect to the user report.

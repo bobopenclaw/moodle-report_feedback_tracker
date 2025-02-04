@@ -31,53 +31,6 @@ use stdClass;
 class user {
 
     /**
-     * Get the academic years of the user based on the courses s/he is/was enrolled in.
-     *
-     * @param array $enrolledcourses
-     * @return array
-     */
-    public static function get_user_academic_years(array $enrolledcourses): array {
-        $academicyears = [];
-        foreach ($enrolledcourses as $course) {
-            $academicyear = helper::get_academic_year($course->id);
-            if ($academicyear) {
-                $obj = new stdClass();
-                $obj->key = $academicyear;
-                $suffix = (int)substr($academicyear, -2) + 1;
-                $obj->value = $academicyear . "-$suffix";
-                if (!in_array($obj, $academicyears)) {
-                    $academicyears[] = $obj;
-                }
-            }
-        }
-        // Sort the years descending.
-        if (is_array($academicyears)) {
-            usort($academicyears, function($a, $b) {
-                return $b->value <=> $a->value; // For descending order.
-            });
-        }
-
-        return $academicyears;
-    }
-
-    /**
-     * Get the academic year to show.
-     *
-     * @param array $academicyears
-     * @return int|string
-     */
-    protected static function get_year_to_show(array $academicyears) {
-        if ($academicyears) {
-            return max($academicyears)->key; // Return the last academic year the user has been enrolled into a course.
-        } else {
-            // The user has not been enrolled into any course yet so use the current academic year.
-            $currentyear = date('Y');
-            $currentmonth = date('m');
-            return $currentmonth >= 8 ? $currentyear : $currentyear - 1; // Academic Year begins 1st of August.
-        }
-    }
-
-    /**
      * Get the Feedback tracker data for one or all courses of a given user.
      *
      * @param int $userid
@@ -90,7 +43,7 @@ class user {
         $data->courses = [];
         $enrolledcourses = enrol_get_users_courses($userid);
         // Get the academic years of the user.
-        $academicyears = self::get_user_academic_years($enrolledcourses);
+        $academicyears = helper::get_academic_years_from_courses($enrolledcourses);
 
         if (!empty($academicyears)) {
             $data->academicyearoptions = $academicyears;
@@ -102,7 +55,7 @@ class user {
         $data->userlastname = $user->lastname;
 
         $year = optional_param('year', null, PARAM_INT);
-        $year = $year ? substr($year, 0, 4) : self::get_year_to_show($academicyears);
+        $year = $year ? substr($year, 0, 4) : helper::get_year_to_show($academicyears);
 
         // Remove the key of the academic year to show.
         // This is used by the template to identify the year selected.
@@ -269,7 +222,12 @@ class user {
             $gradeitem->submissiontypes = ($gradeitem->itemmodule === 'assign') ?
                 helper::get_assign_submission_plugins($gradeitem->cmid) : 0;
 
-            // All good - now get and store the feedback record.
+            // All good - now get and store the feedback records.
+            // Manual grade items have no corresponding course module.
+            if ($gradeitem->itemtype === "manual") {
+                $gradeitem->cmid = 0;
+            }
+
             // TurnitinToolTwo special treatment as one grading item may have several parts.
             if ($gradeitem->itemmodule == 'turnitintooltwo') {
                 self::get_user_turnitin_records($course, $gradeitem, $userid, $assesstypes, $data, $courseobject);
@@ -411,8 +369,9 @@ class user {
      */
     protected static function compile_user_data($course, $userid, $gradeitem, $assesstypes): stdClass|bool {
 
-        // Append the assessment type information where available.
-        helper::append_assess_type_to_gradeitem($gradeitem, $assesstypes);
+        // Add the assessment type  where available.
+        $assesstype = helper::get_assesstype($gradeitem->gradeitemid, $gradeitem->cmid, $assesstypes);
+        helper::add_assesstype($gradeitem, $assesstype);
 
         // Exclude assessments of type DUMMY.
         if (isset($gradeitem->assesstype) && ((int)$gradeitem->assesstype === assess_type::ASSESS_TYPE_DUMMY)) {

@@ -45,7 +45,6 @@ class helper {
     /**
      * Return all academic years from the custom field.
      * @return array
-     * @throws dml_exception
      */
     public static function get_academic_years() {
         global $DB;
@@ -68,15 +67,16 @@ class helper {
      * Get course academic year from custom course fields.
      *
      * @param int $courseid
-     * @return string|null
+     * @return string
      */
-    public static function get_academic_year(int $courseid): ?string {
-        $academicyear = null;
+    public static function get_academic_year(int $courseid): string {
+        $academicyear = '';
+
         $handler = course_handler::create();
         $data = $handler->get_instance_data($courseid, true);
         foreach ($data as $dta) {
             if ($dta->get_field()->get('shortname') === "course_year") {
-                $academicyear = !empty($dta->get_value()) ? $dta->get_value() : null;
+                $academicyear = $dta->get_value() ?? $academicyear;
             }
         }
         return $academicyear;
@@ -200,7 +200,6 @@ class helper {
      *
      * @param stdClass $gradeitem
      * @return \lang_string|string
-     * @throws coding_exception
      */
     public static function get_item_module(stdClass $gradeitem): \lang_string|string {
         switch ($gradeitem->itemmodule) {
@@ -227,7 +226,6 @@ class helper {
      * @param int $userid
      * @param stdClass $gradeitem
      * @return int // The submission date in seconds since 1.1.1970.
-     * @throws dml_exception
      */
     public static function get_submissiondate(int $userid, stdClass $gradeitem): int {
         global $DB;
@@ -435,7 +433,6 @@ class helper {
      *
      * @param int $courseid
      * @return array
-     * @throws dml_exception
      */
     public static function get_tttparts($courseid): array {
         global $DB;
@@ -506,7 +503,6 @@ class helper {
      * @param int $courseid
      * @param int $userid
      * @return bool
-     * @throws coding_exception
      */
     public static function is_course_editor(int $courseid, int $userid): bool {
         if (!isset($courseid)) {
@@ -574,7 +570,6 @@ class helper {
      *
      * @param stdClass $gradeitem
      * @return int
-     * @throws dml_exception
      */
     public static function get_feedbackduedate(stdClass $gradeitem): int {
         // If there is a manually set feedback due date use it.
@@ -606,15 +601,14 @@ class helper {
      * @param int $courseid
      * @param int $duedate the submission due date
      * @return int
-     * @throws dml_exception
      */
     public static function calculate_feedback_duedate(int $courseid, int $duedate): int {
-        $academicyear = (int) self::get_academic_year($courseid);
-
         // If there is no due date there is no feedback due date.
         if (!$duedate) {
             return 0;
         }
+
+        $academicyear = (int) self::get_academic_year($courseid);
 
         // For assessments before academic year 2024-25 the feedback due date period was 1 calendar month.
         // From academic year 2024-25 on the feedback due date period is 20 working days.
@@ -629,7 +623,6 @@ class helper {
      *
      * @param int $duedate The submission due date from which the feedback period starts.
      * @return int the feedback due date in seconds since midnight 01.01.1970.
-     * @throws dml_exception
      */
     protected static function compute_feedbackduedate(int $duedate): int {
         $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
@@ -659,7 +652,6 @@ class helper {
      * Get the bank holidays and university closure days.
      *
      * @return array
-     * @throws dml_exception
      */
     protected static function get_closuredays() {
 
@@ -749,7 +741,6 @@ class helper {
      *
      * @param int $courseid
      * @return moodle_url
-     * @throws \moodle_exception
      */
     public static function get_course_url(int $courseid) {
         return new moodle_url('/course/view.php', ['id' => $courseid]);
@@ -760,7 +751,6 @@ class helper {
      *
      * @param int|null $selection
      * @return array|object[]
-     * @throws coding_exception
      */
     public static function get_assess_types($selection) {
 
@@ -795,7 +785,6 @@ class helper {
      *
      * @param int|null $value
      * @return string
-     * @throws coding_exception
      */
     public static function get_assesstype_label(int|null $value): string {
         $notfoundlabel = get_string('assesstype:notset', 'report_feedback_tracker');
@@ -815,24 +804,40 @@ class helper {
     }
 
     /**
-     * Try to get the assessment type of the grade item and append it where found.
+     * Try to get the assessment type and append it where found.
      *
-     * @param stdClass $gradeitem
-     * @param array $assesstypes
+     * @param stdClass $item
+     * @param stdClass $assesstype
      * @return void
      */
-    public static function append_assess_type_to_gradeitem(stdClass $gradeitem, array $assesstypes): void {
-        if (isset($gradeitem->cmid) && isset($assesstypes['cmid'][$gradeitem->cmid])) {
-            $assesstype = $assesstypes['cmid'][$gradeitem->cmid];
-        } else if (isset($assesstypes['gradeitemid'][$gradeitem->gradeitemid])) {
-            $assesstype = $assesstypes['gradeitemid'][$gradeitem->gradeitemid];
-        } else {
-            $assesstype = $assesstypes['notfound'];
+    public static function add_assesstype(stdClass $item, stdClass $assesstype): void {
+        $item->assesstype = $assesstype->type;
+        $item->locked = $assesstype->locked;
+        $item->selectedassesstypelabel = isset($assesstype->label) ? $assesstype->label : "";
+
+        $item->formative = (int) $item->assesstype === assess_type::ASSESS_TYPE_FORMATIVE;
+        $item->summative = (int) $item->assesstype === assess_type::ASSESS_TYPE_SUMMATIVE;
+        $item->dummy = (int) $item->assesstype === assess_type::ASSESS_TYPE_DUMMY;
+    }
+
+    /**
+     * Get the assessment type for a given grade item.
+     *
+     * @param int $gradeitemid
+     * @param int $cmid
+     * @param array $assesstypes
+     * @return stdClass
+     */
+    public static function get_assesstype(int $gradeitemid, int $cmid, array $assesstypes): stdClass {
+        if (isset($cmid) && isset($assesstypes['cmid'][$cmid])) {
+            return $assesstypes['cmid'][$cmid];
         }
 
-        $gradeitem->assesstype = $assesstype->type;
-        $gradeitem->locked = $assesstype->locked;
-        $gradeitem->selectedassesstypelabel = isset($assesstype->label) ? $assesstype->label : "";
+        if (isset($assesstypes['gradeitemid'][$gradeitemid])) {
+            return $assesstypes['gradeitemid'][$gradeitemid];
+        }
+
+        return $assesstypes['notfound'];
     }
 
     /**
@@ -840,7 +845,6 @@ class helper {
      *
      * @param int $partid
      * @return string
-     * @throws dml_exception
      */
     public static function get_partname($partid) {
         global $DB;
@@ -923,19 +927,13 @@ class helper {
      * Add additional data for the grade item where available.
      *
      * @param stdClass $item
-     * @param array $assesstypes
      * @return void
      */
-    public static function add_additional_data(stdClass $item, array $assesstypes): void {
+    public static function add_additional_data(stdClass $item): void {
         global $DB;
 
         $params['gradeitem'] = $item->gradeitemid;
         $params['partid'] = $item->partid ?: null;
-        // Assessment type.
-        self::append_assess_type_to_gradeitem($item, $assesstypes);
-        $item->formative = (int) $item->assesstype === assess_type::ASSESS_TYPE_FORMATIVE;
-        $item->summative = (int) $item->assesstype === assess_type::ASSESS_TYPE_SUMMATIVE;
-        $item->dummy = (int) $item->assesstype === assess_type::ASSESS_TYPE_DUMMY;
 
         $item->notset = !$item->formative && !$item->summative && !$item->dummy;
 
@@ -1027,6 +1025,216 @@ class helper {
         $record = $DB->get_record_sql($sql, $params);
 
         return isset($record->reason) ? $record->reason : '';
+    }
+
+    /**
+     * Add data for each Turnitin part separately.
+     *
+     * @param stdClass $data The data to render.
+     * @param grade_item $gradeitem
+     * @param stdClass $item The assessment row item for the report.
+     * @param array $assesstypes Array of valid assessment types
+     * @param int|null $assesstypefilter Optional type filter
+     * @return void
+     */
+    public static function add_ttt_data(
+        stdClass $data,
+        grade_item $gradeitem,
+        stdClass $item,
+        array $assesstypes,
+        ?int $assesstypefilter = null
+    ): void {
+        $dateformat = get_string('strftimedatemonthabbr', 'langconfig');
+        $tttparts = self::get_turnitin_parts($gradeitem->iteminstance);
+
+        foreach ($tttparts as $tttpart) {
+            // Each part of a turnitintooltwo assessment starts as a clone of the module
+            // and adds data related to each part.
+
+            $tttitem = clone $item;
+            $assesstype = self::get_assesstype($tttitem->gradeitemid, $tttitem->cmid, $assesstypes);
+            if (isset($assesstypefilter) && ((int) $assesstype->type !== $assesstypefilter)) {
+                continue;
+            }
+
+            $tttitem->name = $gradeitem->itemname . " - " . $tttpart->partname;
+            $tttitem->partid = $tttpart->id;
+
+            // Get the due date for each part.
+            $duedate = $tttpart->dtdue;
+            // The feedback due date timestamp is needed for sorting.
+            if (!$duedate) {
+                $tttitem->feedbackduedateraw = 9999999999;
+                $tttitem->feedbackduedate = false;
+                $tttitem->duedate = false;
+            } else {
+                $tttitem->feedbackduedateraw = self::calculate_feedback_duedate($gradeitem->courseid, $duedate);
+                $tttitem->feedbackduedate = userdate($tttitem->feedbackduedateraw, $dateformat);
+                $tttitem->duedate = userdate($duedate, $dateformat);
+            }
+
+            self::add_assesstype($tttitem, $assesstype);
+            self::add_additional_data($tttitem);
+
+            $data->items[] = $tttitem;
+        }
+
+    }
+
+    /**
+     * Get the academic years from an array of courses.
+     *
+     * @param array $courses
+     * @return array
+     */
+    public static function get_academic_years_from_courses(array $courses): array {
+        $academicyears = [];
+        foreach ($courses as $course) {
+            if ($academicyear = self::get_academic_year($course->id)) {
+                $y1y2 = $academicyear . '-' . ((int)substr($academicyear, -2) + 1);
+                if (!isset($academicyears[$y1y2])) {
+                    $obj = new stdClass();
+                    $obj->key = $academicyear;
+                    $obj->value = $y1y2;
+                    $academicyears[$y1y2] = $obj;
+                }
+            }
+        }
+        // Return the years descending.
+        krsort($academicyears);
+        return array_values($academicyears);
+    }
+
+    /**
+     * Get the academic year to show.
+     *
+     * @param array $academicyears
+     * @return int|string
+     */
+    public static function get_year_to_show(array $academicyears) {
+        if ($academicyears) {
+            // Return the last academic year the user has been enrolled into a course.
+            return $academicyears[0]->key;
+        } else {
+            // The user has not been enrolled into any course yet so return the current academic year.
+            return self::get_current_academic_year();
+        }
+    }
+
+    /**
+     * Get the current academic year.
+     *
+     * @return string
+     */
+    public static function get_current_academic_year(): string {
+        $currentyear = date('Y');
+        $currentmonth = date('m');
+        return $currentmonth >= 8 ? $currentyear : $currentyear - 1; // Academic Year begins 1st of August.
+    }
+
+    /**
+     * Get the last three academic years.
+     *
+     * @return array
+     */
+    public static function get_last_three_academic_years() {
+        $ay1 = new stdClass();
+        $ay1->key = self::get_current_academic_year();
+        $ay1->value = $ay1->key . '-' . ((int)substr($ay1->key, -2) + 1);
+
+        $ay2 = new stdClass();
+        $ay2->key = (string) ((int)$ay1->key - 1);
+        $ay2->value = $ay2->key . '-' . ((int)substr($ay2->key, -2) + 1);
+
+        $ay3 = new stdClass();
+        $ay3->key = (string) ((int)$ay2->key - 1);
+        $ay3->value = $ay3->key . '-' . ((int)substr($ay3->key, -2) + 1);
+
+        return [$ay1->key => $ay1, $ay2->key => $ay2, $ay3->key => $ay3];
+    }
+
+    /**
+     * Get the list of terms.
+     *
+     * @return array
+     */
+    public static function get_terms(): array {
+        $autumn = new stdClass();
+        $autumn->code = 't1';
+        $autumn->title = get_string('term:autumn', 'report_feedback_tracker');
+        $autumn->startmonth = 9;
+        $autumn->startday = 1;
+        $autumn->endmonth = 12;
+        $autumn->endday = 31;
+        $terms[] = $autumn;
+
+        $spring = new stdClass();
+        $spring->code = 't2';
+        $spring->title = get_string('term:spring', 'report_feedback_tracker');
+        $spring->startmonth = 1;
+        $spring->startday = 1;
+        $spring->endmonth = 3;
+        $spring->endday = 31;
+        $terms[] = $spring;
+
+        $summer = new stdClass();
+        $summer->code = 't3';
+        $summer->title = get_string('term:summer', 'report_feedback_tracker');
+        $summer->startmonth = 4;
+        $summer->startday = 1;
+        $summer->endmonth = 7;
+        $summer->endday = 31;
+        $terms[] = $summer;
+
+        $other = new stdClass();
+        $other->code = 't4';
+        $other->title = get_string('term:other', 'report_feedback_tracker');
+        $other->startmonth = 8;
+        $other->startday = 1;
+        $other->endmonth = 8;
+        $other->endday = 31;
+        $terms[] = $other;
+
+        return $terms;
+    }
+
+    /**
+     * Get the current academic term code.
+     *
+     * @return string
+     */
+    public static function get_current_termcode(): string {
+        $currentmonth = date('n');
+
+        if ($currentmonth <= 3) { // Spring term: Jan to Mar.
+            return 't2';
+        }
+        if ($currentmonth <= 7) { // Summer term: .
+            return 't3';
+        }
+        if ($currentmonth === 8) { // Other "term".
+            return 't4';
+        }
+        return 't1'; // Autumn term.
+    }
+
+    /**
+     * Get course module ID for the grade item where it exists.
+     *
+     * @param int $gradeitemid
+     * @return int
+     */
+    public static function get_cmid(int $gradeitemid): int {
+        global $DB;
+
+        $sql = "SELECT cm.id AS cmid
+                FROM {grade_items} gi
+                    JOIN {modules} mo ON gi.itemmodule = mo.name
+                    JOIN {course_modules} cm ON cm.module = mo.id AND gi.iteminstance = cm.instance
+                WHERE gi.id = :gradeitemid";
+        $params = ['gradeitemid' => $gradeitemid];
+
+        return (int) $DB->get_field_sql($sql, $params);
     }
 
 }

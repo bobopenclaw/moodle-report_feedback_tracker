@@ -1,0 +1,79 @@
+{{!
+    This file is part the Feedback tracker report plugin for Moodle
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template report_feedback_tracker/site
+
+    Template for displaying the feedback records to users/students.
+
+    Classes required for JS:
+    * none
+
+    Data attributes required for JS:
+    * none
+
+    Context variables required for this template:
+    * none
+
+    Example context (json):
+    {
+        "records": [
+            {
+                "course": "",
+                "assessment": "",
+                "type": "",
+                "type": "",
+                "duedate": "",
+                "submissiondate": "",
+                "feedbackduedate": "",
+                "feedback": ""
+            }
+        ]
+    }
+
+}}
+<div id="behat-feedback-area">
+    <div class="sub-title">{{#str}} title:site_subtext, report_feedback_tracker {{/str}}</div>
+    <hr>
+    <div class="d-flex">
+        {{! Years. }}
+        {{#hasyears}}
+            {{> report_feedback_tracker/site/ayselector }}
+        {{/hasyears}}
+    </div>
+    <div class="d-flex">
+        {{! Terms. }}
+        {{#hasterms}}
+            {{> report_feedback_tracker/site/termselector }}
+        {{/hasterms}}
+    </div>
+    <div class="small">{{#str}} site:note, report_feedback_tracker {{/str}}</div>
+    <hr>
+
+    <div id="courses-area">
+        {{#courses}}
+            {{> report_feedback_tracker/site/courses }}
+        {{/courses}}
+        {{^courses}}
+            {{#str}}site:nocourses, report_feedback_tracker{{/str}}
+        {{/courses}}
+    </div>
+
+    {{#executiontime}}
+        <div class="grey">
+            {{.}}
+        </div>
+    {{/executiontime}}
+</div>

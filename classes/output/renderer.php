@@ -31,6 +31,7 @@ use moodle_url;
 use plugin_renderer_base;
 use report_feedback_tracker\local\admin;
 use report_feedback_tracker\local\helper;
+use report_feedback_tracker\local\site;
 use report_feedback_tracker\local\user;
 use stdClass;
 
@@ -123,38 +124,14 @@ class renderer extends plugin_renderer_base {
         foreach ($gradeitems as $gradeitem) {
             if (($gradeitem->itemtype === 'mod') &&
                     helper::is_supported_module($gradeitem->itemmodule) &&
-                    $item = admin::get_module_data($gradeitem, $modinfo)) {
+                    $item = admin::get_module_data($modinfo, $gradeitem)) {
                 if ($gradeitem->itemmodule === 'turnitintooltwo') {
-                    $tttparts = helper::get_turnitin_parts($gradeitem->iteminstance);
-
-                    foreach ($tttparts as $tttpart) {
-                        // Each part of a turnitintooltwo assessment starts as a clone of the module
-                        // and adds data related to each part.
-                        $tttitem = clone $item;
-                        $tttitem->name = $gradeitem->itemname . " - " . $tttpart->partname;
-                        $tttitem->partid = $tttpart->id;
-
-                        // Get the due date for each part.
-                        $duedate = $tttpart->dtdue;
-                        // The feedback due date timestamp is needed for sorting.
-                        if (!$duedate) {
-                            $tttitem->feedbackduedateraw = 9999999999;
-                            $tttitem->feedbackduedate = false;
-                            $tttitem->duedate = false;
-                        } else {
-                            $tttitem->feedbackduedateraw = helper::calculate_feedback_duedate($courseid, $duedate);
-                            $tttitem->feedbackduedate = userdate($tttitem->feedbackduedateraw, $dateformat);
-                            $tttitem->duedate = userdate($duedate, $dateformat);
-                        }
-
-                        // Get additional information for each part record.
-                        helper::add_additional_data($tttitem, $assesstypes);
-
-                        $data->items[] = $tttitem;
-                    }
+                    // Add separate data for Turnitin parts.
+                    helper::add_ttt_data($data, $gradeitem, $item, $assesstypes);
                 } else {
-                    // Get additional information for the record.
-                    helper::add_additional_data($item, $assesstypes);
+                    $assesstype = helper::get_assesstype($item->gradeitemid, $item->cmid, $assesstypes);
+                    helper::add_assesstype($item, $assesstype);
+                    helper::add_additional_data($item);
 
                     $data->items[] = $item;
                 }
@@ -162,6 +139,7 @@ class renderer extends plugin_renderer_base {
                 $item = new stdClass();
                 $item->name = $gradeitem->itemname;
                 $item->gradeitemid = $gradeitem->id;
+                $item->cmid = 0;
                 $item->partid = 0;
                 $item->manual = true;
                 $item->feedbackduedateraw = 9999999999; // Needed for sorting. Make sure they are listed last.
@@ -175,8 +153,9 @@ class renderer extends plugin_renderer_base {
                     'gpr_courseid' => $gradeitem->courseid,
                 ]);
 
-                // Get additional information for each part record.
-                helper::add_additional_data($item, $assesstypes);
+                $assesstype = helper::get_assesstype($item->gradeitemid, $item->cmid, $assesstypes);
+                helper::add_assesstype($item, $assesstype);
+                helper::add_additional_data($item);
 
                 $data->items[] = $item;
             }
@@ -188,6 +167,18 @@ class renderer extends plugin_renderer_base {
         });
 
         return $this->output->render_from_template('report_feedback_tracker/course/course', $data);
+    }
+
+    /**
+     * Render the site report.
+     *
+     * @return string
+     */
+    public function render_feedback_tracker_site_report(): string {
+        // Get the table data.
+        $data = site::get_feedback_tracker_site_data();
+        // And render it.
+        return $this->output->render_from_template('report_feedback_tracker/site/site', $data);
     }
 
 }

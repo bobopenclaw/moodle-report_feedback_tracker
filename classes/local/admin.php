@@ -36,13 +36,13 @@ class admin {
     /**
      * Get a course module to the grade item where available and return a record for it.
      *
-     * @param grade_item $gradeitem
      * @param course_modinfo $modinfo
+     * @param grade_item $gradeitem
      * @return false|stdClass
      */
     public static function get_module_data(
-        grade_item $gradeitem,
-        course_modinfo $modinfo
+        course_modinfo $modinfo,
+        grade_item $gradeitem
     ): false|stdClass {
 
         if ($cm = self::get_cm_from_gradeitem($gradeitem)) {
@@ -200,17 +200,13 @@ class admin {
      * @return int
      */
     private static function count_submissions(cm_info $cm): int {
-        if ($cm) {
-            if ($cm->modname === 'assign') {
-                $context = context_module::instance($cm->id);
-                $assignment = new assign($context, $cm, $cm->course);
-                return $assignment->count_submissions();
-            }
-
-            return count(self::get_module_submissions($cm));
-
+        $modsub = optional_param('modsub', null, PARAM_INT);
+        if ($cm->modname === 'assign' && $modsub) {
+            $context = context_module::instance($cm->id);
+            $assignment = new assign($context, $cm, $cm->course);
+            return $assignment->count_submissions(); // Submissions from assign method.
         }
-        return 0;
+        return count(self::get_module_submissions($cm)); // Submissions from local method.
     }
 
     /**
@@ -222,35 +218,49 @@ class admin {
     public static function get_module_submissions(cm_info $cm): array {
         global $DB;
 
-        if ($cm) {
-            switch ($cm->modname) {
-                case 'assign':
-                    // Not supported here, as assignments provide their own methods to count submissions and gradings.
-                    return [];
-                case 'lesson':
-                    $sql = "SELECT DISTINCT userid FROM {lesson_attempts} WHERE lessonid = :lessonid";
-                    $params = ['lessonid' => $cm->instance, 'correct' => 1];
-                    break;
-                case 'quiz':
-                    $sql = "SELECT DISTINCT userid FROM {quiz_attempts} WHERE quiz = :quiz AND state = :state";
-                    $params = ['quiz' => $cm->instance, 'state' => 'finished'];
-                    break;
-                case 'turnitintooltwo':
-                    $sql = "SELECT DISTINCT userid FROM {turnitintooltwo_submissions} WHERE turnitintooltwoid = :turnitintooltwoid";
-                    $params = ['turnitintooltwoid' => $cm->instance];
-                    break;
-                case 'scorm':
-                    return [];
-                case 'workshop':
-                    $sql = "SELECT DISTINCT authorid FROM {workshop_submissions} WHERE workshopid = :workshopid";
-                    $params = ['workshopid' => $cm->instance];
-                    break;
-                default:
-                    return [];
-            }
-            return $DB->get_fieldset_sql($sql, $params);
+        switch ($cm->modname) {
+            case 'assign':
+                $teamsubmission = $DB->get_field('assign', 'teamsubmission', ['id' => $cm->instance]);
+                if ($teamsubmission) {
+                    // Get the group submissions.
+                    $sql = "SELECT DISTINCT groupid FROM {assign_submission}
+                            WHERE assignment = :assignid
+                            AND userid = 0
+                            AND timemodified IS NOT NULL
+                            AND status <> 'new'";
+                } else {
+                    // Get the individual submissions.
+                    $sql = "SELECT DISTINCT userid FROM {assign_submission}
+                            WHERE assignment = :assignid
+                            AND userid > 0
+                            AND timemodified IS NOT NULL
+                            AND status <> 'new'";
+                }
+                $params = ['assignid' => $cm->instance];
+                return $DB->get_fieldset_sql($sql, $params);
+
+            case 'lesson':
+                $sql = "SELECT DISTINCT userid FROM {lesson_attempts} WHERE lessonid = :lessonid";
+                $params = ['lessonid' => $cm->instance, 'correct' => 1];
+                break;
+            case 'quiz':
+                $sql = "SELECT DISTINCT userid FROM {quiz_attempts} WHERE quiz = :quiz AND state = :state";
+                $params = ['quiz' => $cm->instance, 'state' => 'finished'];
+                break;
+            case 'turnitintooltwo':
+                $sql = "SELECT DISTINCT userid FROM {turnitintooltwo_submissions} WHERE turnitintooltwoid = :turnitintooltwoid";
+                $params = ['turnitintooltwoid' => $cm->instance];
+                break;
+            case 'scorm':
+                return [];
+            case 'workshop':
+                $sql = "SELECT DISTINCT authorid FROM {workshop_submissions} WHERE workshopid = :workshopid";
+                $params = ['workshopid' => $cm->instance];
+                break;
+            default:
+                return [];
         }
-        return [];
+        return $DB->get_fieldset_sql($sql, $params);
     }
 
     /**
@@ -260,8 +270,8 @@ class admin {
      * @param int|null $gradeitemid
      * @return int
      */
-    public static function count_missing_grades(cm_info $cm, ?int $gradeitemid = null ): int {
-        global $CFG, $DB;
+    public static function count_missing_grades(cm_info $cm, ?int $gradeitemid = null): int {
+        global $DB;
 
         // Assignments provide a method to count submissions that need grading.
         if ($cm->modname === 'assign') {
@@ -283,7 +293,6 @@ class admin {
 
                 // Get the grade item ID.
                 $gradeitemid = $DB->get_field('grade_items', 'id', $params);
-
             }
 
             $sql = "SELECT DISTINCT gg.userid

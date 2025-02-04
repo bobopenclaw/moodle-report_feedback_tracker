@@ -34,6 +34,15 @@ if ($ADMIN->fulltree) {
     $dateformatdefault = get_string('dateformat:default', 'report_feedback_tracker');
     $defaultdate = get_string('settings:defaultdate', 'report_feedback_tracker');
 
+    // Use site report option.
+    // Only available if block_portico_enrollments is installed.
+    if (file_exists($CFG->dirroot . "/blocks/portico_enrolments/version.php")) {
+        $settings->add(new admin_setting_configcheckbox('report_feedback_tracker/sitereport',
+            get_string('settings:sitereport', 'report_feedback_tracker'), '', false));
+    } else {
+        set_config('sitereport', false, 'report_feedback_tracker');
+    }
+
     // Supported modules.
     $settings->add(new admin_setting_heading('report_feedback_tracker_support',
         get_string('settings:supportheading', 'report_feedback_tracker'), ''));
