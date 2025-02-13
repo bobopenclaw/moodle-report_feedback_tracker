@@ -1,0 +1,41 @@
+{{!
+    This file is part the Feedback tracker report plugin for Moodle
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template report_feedback_tracker/course_header
+
+     Example context (json):
+    {
+        "image": "https://www.ucl.ac.uk/image.jpg",
+        "url": "https://www.ucl.ac.uk/",
+        "fullname": "Course name",
+        "reporturl": "https://www.ucl.ac.uk/"
+    }
+}}
+
+<div class="d-flex align-items-center">
+    <div class="d-flex align-items-center">
+        {{#image}}
+            <div class="flex-shrink-0 rounded-circle mr-2 bg-cover" style="height: 3rem; width: 3rem; background-image: url('{{image}}');"></div>
+        {{/image}}
+        <h3 class="h5"><a href="{{{url}}}">{{{fullname}}}</a></h3>
+    </div>
+
+    {{#reporturl}}
+    <div class="ml-auto">
+        <a href="{{{.}}}">{{#str}} coursereport, report_feedback_tracker {{/str}}</a>
+    </div>
+    {{/reporturl}}
+</div>

@@ -42,15 +42,9 @@
             }
         ]
     }
-
 }}
-<div class="pb-4 courses-row">
-    <h3 class="d-flex align-items-center pb-4">
-        {{#image}}
-            <div class="flex-shrink-0 rounded-circle mr-2 bg-cover" style="height: 3rem; width: 3rem; background-image: url('{{image}}');"></div>
-        {{/image}}
-        <a href="{{{url}}}">{{{fullname}}}</a>
-    </h3>
+<div class="pb-4">
+    {{> report_feedback_tracker/course_header }}
 
     {{> report_feedback_tracker/site/modheader }}
 

@@ -17,6 +17,7 @@
 namespace report_feedback_tracker\local;
 
 use block_portico_enrolments;
+use core_course\external\course_summary_exporter;
 use context_course;
 use course_modinfo;
 use grade_item;
@@ -245,7 +246,9 @@ class site {
 
         $courseitem = new stdClass();
         $courseitem->url = helper::get_course_url($course->id);
+        $courseitem->image = course_summary_exporter::get_course_image($course);
         $courseitem->fullname = $course->fullname;
+        $courseitem->reporturl = new moodle_url("/report/feedback_tracker/", ['id' => $course->id]);
 
         foreach ($gradeitems as $gradeitem) {
             // Get course module ID for the grade item where it exists.
@@ -361,6 +364,7 @@ class site {
             $ayitem->courseterms = self::parse_mappingtermcode($mapping->mod_occ_psl_code);
             $ayitems[] = $ayitem;
         }
+
         // If Portico does not provide an academic year try to get it from Moodle data.
         // As then there is no term specified show it in the "other" term (t4).
         if (!isset($ayitems) || empty($ayitems)) {

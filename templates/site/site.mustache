@@ -16,7 +16,7 @@
 {{!
     @template report_feedback_tracker/site
 
-    Template for displaying the feedback records to users/students.
+    Template for displaying the feedback records to non-learners.
 
     Classes required for JS:
     * none
@@ -34,7 +34,6 @@
                 "course": "",
                 "assessment": "",
                 "type": "",
-                "type": "",
                 "duedate": "",
                 "submissiondate": "",
                 "feedbackduedate": "",
@@ -44,31 +43,31 @@
     }
 
 }}
-<div id="behat-feedback-area">
-    <div class="sub-title">{{#str}} title:site_subtext, report_feedback_tracker {{/str}}</div>
-    <hr>
 
-    <p class="sr-only">{{#str}} site:menuguide, report_feedback_tracker {{/str}}</p>
-    {{#menus}}
-        {{> report_feedback_tracker/menu }}
-    {{/menus}}
+<div>{{#str}} title:site_subtext, report_feedback_tracker {{/str}}</div>
+<hr>
 
-    <div class="small">{{#str}} site:note, report_feedback_tracker {{/str}}</div>
-    <hr>
+{{! Navigation. }}
+<p class="sr-only">{{#str}} site:menuguide, report_feedback_tracker {{/str}}</p>
+{{#menus}}
+    {{> report_feedback_tracker/menu }}
+{{/menus}}
+<div class="small">{{#str}} site:note, report_feedback_tracker {{/str}}</div>
+<hr>
+<h2 class="h4 mb-3">{{yearname}} {{termname}} {{#str}} courses {{/str}}</h2>
 
-    <h2 class="h4 mb-3">{{yearname}} {{termname}} {{#str}} courses {{/str}}</h2>
-    <div id="courses-area">
-        {{#courses}}
-            {{> report_feedback_tracker/site/courses }}
-        {{/courses}}
-        {{^courses}}
-            {{#str}}site:nocourses, report_feedback_tracker{{/str}}
-        {{/courses}}
+{{! Courses. }}
+{{#courses}}
+    {{> report_feedback_tracker/site/courses }}
+{{/courses}}
+{{^courses}}
+    {{#str}}site:nocourses, report_feedback_tracker{{/str}}
+{{/courses}}
+
+
+{{#executiontime}}
+    <div class="grey">
+        {{.}}
     </div>
+{{/executiontime}}
 
-    {{#executiontime}}
-        <div class="grey">
-            {{.}}
-        </div>
-    {{/executiontime}}
-</div>

@@ -34,7 +34,6 @@
                 "course": "",
                 "assessment": "",
                 "type": "",
-                "type": "",
                 "duedate": "",
                 "submissiondate": "",
                 "feedbackduedate": "",
@@ -45,45 +44,28 @@
 
 }}
 
-<div id="behat-feedback-area">
-    <div class="sub-title">{{#str}} title:subtext, report_feedback_tracker {{/str}}</div>
-    <div>
-        <span class="badge badge-primary">{{#str}} summative, report_feedback_tracker {{/str}}</span> {{#str}} summativekey, report_feedback_tracker {{/str}}
-        <br>
-        <span class="badge badge-secondary">{{#str}} formative, report_feedback_tracker {{/str}}</span> {{#str}} formativekey, report_feedback_tracker {{/str}}
-    </div>
-    <hr>
-    <div class="d-flex">
 
-        {{! Years. }}
-        {{#hasyears}}
-            {{> report_feedback_tracker/user/ayselector }}
-        {{/hasyears}}
-
-    </div>
-    <hr>
-
-    <div id="courses-area">
-        {{#courses}}
-            <div id="{{courseid}}" class="pb-4 courses-row" data-ay="{{academicyear}}">
-                <h3 class="d-flex align-items-center pb-4">
-                    {{#image}}
-                        <div class="flex-shrink-0 rounded-circle mr-2 bg-cover" style="height: 3rem; width: 3rem; background-image: url('{{image}}');"></div>
-                    {{/image}}
-                    <a href="{{{url}}}">{{{fullname}}}</a>
-                </h3>
-
-
-                {{> report_feedback_tracker/user/modheader }}
-
-
-                {{#items}}
-                    {{> report_feedback_tracker/user/mod }}
-                {{/items}}
-            </div>
-        {{/courses}}
-        {{^courses}}
-            {{#str}}no_courses_this_year, report_feedback_tracker{{/str}}
-        {{/courses}}
-    </div>
+<div>{{#str}} title:subtext, report_feedback_tracker {{/str}}</div>
+<div>
+    <span class="badge badge-primary">{{#str}} summative, report_feedback_tracker {{/str}}</span> {{#str}} summativekey, report_feedback_tracker {{/str}}
 </div>
+<hr>
+
+{{! Years. }}
+{{#hasyears}}
+    {{> report_feedback_tracker/user/ayselector }}
+{{/hasyears}}
+<hr>
+
+{{#courses}}
+    {{> report_feedback_tracker/course_header }}
+
+    {{> report_feedback_tracker/user/modheader }}
+
+    {{#items}}
+        {{> report_feedback_tracker/user/mod }}
+    {{/items}}
+{{/courses}}
+{{^courses}}
+    {{#str}}no_courses_this_year, report_feedback_tracker{{/str}}
+{{/courses}}
