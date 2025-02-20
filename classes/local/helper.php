@@ -657,7 +657,7 @@ class helper {
      * @param int $duedate The submission due date from which the feedback period starts.
      * @return int the feedback due date in seconds since midnight 01.01.1970.
      */
-    protected static function compute_feedbackduedate(int $duedate): int {
+    private static function compute_feedbackduedate(int $duedate): int {
         $feedbackdeadlinedays = get_config('report_feedback_tracker', 'feedbackdeadlinedays');
         $closuredays = self::get_closuredays();
 
@@ -686,7 +686,7 @@ class helper {
      *
      * @return array
      */
-    protected static function get_closuredays() {
+    private static function get_closuredays() {
 
         $cache = \cache::make('report_feedback_tracker', 'publicholidays');
         $closuredays = $cache->get('england_and_wales');
@@ -746,7 +746,7 @@ class helper {
      * @param string $eend
      * @return void
      */
-    protected static function get_year_closuredays(
+    private static function get_year_closuredays(
         array &$closuredays, string $xstart, string $xend, string $estart, string $eend): void {
         // Do the Xmas closure 1st.
         $date = date('Y-m-d', ($xstart == '' ? 0 : strtotime($xstart)));

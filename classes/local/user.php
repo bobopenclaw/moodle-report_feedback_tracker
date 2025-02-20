@@ -306,7 +306,7 @@ class user {
      * @param array $assesstypes
      * @return stdClass|bool
      */
-    protected static function get_user_feedback_record($course, $userid, $gradeitem, $assesstypes): stdClass|bool {
+    private static function get_user_feedback_record($course, $userid, $gradeitem, $assesstypes): stdClass|bool {
         $gradeitem->partid = 0; // Only turnitintooltwo assessments may have parts.
         return self::compile_user_data($course, $userid, $gradeitem, $assesstypes);
     }
@@ -324,7 +324,7 @@ class user {
      * @throws dml_exception
      * @throws coding_exception
      */
-    protected static function get_user_turnitin_records(
+    private static function get_user_turnitin_records(
       $course,
       $gradeitem,
       $userid,
@@ -367,7 +367,7 @@ class user {
      * @param array $assesstypes
      * @return stdClass|bool
      */
-    protected static function compile_user_data($course, $userid, $gradeitem, $assesstypes): stdClass|bool {
+    private static function compile_user_data($course, $userid, $gradeitem, $assesstypes): stdClass|bool {
 
         // Add the assessment type  where available.
         $assesstype = helper::get_assesstype($gradeitem->gradeitemid, $gradeitem->cmid, $assesstypes);
@@ -433,11 +433,11 @@ class user {
      * @return string|false
      */
     private static function get_grade(stdClass $gradeitem): string|false {
-        if ((!$gradeitem->finalgrade) || ($gradeitem->hiddengrade === 1) || ($gradeitem->hiddengrade > time())) {
+        if (!$gradeitem->finalgrade || ($gradeitem->hiddengrade === 1) || ($gradeitem->hiddengrade > time())) {
             // No final grade or grade not (yet) released.
             return false;
         }
-        return (int)$gradeitem->finalgrade . '/' . (int)$gradeitem->grademax;
+        return round($gradeitem->finalgrade) . '/' . round($gradeitem->grademax);
     }
 
 }
