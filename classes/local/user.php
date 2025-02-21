@@ -15,10 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace report_feedback_tracker\local;
-use coding_exception;
-use dml_exception;
 use html_writer;
 use local_assess_type\assess_type;
+use moodle_url;
 use stdClass;
 
 /**
@@ -53,6 +52,11 @@ class user {
         $user = get_complete_user_data('id', $userid);
         $data->userfirstname = $user->firstname;
         $data->userlastname = $user->lastname;
+
+        // If the user is a teacher and the site report is enabled provide a link to the site report.
+        if (helper::is_teacher() && get_config('report_feedback_tracker', 'sitereport')) {
+            $data->sitereporturl = new moodle_url('/report/feedback_tracker/site.php');
+        }
 
         $year = optional_param('year', null, PARAM_INT);
         $year = $year ? substr($year, 0, 4) : helper::get_year_to_show($academicyears);
@@ -96,8 +100,6 @@ class user {
      * @param int $userid
      * @param stdClass $data
      * @return void
-     * @throws coding_exception
-     * @throws dml_exception
      */
     public static function get_user_course_gradings($course, $userid, stdClass $data): void {
         global $DB, $USER;
@@ -256,7 +258,6 @@ class user {
      * @param stdClass $gradeitem
      * @param int $userid
      * @return int|mixed
-     * @throws dml_exception
      */
     private static function get_duedate($gradeitem, $userid) {
         global $DB;
@@ -321,8 +322,6 @@ class user {
      * @param stdClass $data
      * @param stdClass $courseobject
      * @return void
-     * @throws dml_exception
-     * @throws coding_exception
      */
     private static function get_user_turnitin_records(
       $course,

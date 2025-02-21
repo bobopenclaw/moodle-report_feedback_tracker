@@ -67,6 +67,10 @@ class site {
         // Template for mustache.
         $data = new stdClass();
         $data->staffdata = true;
+
+        // Provide a link to the Feedback tracker user report.
+        $data->userreporturl = new moodle_url('/report/feedback_tracker/user.php');
+
         $data->courses = [];
 
         // Year and term menus.

@@ -36,20 +36,20 @@ if ((!$userid = optional_param('userid', null, PARAM_INT)) ||
 }
 
 $pageparams = ['id' => $course->id];
-$PAGE->set_context($context);
-$PAGE->set_url('/report/feedback_tracker/index.php', $pageparams);
+$PAGE->set_context(context_system::instance());
+$PAGE->set_url('/report/feedback_tracker/user.php', $pageparams);
 $PAGE->set_pagelayout('report');
 
 require_login($course);
 
 // Set the header and print it.
 $PAGE->set_title(get_string('pluginname', 'report_feedback_tracker'));
-$PAGE->set_heading($course->fullname);
+if (isset($USER->firstname)) {
+    $PAGE->set_heading(get_string('user:heading', 'report_feedback_tracker', $USER->firstname));
+} else {
+    $PAGE->set_heading(get_string('nouser:heading', 'report_feedback_tracker'));
+}
 echo $OUTPUT->header();
-
-// Print report selector drop down.
-$pluginname = get_string('pluginname', 'report_feedback_tracker');
-report_helper::print_report_selector($pluginname);
 
 // Get the renderer and use it.
 $renderer = $PAGE->get_renderer('report_feedback_tracker');
