@@ -133,6 +133,7 @@ class user {
                 gg.finalgrade,
                 gg.feedback,
                 gg.timemodified AS feedbackdate,
+                gg.rawscaleid,
                 cm.id AS cmid,
                 cm.visible,
                 um.username AS grader,
@@ -438,11 +439,21 @@ class user {
      * @return string|false
      */
     private static function get_grade(stdClass $gradeitem): string|false {
+        global $DB;
+
         if (!$gradeitem->finalgrade || ($gradeitem->hiddengrade === 1) || ($gradeitem->hiddengrade > time())) {
             // No final grade or grade not (yet) released.
             return false;
         }
-        return round($gradeitem->finalgrade) . '/' . round($gradeitem->grademax);
+
+        // Check for scales.
+        if ($gradeitem->rawscaleid) {
+            $scaledefs = $DB->get_field('scale', 'scale', ['id' => $gradeitem->rawscaleid]);
+            $scaleoptions = explode(',', $scaledefs);
+            return $scaleoptions[$gradeitem->finalgrade - 1];
+        } else {
+            return round($gradeitem->finalgrade) . '/' . round($gradeitem->grademax);
+        }
     }
 
 }
