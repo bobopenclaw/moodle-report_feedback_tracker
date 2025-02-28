@@ -631,8 +631,9 @@ class helper {
         $closuredays = self::get_closuredays();
 
         // Initialize the start date.
-        $feedbackduedatetime = $duedate;
+        $feedbackduedatetime = strtotime(date('Y-m-d', $duedate));
         $daysadded = 0;
+
         // Loop until the required number of working days.
         while ($daysadded < $feedbackdeadlinedays) {
             // Increment the date by one day.
@@ -646,7 +647,9 @@ class helper {
                 $daysadded++;
             }
         }
-        return $feedbackduedatetime;
+
+        // The feedback due date ends midnight of that day regardless of the submission due date time.
+        return $feedbackduedatetime + DAYSECS - 1;
     }
 
     /**
