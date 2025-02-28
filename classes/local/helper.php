@@ -956,9 +956,9 @@ class helper {
 
         // There should be only one record - make sure nevertheless...
         if ($record = $DB->get_record('report_feedback_tracker', $params, '*', IGNORE_MULTIPLE)) {
-            $item->method = $record->method;
-            $item->contact = $record->responsibility;
-            $item->generalfeedback = $record->generalfeedback;
+            $item->method = s($record->method);
+            $item->contact = s($record->responsibility);
+            $item->generalfeedback = s($record->generalfeedback);
 
             if ($record->feedbackduedate) {
                 $item->customfeedbackduedate = date('Y-m-d', $record->feedbackduedate);
@@ -967,7 +967,7 @@ class helper {
                     get_string('strftimedatemonthabbr', 'langconfig'));
 
                 // Get a custom feedback due date reason entry for the grade item where available.
-                $item->feedbackduedatereason = self::get_reason($item->gradeitemid, $item->partid, $item->feedbackduedate);
+                $item->feedbackduedatereason = s(self::get_reason($item->gradeitemid, $item->partid, $item->feedbackduedate));
             }
 
             // Check if there is additional data to show.

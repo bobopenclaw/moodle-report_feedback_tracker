@@ -1,0 +1,55 @@
+{{!
+    This file is part the Feedback tracker report plugin for Moodle
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template report_feedback_tracker/mod_student
+
+    Template for a module student view of the Feedback tracker report.
+
+    Example context (json):
+    {
+        "duedate": "24th March 2025",
+        "feedbackduedate": "24th April 2025",
+        "markoverdue": true,
+        "mark": "100%"
+
+    }
+
+}}
+
+<div class="row no-gutters">
+    <div class="col-4">
+        {{#duedate}}
+            <span class="sr-only-md">{{#str}} due, report_feedback_tracker {{/str}}: </span>
+            {{{duedate}}}
+        {{/duedate}}
+    </div>
+
+    <div class="col-4">
+        {{#feedbackduedate}}
+            <span class="sr-only-md">{{#str}} feedback:due, report_feedback_tracker {{/str}}: </span>{{{feedbackduedate}}}
+        {{/feedbackduedate}}
+        {{#markoverdue}}
+            <br><div class="badge badge-danger">{{#str}} feedback:overdue, report_feedback_tracker {{/str}}</div>
+        {{/markoverdue}}
+    </div>
+
+    <div class="col-4">
+        {{#mark}}
+            <span class="sr-only-md">{{#str}} header:mark, report_feedback_tracker {{/str}}: </span>
+            {{{mark}}}
+        {{/mark}}
+    </div>
+</div>

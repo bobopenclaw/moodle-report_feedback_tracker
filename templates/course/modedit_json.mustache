@@ -1,0 +1,61 @@
+
+{{!
+    This file is part the Feedback tracker report plugin for Moodle
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template report_feedback_tracker/course/modedit_json
+
+    // SHAME.
+    Json grabbed by js to populate mod edit form.
+    This should probably be a call in the js to get the data from php.
+
+    Example context (json):
+    {
+        "assesstype": 1,
+        "assesstypelabel": "Formative",
+        "cohortfeedback": "Cohort A",
+        "contact": "John Doe",
+        "courseid": 5,
+        "feedbackduedatereason": "End of term",
+        "formattedduedate": "2024-12-15",
+        "formattedreleaseddate": "2024-12-10",
+        "generalfeedback": "Well done, but remember to cite your sources.",
+        "gradeitemid": 10,
+        "hidden": 0,
+        "locked": 0,
+        "method": "Essay submission",
+        "name": "Final Essay",
+        "partid": 20
+    }
+
+}}
+
+data-module-data='{
+    "assesstype": "{{assesstype}}",
+    "assesstypelabel": "{{selectedassesstypelabel}}",
+    "cohortfeedback": "{{cohortfeedback}}",
+    "contact": "{{contact}}",
+    "courseid": "{{courseid}}",
+    "feedbackduedatereason": "{{feedbackduedatereason}}",
+    "formattedduedate": "{{customfeedbackduedate}}",
+    "formattedreleaseddate": "{{customfeedbackreleaseddate}}",
+    "generalfeedback": "{{generalfeedback}}",
+    "gradeitemid": "{{gradeitemid}}",
+    "hidden": "{{hiddenfromreport}}",
+    "locked": "{{locked}}",
+    "method": "{{method}}",
+    "name": "{{name}}",
+    "partid": "{{partid}}"
+}'

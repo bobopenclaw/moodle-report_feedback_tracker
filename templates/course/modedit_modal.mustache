@@ -18,23 +18,44 @@
 
     Template for displaying a modal dialog to edit information for a module.
 
-    Classes required for JS:
-    * none
-
-    Data attributes required for JS:
-    * none
-
-    Context variables required for this template:
-    * none
-
     Example context (json):
     {
-        "name": "A name",
-        "generalfeedbacklabel": "General Feedback:",
+        "sesskey": "your_sesskey_value",
+        "courseid": "your_courseid_value",
+        "gradeitemid": "your_gradeitemid_value",
+        "partid": "your_partid_value",
+        "name": "Assessment name",
+        "contact": "Contact person",
+        "method": "Online submission",
         "generalfeedback": "This is good.",
-        "gfurllabel": "NASA",
-        "gfurl": "www.nasa.gov",
-        "today": "2024-12-02"
+        "hidden": false,
+        "hiddendisabled": false,
+        "assesstype": "1",
+        "assesstypelabel": "Formative",
+        "locked": false,
+        "formattedduedate": "2024-12-15",
+        "assesstypes": [
+            {
+                "value": "1",
+                "label": "Formative",
+                "isselected": true
+            },
+            {
+                "value": "2",
+                "label": "Summative",
+                "isselected": false
+            },
+            {
+                "value": "3",
+                "label": "Dummy",
+                "isselected": false
+            }
+        ],
+        "formattedreleaseddate": "2024-12-09",
+        "feedbackduedatereason": "Reason for the due date",
+        "today": "2024-12-02",
+        "customfeedbackduedate": "2024-12-15",
+        "customfeedbackreleaseddate": "2024-12-09"
     }
 
 }}
@@ -88,7 +109,7 @@
         <div id="js-feedbackduedate" {{^formattedduedate}}class="d-none"{{/formattedduedate}}>
             <div class="form-group py-1">
                 <label for="reason">{{#str}} feedbackduedate:reason, report_feedback_tracker {{/str}}</label>
-                <input type="text" class="form-control" id="reason" name="reason" value="{{feedbackduedatereason}}">
+                <input type="text" class="form-control" id="reason" name="reason" value="{{{feedbackduedatereason}}}">
             </div>
 
             <div class="form-group py-1">
@@ -158,7 +179,7 @@
 </div>
 
 {{#js}}
-    require(['report_feedback_tracker/modal'], function(Edit) {
-    Edit.init();
+    require(['report_feedback_tracker/modal'], function(edit) {
+    edit.init();
     });
 {{/js}}

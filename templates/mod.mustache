@@ -14,7 +14,7 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template report_feedback_tracker/course/mod
+    @template report_feedback_tracker/mod
 
     Template for a module of the Feedback tracker course report.
 
@@ -50,85 +50,60 @@
         <div class="col-12 col-md-5 my-1">
             <a href="{{{url}}}">
                 {{#manual}}
-                    <span data-icon><i class="icon fa-regular fa-hand-spock"></i></span>
+                    <i class="icon fa-regular fa-hand-spock"></i>
                 {{/manual}}
                 {{^manual}}
-                    <span data-icon><img class='icon mr-0' src='{{{moduletypeiconurl}}}' alt='{{{name}}}'></span>
+                    <img class='icon mr-0' src='{{{moduletypeiconurl}}}' alt=''>
                 {{/manual}}
-                <span class="module-name" data-name>{{{name}}}</span>
+                <span>{{{name}}}</span>
             </a>
             {{#hiddenfromstudents}}
                 <br><div class="badge badge-warning"><i class="fa-regular fa-eye-slash"></i> {{#str}} badge:hiddenfromstudents, report_feedback_tracker {{/str}}</div>
             {{/hiddenfromstudents}}
 
             {{#hiddenfromreport}}
-                <br><div class="badge badge-warning" data-hiddenfromreport="{{hiddenfromreport}}"><i class="fa-regular fa-eye-slash"></i> {{#str}} badge:hiddenfromreport, report_feedback_tracker {{/str}}</div>
+                <br><div class="badge badge-warning"><i class="fa-regular fa-eye-slash"></i> {{#str}} badge:hiddenfromreport, report_feedback_tracker {{/str}}</div>
             {{/hiddenfromreport}}
 
-            <span data-assesstype="{{assesstype}}" data-locked="{{locked}}" data-label="{{selectedassesstypelabel}}">
-                {{#summative}}
-                    <br><div class="badge badge-primary">{{#str}} assesstype:summative, report_feedback_tracker {{/str}}</div>
-                {{/summative}}
 
-                {{#formative}}
-                    <br><div class="badge badge-secondary">{{#str}} assesstype:formative, report_feedback_tracker {{/str}}</div>
-                {{/formative}}
+            {{#summative}}
+                <br><div class="badge badge-primary">{{#str}} assesstype:summative, report_feedback_tracker {{/str}}</div>
+            {{/summative}}
 
-                {{#dummy}}
-                    <br><div class="badge badge-light">{{#str}} assesstype:dummy, report_feedback_tracker {{/str}}</div>
-                {{/dummy}}
-            </span>
+            {{#formative}}
+                <br><div class="badge badge-secondary">{{#str}} assesstype:formative, report_feedback_tracker {{/str}}</div>
+            {{/formative}}
+
+            {{#dummy}}
+                <br><div class="badge badge-light">{{#str}} assesstype:dummy, report_feedback_tracker {{/str}}</div>
+            {{/dummy}}
 
             {{#duedate}}
-                <br><div>Due: {{{duedate}}}</div>
+                <br><div>{{#str}} due, report_feedback_tracker {{/str}}: {{{duedate}}}</div>
             {{/duedate}}
         </div>
 
         <div class="col-12 col-md-7">
             {{! Student data. }}
             {{#studentdata}}
-                <div class="row no-gutters">
-
-                    <div class="col-4">
-                        {{#duedate}}
-                            <span class="d-md-none">{{#str}} due, report_feedback_tracker {{/str}}: </span>
-                            {{{duedate}}}
-                        {{/duedate}}
-                    </div>
-
-                    <div class="col-4">
-                        {{#feedbackduedate}}
-                            <span class="d-md-none feedbackduedatereason">{{#str}} feedback:due, report_feedback_tracker {{/str}}: </span>{{{feedbackduedate}}}
-                        {{/feedbackduedate}}
-                        {{#markoverdue}}
-                            <br><div class="badge badge-danger">{{#str}} feedback:overdue, report_feedback_tracker {{/str}}</div>
-                        {{/markoverdue}}
-                    </div>
-
-                    <div class="col-4 text-right">
-                        {{#mark}}
-                            <span class="d-md-none">{{#str}} header:mark, report_feedback_tracker {{/str}}: </span>
-                            {{{mark}}}
-                        {{/mark}}
-                    </div>
-                </div>
+                {{> report_feedback_tracker/mod_student }}
             {{/studentdata}}
 
             {{! Staff data. }}
             {{#staffdata}}
                 <div class="row no-gutters">
 
-                    <div class="col-4" data-feedbackduedateraw="{{{feedbackduedateraw}}}">
+                    <div class="col-4">
                         {{#feedbackduedate}}
-                            <span class="d-md-none">{{#str}} feedback:due, report_feedback_tracker {{/str}}: </span>{{{feedbackduedate}}}
+                            <span class="sr-only-md">{{#str}} feedback:due, report_feedback_tracker {{/str}}: </span>{{{feedbackduedate}}}
                         {{/feedbackduedate}}
 
                         {{#customfeedbackduedate}}
-                            <br><div class="badge badge-warning js-customfeedbackduedate" data-customfeedbackduedate="{{customfeedbackduedate}}" data-feedbackduedatereason="{{feedbackduedatereason}}">{{#str}} feedbackduedate:custom, report_feedback_tracker {{/str}}</div>
+                            <br><div class="badge badge-warning">{{#str}} feedbackduedate:custom, report_feedback_tracker {{/str}}</div>
                         {{/customfeedbackduedate}}
 
                         {{#customfeedbackreleaseddate}}
-                            <br><div class="badge badge-warning js-customfeedbackreleaseddate" data-customfeedbackreleaseddate="{{customfeedbackreleaseddate}}" data-toggle="tooltip" title="{{customfeedbackreleaseddate}}">{{#str}} feedbackreleaseddate:custom, report_feedback_tracker {{/str}}</div>
+                            <br><div class="badge badge-warning">{{#str}} feedbackreleaseddate:custom, report_feedback_tracker {{/str}}</div>
                         {{/customfeedbackreleaseddate}}
 
                         {{#markoverdue}}
@@ -136,13 +111,13 @@
                         {{/markoverdue}}
 
                         {{#cohortfeedback}}
-                            <br><div class="badge badge-light js-cohortfeedback" data-cohortfeedback="{{cohortfeedback}}">{{#str}} feedback:cohort, report_feedback_tracker {{/str}}</div>
+                            <br><div class="badge badge-light">{{#str}} feedback:cohort, report_feedback_tracker {{/str}}</div>
                         {{/cohortfeedback}}
                     </div>
 
-                    <div class="col-3">
+                    <div class="col-4">
                         {{#submissions}}
-                            {{submissions}} <span class="d-md-none">{{#str}} submitted, report_feedback_tracker {{/str}}</span>
+                            {{submissions}} <span class="sr-only-md">{{#str}} submitted, report_feedback_tracker {{/str}}</span>
                         {{/submissions}}
 
                         {{#overrides}}
@@ -154,7 +129,7 @@
                         {{/overrides}}
                     </div>
 
-                    <div class="col-3">
+                    <div class="col">
                         {{#submissions}}
                             {{#requiredfeedbacks}}
                                 <a href="{{{markingurl}}}">
@@ -165,19 +140,23 @@
                             <div>
                                 <small>{{feedbackpercentage}}%</small>
                                 <div class="progress">
-                                    <div class="progress-bar bg-success" role="progressbar" aria-label="Progress" aria-valuenow="{{feedbackpercentage}}" style="width: {{feedbackpercentage}}%" aria-valuemin="0" aria-valuemax="100"></div>
+                                    <div class="progress-bar bg-success" role="progressbar" aria-label="{{#str}} progress {{/str}}" aria-valuenow="{{feedbackpercentage}}" style="width: {{feedbackpercentage}}%" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
                             </div>
                         {{/submissions}}
                     </div>
 
-                    <div class="col-2 text-right">
-                        {{#outputedit}}
-                            <button class="js-edit-tracker-data btn btn-outline-secondary" data-cmid="{{cmid}}" data-gradeitemid="{{gradeitemid}}" data-partid="{{partid}}" data-action="report_feedback_tracker/editmodule">
-                                Edit <span class="sr-only">{{{name}}}</span>
+                     {{! Edit button - with data attribute (json) for js. }}
+                    {{#outputedit}}
+                    <div class="col-1 text-right">
+                            <button
+                                {{> report_feedback_tracker/course/modedit_json }}
+                                class="js-edit-tracker-data btn btn-sm btn-outline-secondary">
+                                {{#str}} edit {{/str}}
+                                <span class="sr-only">{{{name}}}</span>
                             </button>
-                        {{/outputedit}}
                     </div>
+                     {{/outputedit}}
                 </div>
             {{/staffdata}}
         </div>
