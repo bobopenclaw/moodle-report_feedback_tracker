@@ -27,38 +27,55 @@ use report_feedback_tracker\local\helper;
 
 require_once(__DIR__ . '/../../config.php');
 
-$course = ($courseid = optional_param('id', null, PARAM_INT)) ? get_course($courseid) : $COURSE;
-$context = context_course::instance($course->id);
+$courseid = optional_param('id', null, PARAM_INT);
+$userid = optional_param('userid', null, PARAM_INT);
 
-if ((!$userid = optional_param('userid', null, PARAM_INT)) ||
-        (!has_capability('moodle/grade:edit', $context))) {
-    $userid = $USER->id;
+if ($courseid) {
+    $context = context_course::instance($courseid);
 }
+// If optional course and user ID are given and the user has sufficient rights
+// the user report will be shown in a course context.
+if ($courseid && $userid && has_capability('moodle/grade:edit', $context)) {
+    $pageparams = ['id' => $courseid];
+    $course = get_course($courseid);
+    // Set the course heading.
+    $heading = $course->fullname;
+} else {
+    $context = \context_system::instance(); // Show the page in system context.
+    $userid = $USER->id;
+    $course = $SITE;
+    $pageparams = [];
+    // Set the user heading.
+    if (isset($USER->firstname)) {
+        $heading = get_string('user:heading', 'report_feedback_tracker', $USER->firstname);
+    } else {
+        $heading = get_string('nouser:heading', 'report_feedback_tracker');
+    }
 
-$pageparams = ['id' => $course->id];
-$PAGE->set_context(context_system::instance());
-$PAGE->set_url('/report/feedback_tracker/user.php', $pageparams);
-$PAGE->set_pagelayout('report');
+    // If the user is a teacher and the site report is enabled provide a link to the site report.
+    if (helper::is_teacher() && get_config('report_feedback_tracker', 'sitereport')) {
+        $siteurl = new moodle_url('/report/feedback_tracker/site.php');
+        $link = "<a class='btn btn-sm btn-secondary' href='$siteurl'><i class='icon fa-solid fa-repeat'></i>" .
+            get_string('sitereport', 'report_feedback_tracker') . "</a>";
+        $PAGE->add_header_action($link);
+    }
+}
 
 require_login($course);
 
-// Set the header and print it.
+$PAGE->set_context($context);
+$PAGE->set_url('/report/feedback_tracker/user.php', $pageparams);
+$PAGE->set_pagelayout('report');
 $PAGE->set_title(get_string('pluginname', 'report_feedback_tracker'));
-if (isset($USER->firstname)) {
-    $PAGE->set_heading(get_string('user:heading', 'report_feedback_tracker', $USER->firstname));
-} else {
-    $PAGE->set_heading(get_string('nouser:heading', 'report_feedback_tracker'));
-}
-
-// If the user is a teacher and the site report is enabled provide a link to the site report.
-if (helper::is_teacher() && get_config('report_feedback_tracker', 'sitereport')) {
-    $siteurl = new moodle_url('/report/feedback_tracker/site.php');
-    $link = "<a class='btn btn-sm btn-secondary' href='$siteurl'><i class='icon fa-solid fa-repeat'></i>" .
-        get_string('sitereport', 'report_feedback_tracker') . "</a>";
-    $PAGE->add_header_action($link);
-}
+$PAGE->set_heading($heading);
 
 echo $OUTPUT->header();
+
+// In course context show the report selector drop down to course admins using a student view.
+if ($courseid && ($USER->id !== $userid)) {
+    $pluginname = get_string('pluginname', 'report_feedback_tracker');
+    report_helper::print_report_selector($pluginname);
+}
 
 // Get the renderer and use it.
 $renderer = $PAGE->get_renderer('report_feedback_tracker');

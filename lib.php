@@ -88,7 +88,6 @@ function report_feedback_tracker_myprofile_navigation(core_user\output\myprofile
     }
 
     $url = new moodle_url('/report/feedback_tracker/user.php', [
-        'userid' => $user->id,
         'sesskey' => sesskey(),
     ]);
 
