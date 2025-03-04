@@ -329,7 +329,8 @@ class site {
      * @return array[]
      */
     public static function get_course_academic_years_and_terms(stdClass $course): array {
-        $mappings = block_portico_enrolments\manager::get_modocc_mappings($course->id);
+        $mappings = method_exists('block_portico_enrolments\manager',
+            'get_modocc_mappings') ? block_portico_enrolments\manager::get_modocc_mappings($course->id) : [];
 
         foreach ($mappings as $mapping) {
             $ayitem = new stdClass();
