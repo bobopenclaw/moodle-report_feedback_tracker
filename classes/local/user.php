@@ -253,7 +253,8 @@ class user {
                         && isset($customdata[$duedates[$itemmodule]])) {
                     // Due to a core bug $customdata will always contain data for $USER->id, regardless of $userid given.
                     // See MDL-83121.
-                    if ($USER->id === $userid) {
+                    // The module customdata does not contain any optional assignment extensions so using custom method.
+                    if ($USER->id === $userid && $gradeitem->itemmodule !== 'assign') {
                         $gradeitem->duedate = $customdata[$duedates[$itemmodule]];
                     } else {
                         // Use a custom method to get the override for a student user shown in an admin report.
@@ -301,7 +302,7 @@ class user {
     }
 
     /**
-     * Get a due date including overrides for a user.
+     * Get a due date for a user including optional overrides and extensions.
      *
      * @param int $courseid
      * @param string $moduletype e.g. assign, quiz, etc.
@@ -315,24 +316,33 @@ class user {
 
         switch ($moduletype) {
             case 'assign':
-                // Return individual override when available.
+                // Get individual override where available.
                 $params = ['assignid' => $instance, 'userid' => $userid];
                 $overridedate = $DB->get_field('assign_overrides', 'duedate', $params);
 
-                // If there is no individual override return group override where available.
-                if (!$overridedate) {
-                    $usergroups = groups_get_user_groups($courseid, $userid);
-                    if (count($usergroups[0]) > 0) {
-                        foreach ($usergroups[0] as $usergroupid) {
-                            $params = ['assignid' => $instance, 'groupid' => $usergroupid];
-                            $overrideduedate = $DB->get_field('assign_overrides', 'duedate', $params);
+                $usergroups = groups_get_user_groups($courseid, $userid);
 
-                            if ($overrideduedate > $overridedate) {
-                                $overridedate = $overrideduedate;
-                            }
+                // If there is no individual override check for a group override date.
+                if (!$overridedate && (count($usergroups[0]) > 0)) {
+                    foreach ($usergroups[0] as $usergroupid) {
+                        $params = ['assignid' => $instance, 'groupid' => $usergroupid];
+                        $overrideduedate = $DB->get_field('assign_overrides', 'duedate', $params);
+
+                        if ($overrideduedate > $overridedate) {
+                            $overridedate = $overrideduedate;
                         }
                     }
                 }
+
+                // Get individual extension where available.
+                $params = ['assignment' => $instance, 'userid' => $userid];
+                $extensiondate = $DB->get_field('assign_user_flags', 'extensionduedate', $params);
+
+                // Use the date that gives the most time to the student.
+                if ($extensiondate > $overridedate) {
+                    $overridedate = $extensiondate;
+                }
+
                 break;
             case 'lesson':
                 $params = ['lessonid' => $instance, 'userid' => $userid];
