@@ -16,9 +16,9 @@
 
 namespace report_feedback_tracker\local;
 use assign;
+use context_course;
 use context_module;
 use course_modinfo;
-use dml_exception;
 use grade_item;
 use local_assess_type\assess_type;
 use moodle_url;
@@ -38,11 +38,13 @@ class admin {
      *
      * @param course_modinfo $modinfo
      * @param grade_item $gradeitem
+     * @param array $enrolleduserids
      * @return false|stdClass
      */
     public static function get_module_data(
         course_modinfo $modinfo,
-        grade_item $gradeitem
+        grade_item $gradeitem,
+        array $enrolleduserids
     ): false|stdClass {
 
         if ($cm = self::get_cm_from_gradeitem($gradeitem)) {
@@ -87,10 +89,11 @@ class admin {
             $data->overrides = get_string('users:extensions', 'report_feedback_tracker', $overrides);
         }
         $data->overridesurl = self::get_overrides_url($module);
-        $data->submissions = self::count_submissions($module);
+        $submissions = self::get_module_submissions($module, $enrolleduserids);
+        $data->submissions = count($submissions);
 
         // Grades and markings.
-        $data->requiredfeedbacks = self::count_missing_grades($module, $gradeitem->id);
+        $data->requiredfeedbacks = self::count_missing_grades($module, $submissions, $gradeitem->id);
         $data->feedbackpercentage = $data->submissions ?
             round(($data->submissions - $data->requiredfeedbacks) / $data->submissions * 100, 0) : 0;
         $data->url = $module->get_url();
@@ -194,30 +197,16 @@ class admin {
     }
 
     /**
-     * Count all submissions of a course module.
-     *
-     * @param cm_info $cm
-     * @return int
-     */
-    private static function count_submissions(cm_info $cm): int {
-        $modsub = optional_param('modsub', null, PARAM_INT);
-        if ($cm->modname === 'assign' && $modsub) {
-            $context = context_module::instance($cm->id);
-            $assignment = new assign($context, $cm, $cm->course);
-            return $assignment->count_submissions(); // Submissions from assign method.
-        }
-        return count(self::get_module_submissions($cm)); // Submissions from local method.
-    }
-
-    /**
      * Get an array of distinct student IDs with submissions for lessons, quizzes, turnitin and workshop assessments.
      *
      * @param cm_info $cm
+     * @param array $enrolleduserids
      * @return array
      */
-    public static function get_module_submissions(cm_info $cm): array {
+    public static function get_module_submissions(cm_info $cm, array $enrolleduserids): array {
         global $DB;
 
+        $teamsubmission = false;
         switch ($cm->modname) {
             case 'assign':
                 $teamsubmission = $DB->get_field('assign', 'teamsubmission', ['id' => $cm->instance]);
@@ -226,26 +215,24 @@ class admin {
                     $sql = "SELECT DISTINCT groupid FROM {assign_submission}
                             WHERE assignment = :assignid
                             AND userid = 0
-                            AND timemodified IS NOT NULL
                             AND status <> 'new'";
                 } else {
                     // Get the individual submissions.
                     $sql = "SELECT DISTINCT userid FROM {assign_submission}
                             WHERE assignment = :assignid
                             AND userid > 0
-                            AND timemodified IS NOT NULL
                             AND status <> 'new'";
                 }
                 $params = ['assignid' => $cm->instance];
-                return $DB->get_fieldset_sql($sql, $params);
+                break;
 
             case 'lesson':
                 $sql = "SELECT DISTINCT userid FROM {lesson_attempts} WHERE lessonid = :lessonid";
                 $params = ['lessonid' => $cm->instance, 'correct' => 1];
                 break;
             case 'quiz':
-                $sql = "SELECT DISTINCT userid FROM {quiz_attempts} WHERE quiz = :quiz AND state = :state";
-                $params = ['quiz' => $cm->instance, 'state' => 'finished'];
+                $sql = "SELECT DISTINCT userid FROM {quiz_attempts} WHERE quiz = :quiz AND preview = 0";
+                $params = ['quiz' => $cm->instance];
                 break;
             case 'turnitintooltwo':
                 $sql = "SELECT DISTINCT userid FROM {turnitintooltwo_submissions} WHERE turnitintooltwoid = :turnitintooltwoid";
@@ -260,17 +247,26 @@ class admin {
             default:
                 return [];
         }
-        return $DB->get_fieldset_sql($sql, $params);
+
+        $submitterids = $DB->get_fieldset_sql($sql, $params);
+
+        if ($teamsubmission) {
+            return $submitterids;
+        } else {
+            // Return only students that do have a submission and are (still) enrolled into the course.
+            return array_intersect($submitterids, $enrolleduserids);
+        }
     }
 
     /**
      * Count the missing grades for a given grade item.
      *
      * @param cm_info $cm
+     * @param array $submissions
      * @param int|null $gradeitemid
      * @return int
      */
-    public static function count_missing_grades(cm_info $cm, ?int $gradeitemid = null): int {
+    public static function count_missing_grades(cm_info $cm, array $submissions, ?int $gradeitemid = null): int {
         global $DB;
 
         // Assignments provide a method to count submissions that need grading.
@@ -282,7 +278,7 @@ class admin {
         }
 
         // For modules other than assignments get the student IDs that have submissions.
-        if ($submissions = self::get_module_submissions($cm)) {
+        if ($submissions) {
             if (!isset($gradeitemid)) {
                 $params = [
                     'itemtype' => 'mod',
@@ -320,7 +316,6 @@ class admin {
      *
      * @param grade_item $gradeitem
      * @return false|mixed
-     * @throws dml_exception
      */
     public static function get_cm_from_gradeitem(grade_item $gradeitem) {
         global $DB;
