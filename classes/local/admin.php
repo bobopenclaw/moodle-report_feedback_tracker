@@ -95,7 +95,8 @@ class admin {
         // Grades and markings.
         $data->requiredfeedbacks = self::count_missing_grades($module, $submissions, $gradeitem->id);
         $data->feedbackpercentage = $data->submissions ?
-            round(($data->submissions - $data->requiredfeedbacks) / $data->submissions * 100, 0) : 0;
+            round(($data->submissions - $data->requiredfeedbacks) / $data->submissions * 100, 1) : 0;
+
         $data->url = $module->get_url();
         $data->markingurl = self::get_markingurl($module);
 
