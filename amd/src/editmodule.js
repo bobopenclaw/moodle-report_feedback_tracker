@@ -1,24 +1,22 @@
 import Modal from 'core/modal';
 import ModalEvents from 'core/modal_events';
 import Templates from 'core/templates';
-import {getAssessmentTypes} from "./repository";
+import {getAssessmentTypes, getModuleData} from "./repository";
 import {get_string as getString} from 'core/str';
 
 export const init = async() => {
     document.addEventListener('click', async e => {
         if (e.target.closest('.js-edit-tracker-data')) {
 
-            // SHAME.
-            // Get data-module-data json.
-            // Ideally this would be call to php function, but we grab it from dom.
-            const moduleDataString = e.target.dataset.moduleData;
-            const moduleData = JSON.parse(moduleDataString);
+            const gradeitemid = e.target.dataset.gradeitemid;
+            const partnr = parseInt(e.target.dataset.partnr, 10);
+            const moduleData = await getModuleData(gradeitemid, partnr);
 
             const title = `${await getString('edit', 'report_feedback_tracker')} ${moduleData.name}`;
             const locked = moduleData.locked === "1";
 
             // Get assessment type options with the current selection.
-            const selection = +moduleData.assesstype; // Convert to int.
+            const selection = moduleData.assesstype;
             const assesstypes = JSON.parse(await getAssessmentTypes(selection));
 
             // If type is either dummy or summative set 'hide from student report' option.
@@ -38,14 +36,14 @@ export const init = async() => {
                     assesstypelabel: moduleData.assesstypelabel,
                     contact: moduleData.contact,
                     courseid: moduleData.courseid,
-                    formattedduedate: moduleData.formattedduedate,
-                    formattedreleaseddate: moduleData.formattedreleaseddate,
+                    formattedduedate: moduleData.customfeedbackduedate,
+                    formattedreleaseddate: moduleData.customfeedbackreleaseddate,
                     feedbackduedatereason: moduleData.feedbackduedatereason,
                     generalfeedback: moduleData.generalfeedback,
                     gradeitemid: moduleData.gradeitemid,
-                    hidden: moduleData.hidden === "1",
+                    hidden: moduleData.hiddenfromreport,
                     hiddendisabled: hiddendisabled,
-                    locked: locked,
+                    locked: moduleData.locked,
                     method: moduleData.method,
                     name: moduleData.name,
                     partid: moduleData.partid,

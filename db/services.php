@@ -18,8 +18,9 @@
  * Web service for Feedback tracker report.
  *
  * @package    report_feedback_tracker
- * @copyright  2024 UCL <m.opitz@ucl.ac.uk>
+ * @copyright  2024 onwards UCL <m.opitz@ucl.ac.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @author     Matthias Opitz <m.opitz@ucl.ac.uk>
  */
 
 defined('MOODLE_INTERNAL') || die();
@@ -29,6 +30,14 @@ $functions = [
     'report_feedback_tracker_get_assessment_types' => [
         'classname'         => 'report_feedback_tracker\external\get_assessment_types',
         'description'       => 'Get the assessment type options',
+        'type'              => 'read',
+        'readonlysession'   => true,
+        'ajax'              => true,
+        'capabilities'      => 'report/feedback_tracker:grade',
+    ],
+    'report_feedback_tracker_get_module_data' => [
+        'classname'         => 'report_feedback_tracker\external\get_module_data',
+        'description'       => 'Get module data for editing',
         'type'              => 'read',
         'readonlysession'   => true,
         'ajax'              => true,

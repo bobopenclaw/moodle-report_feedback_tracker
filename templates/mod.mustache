@@ -150,8 +150,9 @@
                     {{#outputedit}}
                     <div class="col-1 text-right">
                             <button
-                                {{> report_feedback_tracker/course/modedit_json }}
-                                class="js-edit-tracker-data btn btn-sm btn-outline-secondary">
+                                class="js-edit-tracker-data btn btn-sm btn-outline-secondary"
+                                data-gradeitemid="{{gradeitemid}}"
+                                data-partnr="{{partid}}">
                                 {{#str}} edit {{/str}}
                                 <span class="sr-only">{{{name}}}</span>
                             </button>
