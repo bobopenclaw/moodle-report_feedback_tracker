@@ -170,7 +170,7 @@ $string['settings:warningdays'] = 'Warning period';
 $string['settings:warningdaysinfo'] = 'Number of calendar days before a due date from when a warning is shown.';
 $string['site:heading'] = 'Feedback tracker site report';
 $string['site:menuguide'] = 'Select a year and term to view the report. The current accademic year and term are shown by default.';
-$string['site:nocourses'] = 'No courses with summative assessments to show for the selected year.';
+$string['site:nocourses'] = 'No courses with assessments to show for the selected year, term and type.';
 $string['site:note'] = 'Note: Postgraduate courses may be under the academic year they began.';
 $string['sitereport'] = 'View your staff report';
 $string['student'] = 'Student';
@@ -193,9 +193,14 @@ $string['t4'] = 'Other';
 $string['term'] = 'Term';
 
 $string['title:name'] = 'Feedback tracker';
-$string['title:site_subtext'] = 'Summative assessments with due dates, feedback dates, and marking progress from your courses in UCL Moodle.';
+$string['title:site_subtext'] = 'Assessments with due dates, feedback dates, and marking progress from your courses in UCL Moodle.';
 $string['title:subtext'] = 'Assessments with due dates, feedback dates, and marks from your courses in Moodle.';
 $string['type'] = 'Assessment type';
+
+$string['type1'] = 'Formative';
+$string['type2'] = 'Summative';
+$string['type3'] = 'All';
+
 $string['user'] = 'User';
 $string['user:heading'] = 'Feedback tracker report for {$a}';
 $string['users:extension'] = '1 extension';

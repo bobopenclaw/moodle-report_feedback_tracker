@@ -49,7 +49,10 @@ class site {
      */
     const TERM_SUMMER = 3;
 
-
+    /**
+     * Optinal parameter to show all assessments in site report
+     */
+    const ASSESS_TYPE_ALL = 2;
 
     /**
      * Return the data for the site level report.
@@ -72,9 +75,7 @@ class site {
         $data->courses = [];
 
         // Year and term menus.
-        $year = optional_param('year', null, PARAM_INT);
-        $term = optional_param('term', null, PARAM_INT);
-        $menus = self::menu($year, $term);
+        $menus = self::menu();
         $data->menus = $menus->menus;
 
         // Years.
@@ -124,40 +125,47 @@ class site {
     /**
      * Menu data for the report.
      *
-     * @param int|null $year The selected year.
-     * @param int|null $term The selected term.
      * @return stdClass The menu data.
      */
-    public static function menu(?int $year = null, ?int $term = null): stdClass {
+    public static function menu(): stdClass {
         // Get the current month and year.
         $clock = \core\di::get(\core\clock::class);
         $currentmonth = $clock->now()->format('n');
         $currentyear = $clock->now()->format('Y');
 
         // Check if we have a year from url, or set a default.
-        $defaultyear = ($currentmonth < 8) ? $currentyear - 1 : $currentyear;
-        $year = $year ?? $defaultyear;
+        $defaultyear = ($currentmonth < 8) ? $currentyear - 1 : $currentyear; // The academic year starts in August.
+        $year = optional_param('year', $defaultyear, PARAM_INT);
 
         // Check if we have a term from url, or set a default.
-        $term = $term ?: self::current_term($currentmonth);
+        $term = optional_param('term', self::current_term($currentmonth), PARAM_INT);
+
+        // Check if we have an assessment type from url, or set summative as default.
+        $assestype = optional_param('type', assess_type::ASSESS_TYPE_SUMMATIVE + 1, PARAM_INT);
 
         // Template for mustache.
         $template = new stdClass();
         $template->year = $year;
         $template->term = $term;
+        $template->type = $assestype;
 
         // Years menu.
         $yearmenu = new stdClass();
         $yearmenu->type = get_string('year', 'report_feedback_tracker');
-        $yearmenu->items = self::years_menu($year, $term);
+        $yearmenu->items = self::years_menu($year, $term, $assestype);
 
         // Terms menu.
         $termmenu = new stdClass();
         $termmenu->type = get_string('term', 'report_feedback_tracker');
-        $termmenu->items = self::terms_menu($year, $term);
+        $termmenu->items = self::terms_menu($year, $term, $assestype);
+
+        // Type menu.
+        $typemenu = new stdClass();
+        $typemenu->type = get_string('type', 'report_feedback_tracker');
+        $typemenu->items = self::types_menu($year, $term, $assestype);
 
         // Add menus.
-        $template->menus = [$yearmenu, $termmenu];
+        $template->menus = [$yearmenu, $termmenu, $typemenu];
 
         return $template;
     }
@@ -183,14 +191,16 @@ class site {
      *
      * @param int $year The selected year.
      * @param int $term The selected term.
+     * @param int $assestype The selected assessment type.
      * @return array The terms menu data.
      */
-    public static function terms_menu(int $year, int $term): array {
+    public static function terms_menu(int $year, int $term, int $assestype): array {
         $terms = [];
         for ($i = 1; $i <= 4; $i++) {
             $template = new stdClass();
             $template->value = get_string('t'.$i, 'report_feedback_tracker');
-            $template->url = new moodle_url('/report/feedback_tracker/site.php', ['year' => $year, 'term' => $i]);
+            $template->url = new moodle_url('/report/feedback_tracker/site.php',
+                ['year' => $year, 'term' => $i, 'type' => $assestype]);
             $template->selected = ($term === $i);
             $terms[] = $template;
         }
@@ -199,13 +209,47 @@ class site {
     }
 
     /**
+     * Assessment types menu.
+     *
+     * @param int $year The selected year.
+     * @param int $term The selected term.
+     * @param int $assestype The selected assessment type.
+     * @return array The assessment types menu data.
+     */
+    public static function types_menu(int $year, int $term, int $assestype): array {
+        // Summative.
+        $template = new stdClass();
+        $template->value = get_string('summative', 'local_assess_type');
+        $template->url = new moodle_url('/report/feedback_tracker/site.php', ['year' => $year, 'term' => $term, 'type' => 2]);
+        $template->selected = ($assestype === 2);
+        $types[] = $template;
+
+        // Formative.
+        $template = new stdClass();
+        $template->value = get_string('formative', 'local_assess_type');
+        $template->url = new moodle_url('/report/feedback_tracker/site.php', ['year' => $year, 'term' => $term, 'type' => 1]);
+        $template->selected = ($assestype === 1);
+        $types[] = $template;
+
+        // All.
+        $template = new stdClass();
+        $template->value = get_string('all');
+        $template->url = new moodle_url('/report/feedback_tracker/site.php', ['year' => $year, 'term' => $term, 'type' => 3]);
+        $template->selected = ($assestype === 3);
+        $types[] = $template;
+
+        return $types;
+    }
+
+    /**
      * Years menu.
      *
      * @param int $year The selected year.
      * @param int $term The selected term.
+     * @param int $assestype The selected assessment type.
      * @return array The years menu data.
      */
-    public static function years_menu(int $year, int $term): array {
+    public static function years_menu(int $year, int $term, int $assestype): array {
         // Get the current month and year.
         $clock = \core\di::get(\core\clock::class);
         $currentmonth = $clock->now()->format('n');
@@ -221,7 +265,8 @@ class site {
 
             $template = new stdClass();
             $template->value = substr($yearstart, -2) . "/" . substr($yearend, -2);
-            $template->url = new moodle_url('/report/feedback_tracker/site.php', ['year' => $yearstart, 'term' => $term]);
+            $template->url = new moodle_url('/report/feedback_tracker/site.php',
+                ['year' => $yearstart, 'term' => $term, 'type' => $assestype]);
             $template->selected = ($yearstart === $year);
             $years[] = $template;
         }
@@ -244,7 +289,7 @@ class site {
 
         $modinfo = get_fast_modinfo($course->id);
         $assesstypes = helper::get_assessment_types($course->id);
-
+        $selectedassesstype = optional_param('type', 2, PARAM_INT) - 1;
         $courseitem = new stdClass();
         $courseitem->url = helper::get_course_url($course->id);
         $courseitem->image = course_summary_exporter::get_course_image($course);
@@ -252,23 +297,46 @@ class site {
         $courseitem->reporturl = new moodle_url("/report/feedback_tracker/", ['id' => $course->id]);
 
         foreach ($gradeitems as $gradeitem) {
-            // Get course module ID for the grade item where it exists.
-            $cmid = helper::get_cmid($gradeitem->id);
-            $assesstype = helper::get_assesstype($gradeitem->id,  $cmid, $assesstypes);
+            $cmid = 0;
+
+            if ($gradeitem->itemtype === 'manual') {
+                $item = new stdClass();
+                $item->name = $gradeitem->itemname;
+                $item->gradeitemid = $gradeitem->id;
+                $item->cmid = null;
+                $item->partid = null;
+                $item->feedbackduedateraw = 9999999999; // Needed for sorting. Make sure they are listed last.
+                // Add a URL pointing to the gradebook item in single view.
+                $item->url = new moodle_url('/grade/report/singleview/index.php', [
+                    'id' => $gradeitem->courseid,
+                    'item' => 'grade',
+                    'itemid' => $gradeitem->id,
+                    'gpr_type' => 'report',
+                    'gpr_plugin' => 'grader',
+                    'gpr_courseid' => $gradeitem->courseid,
+                ]);
+            } else {
+                // Get course module ID for the grade item where it exists.
+                $cmid = helper::get_cmid($gradeitem->id);
+            }
+
+            $assesstype = helper::get_assesstype($gradeitem->id, $cmid, $assesstypes);
+
+            if (($selectedassesstype !== self::ASSESS_TYPE_ALL) && ($assesstype->type != $selectedassesstype)) {
+                continue;
+            }
 
             // Process only summative or manual modules that are visible.
-            if (((int) $assesstype->type === assess_type::ASSESS_TYPE_SUMMATIVE) &&
-                (($gradeitem->itemtype === 'mod') || ($gradeitem->itemtype === 'manual')) &&
-                ($cm = admin::get_module_data($modinfo, $gradeitem)) &&
-                !$cm->hiddenfromstudents) {
+            if (($gradeitem->itemtype === 'manual') || ((($gradeitem->itemtype === 'mod')) &&
+                    ($item = admin::get_module_data($modinfo, $gradeitem)) &&
+                    !$item->hiddenfromstudents)) {
                 if ($gradeitem->itemmodule === 'turnitintooltwo') {
                     // Add separate data for each summative Turnitin part.
-                    helper::add_ttt_data($courseitem, $gradeitem, $cm, $assesstypes, 0, assess_type::ASSESS_TYPE_SUMMATIVE);
+                    helper::add_ttt_data($courseitem, $gradeitem, $item, $assesstypes, 0, assess_type::ASSESS_TYPE_SUMMATIVE);
                 } else {
-                    helper::add_assesstype($cm, $assesstype);
-                    helper::add_additional_data($cm);
-
-                    $courseitem->items[] = $cm;
+                    helper::add_assesstype($item, $assesstype);
+                    helper::add_additional_data($item);
+                    $courseitem->items[] = $item;
                 }
             }
         }

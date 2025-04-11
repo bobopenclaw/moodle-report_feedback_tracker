@@ -47,38 +47,49 @@ final class feedback_tracker_site_test extends advanced_testcase {
      * @dataProvider menu_provider
      * @param int|null $inputyear Input year
      * @param int|null $inputterm Input term
+     * @param int|null $inputtype Input assessment type
      * @param int $currentmonth Current month for testing
      * @param int $currentyear Current year for testing
      * @param int $expectedyear Expected year in result
      * @param int $expectedterm Expected term in result
+     * @param int $expectedtype Expected type in result
      */
     public function test_menu(
         ?int $inputyear,
         ?int $inputterm,
+        ?int $inputtype,
         int $currentmonth,
         int $currentyear,
         int $expectedyear,
-        int $expectedterm): void {
+        int $expectedterm,
+        int $expectedtype): void {
 
         // Mock the clock.
         $this->mock_clock_with_frozen(strtotime("$currentyear-$currentmonth"));
 
+        // Simulate a URL with optional parameters.
+        $_GET['year'] = $inputyear;
+        $_GET['term'] = $inputterm;
+        $_GET['type'] = $inputtype;
+
         // Get menu data.
-        $menu = site::menu($inputyear, $inputterm);
+        $menu = site::menu();
 
         // Verify basic structure.
         $this->assertInstanceOf(\stdClass::class, $menu);
         $this->assertObjectHasProperty('year', $menu);
         $this->assertObjectHasProperty('term', $menu);
+        $this->assertObjectHasProperty('type', $menu);
         $this->assertObjectHasProperty('menus', $menu);
         $this->assertIsArray($menu->menus);
 
         // Verify year and term values.
         $this->assertEquals($expectedyear, $menu->year);
         $this->assertEquals($expectedterm, $menu->term);
+        $this->assertEquals($expectedtype, $menu->type);
 
         // Verify menus array structure.
-        $this->assertCount(2, $menu->menus); // Should have year and term menus.
+        $this->assertCount(3, $menu->menus); // Should have year, term and type menus.
 
         // Verify year menu.
         $yearmenu = $menu->menus[0];
@@ -95,6 +106,14 @@ final class feedback_tracker_site_test extends advanced_testcase {
         $this->assertObjectHasProperty('items', $termmenu);
         $this->assertIsArray($termmenu->items);
         $this->assertCount(4, $termmenu->items); // Should have 4 terms.
+
+        // Verify type menu.
+        $typemenu = $menu->menus[2];
+        $this->assertInstanceOf(\stdClass::class, $typemenu);
+        $this->assertObjectHasProperty('type', $typemenu);
+        $this->assertObjectHasProperty('items', $typemenu);
+        $this->assertIsArray($typemenu->items);
+        $this->assertCount(3, $typemenu->items); // Should have 3 types.
     }
 
     /**
@@ -107,26 +126,32 @@ final class feedback_tracker_site_test extends advanced_testcase {
             'Default values in September' => [
                 'inputyear' => null,
                 'inputterm' => null,
+                'inputtype' => null,
                 'currentmonth' => 9,
                 'currentyear' => 2025,
                 'expectedyear' => 2025, // Academic year is current year when month >= 8.
                 'expectedterm' => 1, // Term 1 for September.
+                'expectedtype' => 2, // Summative.
             ],
             'Default values in January' => [
                 'inputyear' => null,
                 'inputterm' => null,
+                'inputtype' => null,
                 'currentmonth' => 1,
                 'currentyear' => 2025,
                 'expectedyear' => 2024, // Academic year is previous year when month < 8.
                 'expectedterm' => 2, // Term 2 for January.
+                'expectedtype' => 2, // Summative.
             ],
             'Explicit values override defaults' => [
                 'inputyear' => 2023,
                 'inputterm' => 1,
+                'inputtype' => 1,
                 'currentmonth' => 9,
                 'currentyear' => 2025,
                 'expectedyear' => 2023,
                 'expectedterm' => 1,
+                'expectedtype' => 1, // Formative.
             ],
         ];
     }
