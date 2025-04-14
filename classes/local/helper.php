@@ -571,7 +571,6 @@ class helper {
      * @param stdClass $item The assessment row item for the report.
      * @param array $assesstypes Array of valid assessment types
      * @param int $userid optional user ID to get submission dates
-     * @param int|null $assesstypefilter Optional type filter
      * @return void
      */
     public static function add_ttt_data(
@@ -579,8 +578,7 @@ class helper {
         grade_item $gradeitem,
         stdClass $item,
         array $assesstypes,
-        int $userid = 0,
-        ?int $assesstypefilter = null
+        int $userid = 0
     ): void {
         $dateformat = get_string('strftimedatemonthabbr', 'langconfig');
         $tttparts = self::get_turnitin_parts($gradeitem->iteminstance);
@@ -591,9 +589,6 @@ class helper {
 
             $tttitem = clone $item;
             $assesstype = self::get_assesstype($tttitem->gradeitemid, $tttitem->cmid, $assesstypes);
-            if (isset($assesstypefilter) && ((int) $assesstype->type !== $assesstypefilter)) {
-                continue;
-            }
 
             $tttitem->name = $gradeitem->itemname . " - " . $tttpart->partname;
             $tttitem->partid = $tttpart->id;

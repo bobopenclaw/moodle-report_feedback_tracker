@@ -328,11 +328,12 @@ class site {
 
             // Process only summative or manual modules that are visible.
             if (($gradeitem->itemtype === 'manual') || ((($gradeitem->itemtype === 'mod')) &&
+                    helper::is_supported_module($gradeitem->itemmodule) &&
                     ($item = admin::get_module_data($modinfo, $gradeitem)) &&
                     !$item->hiddenfromstudents)) {
                 if ($gradeitem->itemmodule === 'turnitintooltwo') {
                     // Add separate data for each summative Turnitin part.
-                    helper::add_ttt_data($courseitem, $gradeitem, $item, $assesstypes, 0, assess_type::ASSESS_TYPE_SUMMATIVE);
+                    helper::add_ttt_data($courseitem, $gradeitem, $item, $assesstypes);
                 } else {
                     helper::add_assesstype($item, $assesstype);
                     helper::add_additional_data($item);
