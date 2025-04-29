@@ -327,7 +327,8 @@ class site {
             }
 
             // Process only summative or manual modules that are visible.
-            if (($gradeitem->itemtype === 'manual') || ((($gradeitem->itemtype === 'mod')) &&
+            if ((($gradeitem->itemtype === 'manual') && helper::is_supported_module($gradeitem->itemtype)) ||
+                    ((($gradeitem->itemtype === 'mod')) &&
                     helper::is_supported_module($gradeitem->itemmodule) &&
                     ($item = admin::get_module_data($modinfo, $gradeitem)) &&
                     !$item->hiddenfromstudents)) {

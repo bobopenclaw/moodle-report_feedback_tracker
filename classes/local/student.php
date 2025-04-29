@@ -143,7 +143,8 @@ class student {
             $assesstype = helper::get_assesstype($gradeitem->id,  $cmid, self::$assesstypes);
 
             // Process modules and manual grade items only.
-            if ((($gradeitem->itemtype == 'mod') || ($gradeitem->itemtype === 'manual')) &&
+            if (((($gradeitem->itemtype === 'mod') && helper::is_supported_module($gradeitem->itemmodule)) ||
+                    (($gradeitem->itemtype === 'manual') && helper::is_supported_module($gradeitem->itemtype))) &&
                     $item = self::build_moduleitem($modinfo, $gradeitem, $userid)) {
 
                 // Skip hidden items.

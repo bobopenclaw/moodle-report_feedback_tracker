@@ -160,7 +160,7 @@ class renderer extends plugin_renderer_base {
 
                     $data->items[] = $item;
                 }
-            } else if ($gradeitem->itemtype === 'manual') {
+            } else if (($gradeitem->itemtype === 'manual') && helper::is_supported_module($gradeitem->itemtype)) {
                 $item = new stdClass();
                 $item->name = $gradeitem->itemname;
                 $item->gradeitemid = $gradeitem->id;
