@@ -22,8 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use Behat\Gherkin\Node\TableNode;
-use Behat\Mink\Exception\ExpectationException;
 use Behat\Mink\Exception\ElementNotFoundException;
 
 /**
@@ -73,69 +71,6 @@ class behat_report_feedback_tracker extends behat_base {
      */
     public function i_select_from_the_dropdown($option, $dropdown) {
         $this->getSession()->getPage()->selectFieldOption($dropdown, $option);
-    }
-
-    /**
-     * Create custom field.
-     *
-     * @param  TableNode $table
-     * @throws \dml_exception
-     *
-     * @Given /^the following custom field exists for feedback tracker:$/
-     */
-    public function the_following_custom_field_exists_for_feedback_tracker(TableNode $table): void {
-        global $DB;
-
-        $data = $table->getRowsHash();
-
-        // Create a new custom field category if it doesn't exist.
-        $category = $DB->get_record(
-            'customfield_category',
-            ['name' => $data['category'],
-                'component' => 'core_course',
-                'area' => 'course']);
-
-        if (!$category) {
-            $category     = (object)[
-                'name'         => $data['category'],
-                'component'    => 'core_course',
-                'area'         => 'course',
-                'sortorder'    => 1,
-                'timecreated'  => time(),
-                'timemodified' => time(),
-            ];
-            $category->id = $DB->insert_record(
-                'customfield_category',
-                $category
-            );
-        }
-
-        // Check if the field already exists.
-        $fieldexists = $DB->record_exists('customfield_field', ['shortname' => $data['shortname'], 'categoryid' => $category->id]);
-
-        // Create the custom field if not exists.
-        if (!$fieldexists) {
-            $field = (object)[
-                'shortname' => $data['shortname'],
-                'name' => $data['name'],
-                'type' => $data['type'],
-                'categoryid' => $category->id,
-                'sortorder' => 0,
-                'configdata'   => json_encode([
-                    "required" => 0,
-                    "uniquevalues" => 0,
-                    "maxlength" => 4,
-                    "defaultvalue" => "",
-                    "ispassword" => 0,
-                    "displaysize" => 4,
-                    "locked" => 1,
-                    "visibility" => 0,
-                ]),
-                'timecreated' => time(),
-                'timemodified' => time(),
-            ];
-            $DB->insert_record('customfield_field', $field);
-        }
     }
 
 }

@@ -5,30 +5,29 @@ Feature: In a course administration page, navigate through report page, test for
   Go to course administration -> Reports -> Feedback tracker
 
   Background:
-    Given the following custom field exists for feedback tracker:
-      | category  | CLC |
-      | shortname | course_year |
-      | name      | Course Year |
-      | type      | text        |
+    Given the following "custom field categories" exist:
+      | name | component   | area   | itemid |
+      | CLC  | core_course | course | 0      |
+    And the following "custom fields" exist:
+      | name        | shortname   | category | type |
+      | Course Year | course_year | CLC      | text |
     And the following "courses" exist:
       | fullname | shortname | format | customfield_course_year |
       | Course 1 | C1        | topics | ##now##%Y##             |
     And the following "users" exist:
-      | username | firstname  | lastname  | email                 |
-      | teacher1 | teacher    | 1         | teacher1@example.com  |
-      | student1 | Student    | 1         | student1@example.com  |
+      | username | firstname | lastname | email                |
+      | teacher1 | teacher   | 1        | teacher1@example.com |
+      | student1 | Student   | 1        | student1@example.com |
     And the following "course enrolments" exist:
-      | user      | course  | role            |
-      | teacher1  | C1      | editingteacher  |
-      | student1  | C1      | student         |
+      | user      | course | role           |
+      | teacher1  | C1     | editingteacher |
+      | student1  | C1     | student        |
     And I log in as "admin"
     And I add a quiz activity to course "Course 1" section "3" and I fill the form with:
-      | Name                      | Test quiz                                       |
-      | Formative or summative?   | Formative - does not contribute to course mark  |
-      | Description               | Test quiz description                           |
-      | Grade to pass             | 8                                               |
-#    And I press "Save and return to course"
-#    And I click on "Save and return to course" "button"
+      | Name                    | Test quiz                                      |
+      | Formative or summative? | Formative - does not contribute to course mark |
+      | Description             | Test quiz description                          |
+      | Grade to pass           | 8                                              |
 
   @javascript
   Scenario: For an admin the report selector should be available in course feedback report page
