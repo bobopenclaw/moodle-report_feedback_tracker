@@ -335,7 +335,7 @@ class export_data extends scheduled_task {
      * @return string
      */
     private static function strip_square_brackets(string $string): string {
-        return preg_replace('/\[.*?\]/', '', $string);
+        return trim(preg_replace('/\[.*?\]/', '', $string));
     }
 
     /**
