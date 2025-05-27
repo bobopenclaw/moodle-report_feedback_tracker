@@ -142,6 +142,11 @@ class export_data extends scheduled_task {
 
             $params = ['courseid' => $course->id];
             $coursemodules = $DB->get_records_sql($sql, $params);
+            // If a course has set an academic year manually use this.
+            // It may be different from the academic year selected for export,
+            // e.g. for a course that started the year before and is still running into the selected academic year.
+            // Otherwise, use the selected academic year for the data to export.
+            $courseacademicyear = helper::get_academic_year($course->id) ?? $academicyear;
             // Get the submissions for the summative assessments.
             foreach ($coursemodules as $summativecm) {
                 if ($submissions = admin::get_module_submissions($course->id, $summativecm->modname, $summativecm->instance)) {
@@ -159,7 +164,7 @@ class export_data extends scheduled_task {
                         $record->courseid = $course->id;
                         $record->categoryid = $course->category;
                         $record->assessmentname = $summativecm->assessname;
-                        $record->academicyear = $academicyear;
+                        $record->academicyear = $courseacademicyear;
                         $record->coursename = $course->fullname;
                         $record->assessmentmod = $summativecm->modname;
 
