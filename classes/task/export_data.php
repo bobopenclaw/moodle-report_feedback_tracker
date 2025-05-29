@@ -147,11 +147,10 @@ class export_data extends scheduled_task {
             // e.g. for a course that started the year before and is still running into the selected academic year.
             // Otherwise, use the selected academic year for the data to export.
             $courseacademicyear = helper::get_academic_year($course->id) ?? $academicyear;
+
             // Get the submissions for the summative assessments.
             foreach ($coursemodules as $summativecm) {
                 if ($submissions = admin::get_module_submissions($course->id, $summativecm->modname, $summativecm->instance)) {
-
-                    $datetimeformat = 'Y-m-d H:i:s';
                     foreach ($submissions as $submission) {
                         $record = new stdClass();
                         $record->submissionid = $submission->id;
@@ -168,22 +167,21 @@ class export_data extends scheduled_task {
                         $record->coursename = $course->fullname;
                         $record->assessmentmod = $summativecm->modname;
 
-                        // Set user specific due dates.
-                        self::set_duedates($record);
-
-                        // Set categories, faculties and departments.
-                        self::set_categories_faculties_departments($record);
-
-                        // Get grade item, marking and custom dates where available.
-                        self::set_grading_data($record);
-
-                        // Convert UNIX timestamps.
-                        self::convert_timestamps($datetimeformat, $record);
-
-                        // Add turnaround days.
-                        $record->turnarounddays = self::compute_turnaround_days($record);
-
-                        $records[] = $record;
+                        // Add turnitin part data.
+                        if ($summativecm->modname === 'turnitintooltwo') {
+                            $tttparts = helper::get_turnitin_parts($summativecm->instance);
+                            foreach ($tttparts as $tttpart) {
+                                // Make a clone of the record and fill in the part details.
+                                $tttrecord = clone $record;
+                                $tttrecord->assessmentname .= ' ' . $tttpart->partname;
+                                $tttrecord->duedatetime = $tttpart->dtdue;
+                                self::amend_record_data($tttrecord);
+                                $records[] = $tttrecord;
+                            }
+                        } else {
+                            self::amend_record_data($record);
+                            $records[] = $record;
+                        }
 
                         // If a limit is set stop when it has been reached.
                         if ($limit && ++$counter >= $limit) {
@@ -197,16 +195,40 @@ class export_data extends scheduled_task {
     }
 
     /**
-     * Convert UNIX timestamps.
+     * Amending various data for the export record.
      *
-     * @param string $datetimeformat
      * @param stdClass $record
      * @return void
      */
-    private static function convert_timestamps(string $datetimeformat, stdClass $record): void {
+    private static function amend_record_data(stdClass $record): void {
+        // Set user specific due dates.
+        self::set_duedates($record);
+
+        // Set categories, faculties and departments.
+        self::set_categories_faculties_departments($record);
+
+        // Get grade item, marking and custom dates where available.
+        self::set_grading_data($record);
+
+        // Convert UNIX timestamps.
+        self::convert_timestamps($record);
+
+        // Add turnaround days.
+        $record->turnarounddays = self::compute_turnaround_days($record);
+    }
+
+    /**
+     * Convert UNIX timestamps.
+     *
+     * @param stdClass $record
+     * @return void
+     */
+    private static function convert_timestamps(stdClass $record): void {
+        $datetimeformat = 'Y-m-d H:i:s';
+
         $record->duedate = date($datetimeformat, $record->duedatetime);
         $record->userduedate = date($datetimeformat, $record->userduedatetime);
-        $record->submissiondate = date($datetimeformat, $record->submissiondatetime );
+        $record->submissiondate = date($datetimeformat, $record->submissiondatetime);
         $record->feedbackduedate = date($datetimeformat, $record->feedbackduedatetime);
         $record->feedbackdate = date($datetimeformat, $record->feedbackdatetime);
     }
