@@ -93,21 +93,20 @@ class export_data extends scheduled_task {
         $records = [];
 
         $academicyear = get_config('report_feedback_tracker', 'export_academicyear') ?: helper::get_current_academic_year();
-        $aystartdate = strtotime($academicyear . '-10-01');
-        $ayenddate = strtotime(($academicyear + 1) . '-09-30');
 
         // NO limit in number of records unless specified in settings.
         $limit = get_config('report_feedback_tracker', 'export_limit') ?: 0;
 
         $counter = 0;
 
-        // Get courses for academic year.
-        $courses = $DB->get_records_select('course',
-            '((startdate >= :start1 AND startdate <= :end1) OR (enddate >= :start2 AND enddate <= :end2)) AND id <> 1',
-            ['start1' => $aystartdate, 'end1' => $ayenddate, 'start2' => $aystartdate, 'end2' => $ayenddate]
-        );
-
+        // Get all courses.
+        $courses = get_courses();
         foreach ($courses as $course) {
+            // Only export courses with an academic year set.
+            if (!$courseacademicyear = helper::get_academic_year($course->id)) {
+                continue;
+            }
+
             // Get the summative course modules.
             $sql = "SELECT
                     cm.*,
@@ -142,11 +141,6 @@ class export_data extends scheduled_task {
 
             $params = ['courseid' => $course->id];
             $coursemodules = $DB->get_records_sql($sql, $params);
-            // If a course has set an academic year manually use this.
-            // It may be different from the academic year selected for export,
-            // e.g. for a course that started the year before and is still running into the selected academic year.
-            // Otherwise, use the selected academic year for the data to export.
-            $courseacademicyear = helper::get_academic_year($course->id) ?? $academicyear;
 
             // Get the submissions for the summative assessments.
             foreach ($coursemodules as $summativecm) {
