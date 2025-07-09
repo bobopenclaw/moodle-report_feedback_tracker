@@ -647,7 +647,7 @@ class helper {
     public static function get_current_academic_year(): int {
         $currentyear = date('Y');
         $currentmonth = date('m');
-        return $currentmonth >= 8 ? $currentyear : $currentyear - 1; // Academic Year begins 1st of August.
+        return $currentmonth >= 10 ? $currentyear : $currentyear - 1; // Academic Year begins 1st of October.
     }
 
     /**

@@ -46,64 +46,78 @@ class export_data extends scheduled_task {
      * Execute the task.
      */
     public function execute() {
-        // Get the data to export.
-        $data = (array) self::get_export_data();
+        $academicyear = get_config('report_feedback_tracker', 'export_academicyear') ?: helper::get_current_academic_year();
+        $previousyear = $academicyear - 1;
+        $academicyears = [$previousyear, $academicyear];
 
-        // Convert data to JSON for writing.
-        $output = json_encode($data, JSON_PRETTY_PRINT);
+        foreach ($academicyears as $acyear) {
+            // Get the data to export.
+            if (!$data = self::get_export_data($acyear)) {
+                mtrace(" ==> No data to export for academic year $acyear.");
+                continue;
+            }
 
-        // Export the output.
-        $filename = 'feedback_tracker_report.json';
+            // Convert data to JSON for writing.
+            $output = json_encode($data, JSON_PRETTY_PRINT);
 
-        // If a path is configured use it and log the outcome.
-        if ($exportpath = get_config('report_feedback_tracker', 'export_path')) {
-            $filepath = $exportpath  . '/' . $filename;
+            // Export the output.
+            $filename = "feedback_tracker_report_$acyear.json";
 
-        } else { // Export to temp directory of moodledata and log the outcome.
-            $filepath = make_temp_directory('report_feedback_tracker') . '/' . $filename;
+            // If a path is configured use it.
+            if ($exportpath = get_config('report_feedback_tracker', 'export_path')) {
+                $filepath = $exportpath  . '/' . $filename;
+
+            } else { // Otherwise export to the moodledata temp directory.
+                $filepath = make_temp_directory('report_feedback_tracker') . '/' . $filename;
+            }
+
+            // Try to write the data to the file and log the outcome.
+            if (file_put_contents($filepath, $output) === false) {
+                mtrace(get_string('data:export_error', 'report_feedback_tracker', $filepath));
+            } else {
+                mtrace(get_string('data:export_count', 'report_feedback_tracker',
+                    (object) ['count' => count($data), 'acyear' => $acyear]));
+                mtrace(get_string('data:export_log', 'report_feedback_tracker', $filepath));
+            }
         }
 
-        // Write the data to the file.
-        if (file_put_contents($filepath, $output)) {
-            // Log the outcome.
-            mtrace(get_string('data:export_log', 'report_feedback_tracker') . ": $filepath");
-
-            mtrace(" ==> " . count($data) . " records exported.");
-
-            // Trigger an event.
-            $event = \report_feedback_tracker\event\data_export_completed::create([
-                'context' => \context_system::instance(),
-                'other' => ['greetings' => 'Live long and prosper!'], // Probably not needed...
-            ]);
-            $event->trigger();
-        } else {
-            // Log the outcome.
-            mtrace("Failed to write data: $filepath");
-        }
+        // Trigger an event.
+        $event = \report_feedback_tracker\event\data_export_completed::create([
+            'context' => \context_system::instance(),
+        ]);
+        $event->trigger();
     }
 
     /**
      * Get the data to export - taking steps.
      *
+     * @param int $academicyear
      * @return array
      */
-    public static function get_export_data(): array {
+    public static function get_export_data(int $academicyear): array {
         global $DB;
 
-        $records = [];
+        $sql =
+            "SELECT c.id, c.category, c.fullname
+               FROM {customfield_data} cfd
+               JOIN {context} ctx ON cfd.contextid = ctx.id AND ctx.contextlevel = :contextcourse
+               JOIN {course} c ON c.id = ctx.instanceid
+               JOIN {customfield_field} cff ON cfd.fieldid = cff.id
+              WHERE cff.shortname = 'course_year' AND cfd.value = :academicyear";
+        $params = ['contextcourse' => CONTEXT_COURSE, 'academicyear' => $academicyear];
 
-        $academicyear = get_config('report_feedback_tracker', 'export_academicyear') ?: helper::get_current_academic_year();
+        $courses = $DB->get_records_sql($sql, $params);
 
         // NO limit in number of records unless specified in settings.
         $limit = get_config('report_feedback_tracker', 'export_limit') ?: 0;
-
         $counter = 0;
 
-        // Get all courses.
-        $courses = get_courses();
+        $records = [];
+
         foreach ($courses as $course) {
-            // Only export courses with an academic year set.
-            if (!$courseacademicyear = helper::get_academic_year($course->id)) {
+            $courseacademicyear = helper::get_academic_year($course->id);
+            // Only export courses with an academic year matching the selected academic year.
+            if (!$courseacademicyear || $courseacademicyear != $academicyear) {
                 continue;
             }
 
