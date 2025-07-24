@@ -25,6 +25,7 @@
 namespace report_feedback_tracker\task;
 
 use core\task\scheduled_task;
+use local_assess_type\assess_type;
 use report_feedback_tracker\local\admin;
 use report_feedback_tracker\local\helper;
 use stdClass;
@@ -53,16 +54,17 @@ class export_data extends scheduled_task {
         $academicyears = [$previousyear, $academicyear];
 
         foreach ($academicyears as $acyear) {
-            $sql =
-                "SELECT c.id, c.category, c.fullname
-               FROM {customfield_data} cfd
-               JOIN {context} ctx ON cfd.contextid = ctx.id AND ctx.contextlevel = :contextcourse
-               JOIN {course} c ON c.id = ctx.instanceid
-               JOIN {customfield_field} cff ON cfd.fieldid = cff.id
-              WHERE cff.shortname = 'course_year' AND cfd.value = :academicyear";
-            $params = ['contextcourse' => CONTEXT_COURSE, 'academicyear' => $acyear];
+            // Get the courses for the academic year.
+            $sql = "SELECT c.id, c.category, c.fullname
+                    FROM {customfield_data} cfd
+                    JOIN {context} ctx ON cfd.contextid = ctx.id AND ctx.contextlevel = :contextcourse
+                    JOIN {course} c ON c.id = ctx.instanceid
+                    JOIN {customfield_field} cff ON cfd.fieldid = cff.id
+                    WHERE cff.shortname = 'course_year' AND cfd.value = :acyear";
+            $params = ['contextcourse' => CONTEXT_COURSE, 'acyear' => $acyear];
 
             $courses = $DB->get_records_sql($sql, $params);
+
             // NO limit in number of records unless specified in settings.
             $limit = get_config('report_feedback_tracker', 'export_limit') ?: 0;
             $counter = 0;
@@ -87,16 +89,16 @@ class export_data extends scheduled_task {
             fwrite($handle, "[\n");
 
             foreach ($courses as $course) {
-                $courseacademicyear = helper::get_academic_year($course->id);
-                // Only export courses with an academic year matching the selected academic year.
-                if (!$courseacademicyear || $courseacademicyear != $acyear) {
-                    continue;
-                }
-
-                // Get the summative course modules.
+                // Get the summative and formative course modules.
                 $sql = "SELECT
                     cm.*,
                     mo.name AS modname,
+                    CASE
+                        WHEN at.type = " . assess_type::ASSESS_TYPE_FORMATIVE . " THEN '" .
+                            get_string('formative', 'local_assess_type') . "'
+                        WHEN at.type = " . assess_type::ASSESS_TYPE_SUMMATIVE . " THEN '" .
+                            get_string('summative', 'local_assess_type') . "'
+                    END AS assesstype,
                     CASE
                         WHEN mo.name = 'assign' THEN amod.name
                         WHEN mo.name = 'coursework' THEN cmod.name
@@ -117,7 +119,7 @@ class export_data extends scheduled_task {
                     END AS duedatetime
 
                     FROM {course_modules} cm
-                    JOIN {local_assess_type} at ON at.cmid = cm.id AND at.type = 1
+                    JOIN {local_assess_type} at ON at.cmid = cm.id AND at.type IN (0, 1)
                     JOIN {modules} mo ON mo.id = cm.module
                     LEFT JOIN {assign} amod ON mo.name = 'assign' AND amod.id = cm.instance
                     LEFT JOIN {coursework} cmod ON mo.name = 'coursework' AND cmod.id = cm.instance
@@ -131,29 +133,30 @@ class export_data extends scheduled_task {
                 $params = ['courseid' => $course->id];
                 $coursemodules = $DB->get_records_sql($sql, $params);
 
-                // Get the submissions for the summative assessments.
-                foreach ($coursemodules as $summativecm) {
-                    $submissions = admin::get_module_submissions($summativecm);
+                // Get the submissions.
+                foreach ($coursemodules as $coursemodule) {
+                    $submissions = admin::get_module_submissions($coursemodule);
                     foreach ($submissions as $submission) {
                         // Build record.
                         $record = new stdClass();
                         $record->submissionid = $submission->id;
-                        $record->duedatetime = $summativecm->duedatetime;
+                        $record->duedatetime = $coursemodule->duedatetime;
                         $record->submissionuserid = $submission->userid;
                         $record->submissiongroupid = isset($submission->groupid) ? $submission->groupid : 0;
                         $record->submissiondatetime = $submission->submissiondatetime;
-                        $record->cmid = $summativecm->id;
-                        $record->cminstance = $summativecm->instance;
+                        $record->cmid = $coursemodule->id;
+                        $record->cminstance = $coursemodule->instance;
                         $record->courseid = $course->id;
                         $record->categoryid = $course->category;
-                        $record->assessmentname = $summativecm->assessname;
-                        $record->academicyear = $courseacademicyear;
+                        $record->assessmentname = $coursemodule->assessname;
+                        $record->academicyear = $acyear;
                         $record->coursename = $course->fullname;
-                        $record->assessmentmod = $summativecm->modname;
+                        $record->assessmentmod = $coursemodule->modname;
+                        $record->assessmenttype = $coursemodule->assesstype;
 
                         // Add turnitin part data.
-                        if ($summativecm->modname === 'turnitintooltwo') {
-                            $tttparts = helper::get_turnitin_parts($summativecm->instance);
+                        if ($coursemodule->modname === 'turnitintooltwo') {
+                            $tttparts = helper::get_turnitin_parts($coursemodule->instance);
                             foreach ($tttparts as $tttpart) {
                                 // Make a clone of the record and fill in the part details.
                                 $tttrecord = clone $record;
@@ -177,7 +180,7 @@ class export_data extends scheduled_task {
                             mtrace(get_string('data:export_count', 'report_feedback_tracker',
                                 (object) ['count' => $counter, 'acyear' => $acyear]));
                             fclose($handle);
-                            break 3; // Break to the next academic year.
+                            break 3; // Break to the next academic year in the loop.
                         }
                     }
                 }
@@ -207,7 +210,7 @@ class export_data extends scheduled_task {
         if ($index > 0) {
             fwrite($handle, ",\n");
         }
-        fwrite($handle, json_encode($record, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        fwrite($handle, json_encode($record));
     }
 
     /**
