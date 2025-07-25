@@ -67,32 +67,50 @@ class export_data extends scheduled_task {
 
             // NO limit in number of records unless specified in settings.
             $limit = get_config('report_feedback_tracker', 'export_limit') ?: 0;
-            $counter = 0;
+            $counterformative = 0;
+            $countersummative = 0;
 
-            // Create file and filepath.
-            $filename = "feedback_tracker_report_$acyear.json";
+            // Create files and filepaths.
+            $filenameformative = "feedback_tracker_report_{$acyear}_formative.json";
+            $filenamesummative = "feedback_tracker_report_{$acyear}_summative.json";
 
             // If a path is configured use it.
             if ($exportpath = get_config('report_feedback_tracker', 'export_path')) {
-                $filepath = $exportpath  . '/' . $filename;
+                $filepathformative = $exportpath  . '/' . $filenameformative;
+                $filepathsummative = $exportpath  . '/' . $filenamesummative;
 
             } else { // Otherwise export to the moodledata temp directory.
-                $filepath = make_temp_directory('report_feedback_tracker') . '/' . $filename;
+                $filepathformative = make_temp_directory('report_feedback_tracker') . '/' . $filenameformative;
+                $filepathsummative = make_temp_directory('report_feedback_tracker') . '/' . $filenamesummative;
             }
 
-            // Open the file.
-            $handle = fopen($filepath, 'w');
-            if ($handle === false) {
-                mtrace(get_string('data:open_file_error', 'report_feedback_tracker', $filepath));
+            // Open the files.
+            $handleformative = fopen($filepathformative, 'w');
+            if ($handleformative === false) {
+                mtrace(get_string('data:open_file_error', 'report_feedback_tracker', $filepathformative));
                 continue;
             }
-            fwrite($handle, "[\n");
+            $handlesummative = fopen($filepathsummative, 'w');
+            if ($handlesummative === false) {
+                mtrace(get_string('data:open_file_error', 'report_feedback_tracker', $filepathsummative));
+                continue;
+            }
+
+            fwrite($handleformative, "[\n");
+            fwrite($handlesummative, "[\n");
+
+            $formative = get_string('formative', 'local_assess_type');
+            $summative = get_string('summative', 'local_assess_type');
 
             foreach ($courses as $course) {
                 // Get the summative and formative course modules.
                 $sql = "SELECT
                     cm.*,
                     mo.name AS modname,
+                    CASE
+                        WHEN at.type = " . assess_type::ASSESS_TYPE_FORMATIVE . " THEN '" . $formative . "'
+                        WHEN at.type = " . assess_type::ASSESS_TYPE_SUMMATIVE . " THEN '" . $summative . "'
+                    END AS assesstype,
                     CASE
                         WHEN at.type = " . assess_type::ASSESS_TYPE_FORMATIVE . " THEN '" .
                             get_string('formative', 'local_assess_type') . "'
@@ -164,31 +182,49 @@ class export_data extends scheduled_task {
                                 $tttrecord->duedatetime = $tttpart->dtdue;
                                 self::amend_record_data($tttrecord);
                                 // JSON encode and write immediately.
-                                $this->write_json_record($handle, $tttrecord, $counter);
-                                $counter ++;
+                                if ($tttrecord->assessmenttype === $summative) {
+                                    $this->write_json_record($handlesummative, $tttrecord, $countersummative);
+                                    $countersummative++;
+                                } else {
+                                    $this->write_json_record($handleformative, $tttrecord, $counterformative);
+                                    $counterformative++;
+                                }
                             }
                         } else {
                             self::amend_record_data($record);
                             // JSON encode and write immediately.
-                            $this->write_json_record($handle, $record, $counter);
-                            $counter ++;
+                            if ($record->assessmenttype === $summative) {
+                                $this->write_json_record($handlesummative, $record, $countersummative);
+                                $countersummative++;
+                            } else {
+                                $this->write_json_record($handleformative, $record, $counterformative);
+                                $counterformative++;
+                            }
                         }
 
                         // If a limit is set break when it has been reached.
-                        if ($limit && $counter >= $limit) {
-                            fwrite($handle, "\n]");
+                        if ($limit && ($countersummative + $counterformative) >= $limit) {
+                            fwrite($handleformative, "\n]");
+                            fwrite($handlesummative, "\n]");
                             mtrace(get_string('data:export_count', 'report_feedback_tracker',
-                                (object) ['count' => $counter, 'acyear' => $acyear]));
-                            fclose($handle);
+                                (object) ['assesstype' => $summative, 'count' => $countersummative, 'acyear' => $acyear]));
+                            mtrace(get_string('data:export_count', 'report_feedback_tracker',
+                                (object) ['assesstype' => $formative, 'count' => $counterformative, 'acyear' => $acyear]));
+                            fclose($handleformative);
+                            fclose($handlesummative);
                             break 3; // Break to the next academic year in the loop.
                         }
                     }
                 }
             }
-            fwrite($handle, "\n]");
+            fwrite($handleformative, "\n]");
+            fwrite($handlesummative, "\n]");
             mtrace(get_string('data:export_count', 'report_feedback_tracker',
-                (object) ['count' => $counter, 'acyear' => $acyear]));
-            fclose($handle);
+                (object) ['assesstype' => $summative, 'count' => $countersummative, 'acyear' => $acyear]));
+            mtrace(get_string('data:export_count', 'report_feedback_tracker',
+                (object) ['assesstype' => $formative, 'count' => $counterformative, 'acyear' => $acyear]));
+            fclose($handleformative);
+            fclose($handlesummative);
         }
 
         // Trigger an event.
@@ -427,22 +463,20 @@ class export_data extends scheduled_task {
             }
         } else {
             // If there is no final grade or grade not (yet) released.
-            if (!isset($graderecord->finalgrade) || !$graderecord->finalgrade ||
+            if (is_null($graderecord->finalgrade) || !$graderecord->finalgrade ||
                     $graderecord->hidden === 1 || $graderecord->hidden > time()) {
                 $record->feedbackdatetime = false;
+                $record->marked = "unmarked";
+                $record->releasedintime = 0;
 
+                // If there is a submission date, no feedback and the feedback due date has passed,
+                // then feedback is overdue.
                 if ($record->submissiondatetime && $record->feedbackduedatetime &&
                         $record->feedbackduedatetime < time()) {
-                    // If there is a submission date, no feedback and the feedback due date has passed,
-                    // then feedback is overdue.
                     $record->releasestatus = 'overdue';
-                    $record->releasedintime = 0;
-                    $record->marked = "unmarked";
                 } else { // No submission or no feedback due date or still within feedback period - in marking.
                     $record->releasestatus = 'in marking';
-                    $record->releasedintime = 0;
                 }
-
             } else {
                 $record->feedbackdatetime = $graderecord->timemodified;
                 $record->marked = "marked";

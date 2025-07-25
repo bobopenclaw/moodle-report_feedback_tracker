@@ -54,7 +54,7 @@ $string['courseadmin'] = 'Course admin';
 $string['coursereport'] = 'Course report';
 $string['currentpage'] = 'current page';
 $string['data:export'] = 'Export feedback data';
-$string['data:export_count'] = ' ==> {$a->count} records exported for academic year {$a->acyear}.';
+$string['data:export_count'] = ' ==> {$a->count} {$a->assesstype} records exported for academic year {$a->acyear}.';
 $string['data:export_error'] = ' ==> ERROR: Failed writing data to {$a}';
 $string['data:export_log'] = 'Feedback tracker data written to file: {$a}';
 $string['data:open_file_error'] = ' ==> ERROR: Failed to open file {$a}';
