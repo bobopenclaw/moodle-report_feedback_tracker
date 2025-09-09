@@ -20,6 +20,7 @@ use cm_info;
 use coding_exception;
 use context_course;
 use context_module;
+use core\exception\moodle_exception;
 use core_course\customfield\course_handler;
 use dml_exception;
 use grade_item;
@@ -706,6 +707,48 @@ class helper {
         } else { // No submission or no feedback due date or still within feedback period - show nothing.
             return [];
         }
+    }
+
+    /**
+     * Make and open a file for writing.
+     * @param string $path The full path to the file to create and open.
+     * @return resource
+     * @throws moodle_exception
+     */
+    public static function make_and_open_file(string $path): mixed {
+
+        // Open the file.
+        $handle = fopen($path, 'w');
+        if ($handle === false) {
+            throw new moodle_exception('data:open_file_error', 'report_feedback_tracker', null, $path);
+        }
+
+        fwrite($handle, "[\n");
+        return $handle;
+    }
+
+    /**
+     * Write the final line and close the file.
+     * @param resource<stream> $handle File resource
+     * @return void
+     */
+    public static function close_file(mixed $handle): void {
+        fwrite($handle, "\n]");
+        fclose($handle);
+    }
+
+    /**
+     * Write a JSON record to a given file
+     * @param resource<stream> $handle File resource
+     * @param string $data Data to write
+     * @param int $index Record index number
+     * @return void
+     */
+    public static function write_json_record(mixed $handle, string $data, int $index): void {
+        if ($index > 0) {
+            fwrite($handle, ",\n");
+        }
+        fwrite($handle, $data);
     }
 
 }

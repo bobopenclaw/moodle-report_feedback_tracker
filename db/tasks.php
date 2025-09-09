@@ -34,4 +34,13 @@ $tasks = [
         'month' => '*',
         'dayofweek' => '*',
     ],
+    [
+        'classname' => 'report_feedback_tracker\task\amalgamate_files',
+        'blocking' => 0,
+        'minute' => '0',
+        'hour' => '3',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*',
+    ],
 ];

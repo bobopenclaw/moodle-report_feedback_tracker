@@ -191,6 +191,7 @@ $string['submitted'] = 'submitted';
 $string['summative'] = 'Summative';
 $string['summativekey'] = 'assessments contribute to your course mark.';
 $string['summativekeyadmin'] = 'assessments contribute to a student course mark.';
+$string['task:amalgamate_files'] = 'Amalgamate yearly JSON files';
 
 $string['t1'] = 'Autumn';
 $string['t2'] = 'Spring';
