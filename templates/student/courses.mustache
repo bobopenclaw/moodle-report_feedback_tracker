@@ -50,10 +50,11 @@
 </div>
 <hr>
 
-{{! Years. }}
-{{#hasyears}}
-    {{> report_feedback_tracker/student/ayselector }}
-{{/hasyears}}
+{{! Years and assessment types. }}
+{{#menus}}
+    {{> report_feedback_tracker/menu }}
+{{/menus}}
+
 <hr>
 
 {{#courses}}

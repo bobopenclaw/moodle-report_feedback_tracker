@@ -24,6 +24,7 @@
 namespace report_feedback_tracker;
 
 use advanced_testcase;
+use report_feedback_tracker\local\helper;
 use report_feedback_tracker\local\site;
 
 /**
@@ -73,7 +74,7 @@ final class feedback_tracker_site_test extends advanced_testcase {
         $_GET['type'] = $inputtype;
 
         // Get menu data.
-        $menu = site::menu();
+        $menu = helper::menu('site');
 
         // Verify basic structure.
         $this->assertInstanceOf(\stdClass::class, $menu);
@@ -127,9 +128,9 @@ final class feedback_tracker_site_test extends advanced_testcase {
                 'inputyear' => null,
                 'inputterm' => null,
                 'inputtype' => null,
-                'currentmonth' => 9,
+                'currentmonth' => helper::AY_START_MONTH,
                 'currentyear' => 2025,
-                'expectedyear' => 2025, // Academic year is current year when month >= 8.
+                'expectedyear' => 2025, // Academic year is current year when month is academic year start month.
                 'expectedterm' => 1, // Term 1 for September.
                 'expectedtype' => 2, // Summative.
             ],
@@ -139,7 +140,7 @@ final class feedback_tracker_site_test extends advanced_testcase {
                 'inputtype' => null,
                 'currentmonth' => 1,
                 'currentyear' => 2025,
-                'expectedyear' => 2024, // Academic year is previous year when month < 8.
+                'expectedyear' => 2024, // Academic year is previous year when month < academic year start month.
                 'expectedterm' => 2, // Term 2 for January.
                 'expectedtype' => 2, // Summative.
             ],
@@ -147,7 +148,7 @@ final class feedback_tracker_site_test extends advanced_testcase {
                 'inputyear' => 2023,
                 'inputterm' => 1,
                 'inputtype' => 1,
-                'currentmonth' => 9,
+                'currentmonth' => helper::AY_START_MONTH,
                 'currentyear' => 2025,
                 'expectedyear' => 2023,
                 'expectedterm' => 1,

@@ -44,6 +44,31 @@ require_once($CFG->dirroot . '/mod/assign/locallib.php');
 class helper {
 
     /**
+     * Autumn academic term.
+     */
+    const TERM_AUTUMN = 1;
+
+    /**
+     * Spring academic term.
+     */
+    const TERM_SPRING = 2;
+
+    /**
+     * Summer academic term.
+     */
+    const TERM_SUMMER = 3;
+
+    /**
+     * Optinal parameter to show all assessments in site report
+     */
+    const ASSESS_TYPE_ALL = 2;
+
+    /**
+     * Start month of the academic year.
+     */
+    const AY_START_MONTH = 10;
+
+    /**
      * @var array of assessment types.
      */
     public static array $assesstypes;
@@ -617,32 +642,8 @@ class helper {
             }
 
             self::add_additional_data($tttitem);
-            $data->items[$tttitem->partid] = $tttitem;
+            $data->items[] = $tttitem;
         }
-    }
-
-    /**
-     * Get the academic years from an array of courses.
-     *
-     * @param array $courses
-     * @return array
-     */
-    public static function get_academic_years_from_courses(array $courses): array {
-        $academicyears = [];
-        foreach ($courses as $course) {
-            if ($academicyear = self::get_academic_year($course->id)) {
-                $y1y2 = $academicyear . '-' . substr($academicyear + 1, -2);
-                if (!isset($academicyears[$y1y2])) {
-                    $obj = new stdClass();
-                    $obj->key = $academicyear;
-                    $obj->value = $y1y2;
-                    $academicyears[$y1y2] = $obj;
-                }
-            }
-        }
-        // Return the years descending.
-        krsort($academicyears);
-        return array_values($academicyears);
     }
 
     /**
@@ -651,9 +652,164 @@ class helper {
      * @return int
      */
     public static function get_current_academic_year(): int {
-        $currentyear = date('Y');
-        $currentmonth = date('m');
-        return $currentmonth >= 10 ? $currentyear : $currentyear - 1; // Academic Year begins 1st of October.
+        $clock = \core\di::get(\core\clock::class);
+        $currentyear = $clock->now()->format('Y');
+        $currentmonth = $clock->now()->format('n');
+        return $currentmonth >= self::AY_START_MONTH ? $currentyear : $currentyear - 1; // Academic Year begins 1st of October.
+    }
+
+    /**
+     * Menu data for a report.
+     *
+     * @param string $reporttype
+     * @return stdClass The menu data.
+     */
+    public static function menu(string $reporttype): stdClass {
+        $params = [];
+        $reporturl = "/report/feedback_tracker/$reporttype.php";
+        $clock = \core\di::get(\core\clock::class);
+
+        // Template for mustache.
+        $template = new stdClass();
+
+        if ($reporttype === 'site') {
+            $params['term'] = optional_param('term', self::current_term($clock->now()->format('n')), PARAM_INT);
+            $template->term = $params['term'];
+        }
+
+        // When running a Behat test assume we are in the current year.
+        if (defined('BEHAT_SITE_RUNNING')) {
+            $defaultyear = $clock->now()->format('Y');
+        } else {
+            // Check if we have a year from url, or set a default.
+            $defaultyear = self::get_current_academic_year();
+        }
+        $params['year'] = optional_param('year', $defaultyear, PARAM_INT);
+
+        // Check if we have an assessment type from url, or set summative as default.
+        $params['type'] = optional_param('type', assess_type::ASSESS_TYPE_SUMMATIVE + 1, PARAM_INT);
+
+        $template->year = $params['year'];
+        $template->type = $params['type'];
+
+        // Years menu.
+        $yearmenu = new stdClass();
+        $yearmenu->type = get_string('year', 'report_feedback_tracker');
+        $yearmenu->items = self::years_menu($params, $reporturl);
+        $template->menus[] = $yearmenu;
+        // Terms menu.
+        if ($reporttype === 'site') {
+            $termmenu = new stdClass();
+            $termmenu->type = get_string('term', 'report_feedback_tracker');
+            $termmenu->items = self::terms_menu($params, $reporturl);
+            $template->menus[] = $termmenu;
+        }
+
+        // Type menu.
+        $typemenu = new stdClass();
+        $typemenu->type = get_string('type', 'report_feedback_tracker');
+        $typemenu->items = self::types_menu($params, $reporturl);
+        $template->menus[] = $typemenu;
+
+        return $template;
+    }
+
+    /**
+     * Return the current academic term.
+     *
+     * @param int $month The current month (1-12).
+     * @return int The current term (1-3).
+     */
+    private static function current_term(int $month): int {
+        if ($month <= 3) {
+            return self::TERM_SPRING;
+        }
+        if ($month <= 8) {
+            return self::TERM_SUMMER;
+        }
+        return self::TERM_AUTUMN;
+    }
+
+    /**
+     * Years menu.
+     *
+     * @param array $params The year menu data.
+     * @param string $reporturl return URL of given report.
+     * @return array The years menu data.
+     */
+    private static function years_menu(array $params, string $reporturl): array {
+        // Menu start year.
+        $menustart = self::get_current_academic_year();
+        $selected = $params['year'];
+
+        $years = [];
+        for ($params['year'] = $menustart; $params['year'] > $menustart - 3; $params['year']--) {
+            $template = new stdClass();
+            $template->value = substr($params['year'], -2) . "/" . substr($params['year'] + 1, -2);
+            $template->url = new moodle_url($reporturl, $params);
+            $template->selected = ($selected === $params['year']);
+            $years[] = $template;
+        }
+        return $years;
+    }
+
+    /**
+     * Terms menu.
+     *
+     * @param array $params The terms menu data.
+     * @param string $reporturl return URL of given report.
+     * @return array The terms menu data.
+     */
+    private static function terms_menu(array $params, string $reporturl): array {
+        $terms = [];
+        $selected = $params['term'];
+
+        for ($params['term'] = 1; $params['term'] <= 4; $params['term']++) {
+            $template = new stdClass();
+            $template->value = get_string('t'.$params['term'], 'report_feedback_tracker');
+            $template->url = new moodle_url($reporturl, $params);
+            $template->selected = ($selected === $params['term']);
+            $terms[] = $template;
+        }
+
+        return $terms;
+    }
+
+    /**
+     * Assessment types menu.
+     *
+     * @param array $params The types menu data.
+     * @param string $reporturl returt URL of given report.
+     * @return array The assessment types menu data.
+     */
+    private static function types_menu(array $params, string $reporturl): array {
+        $selected = $params['type'];
+
+        // Summative.
+        $params['type'] = 2;
+        $template = new stdClass();
+        $template->value = get_string('summative', 'local_assess_type');
+        $template->url = new moodle_url($reporturl, $params);
+        $template->selected = ($selected === $params['type']);
+        $types[] = $template;
+
+        // Formative.
+        $params['type'] = 1;
+        $template = new stdClass();
+        $template->value = get_string('formative', 'local_assess_type');
+        $template->url = new moodle_url($reporturl, $params);
+        $template->selected = ($selected === $params['type']);
+        $types[] = $template;
+
+        // All.
+        $params['type'] = 3;
+        $template = new stdClass();
+        $template->value = get_string('all');
+        $template->url = new moodle_url($reporturl, $params);
+        $template->selected = ($selected === $params['type']);
+        $types[] = $template;
+
+        return $types;
     }
 
     /**
@@ -729,7 +885,8 @@ class helper {
 
     /**
      * Write the final line and close the file.
-     * @param resource<stream> $handle File resource
+     *
+     * @param mixed $handle File resource
      * @return void
      */
     public static function close_file(mixed $handle): void {
@@ -739,7 +896,8 @@ class helper {
 
     /**
      * Write a JSON record to a given file
-     * @param resource<stream> $handle File resource
+     *
+     * @param mixed $handle File resource
      * @param string $data Data to write
      * @param int $index Record index number
      * @return void

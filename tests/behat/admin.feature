@@ -58,6 +58,7 @@ Feature: As an admin I want to be able to hide a grade item from the report, I w
     And I follow "Profile" in the user menu
     And I follow "Feedback tracker"
     Then I should see "Feedback tracker"
+    And I follow "Formative"
     And I should not see "Test quiz"
     And I should see "Test assignment"
     And I log out
@@ -82,6 +83,7 @@ Feature: As an admin I want to be able to hide a grade item from the report, I w
     And I follow "Profile" in the user menu
     And I follow "Feedback tracker"
     Then I should see "Feedback tracker"
+    And I follow "Formative"
     And I should see "Test assignment"
     And I should see "Test quiz"
 
@@ -114,6 +116,7 @@ Feature: As an admin I want to be able to hide a grade item from the report, I w
     When I am on the "Course 1" "course" page logged in as "student1"
     And I follow "Profile" in the user menu
     And I follow "Feedback tracker"
+    And I follow "Formative"
     Then I should see "Method test"
     And I should see "Contact test"
     And I should see "Addtitional information test"

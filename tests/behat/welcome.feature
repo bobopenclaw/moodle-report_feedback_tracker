@@ -28,6 +28,9 @@ Feature: In a course administration page, navigate through report page, test for
       | Formative or summative? | Formative - does not contribute to course mark |
       | Description             | Test quiz description                          |
       | Grade to pass           | 8                                              |
+    And I add a assign activity to course "Course 1" section "2" and I fill the form with:
+      | Assignment name         | Test assignment                                |
+      | Formative or summative? | Formative - does not contribute to course mark |
 
   @javascript
   Scenario: For an admin the report selector should be available in course feedback report page
@@ -50,11 +53,11 @@ Feature: In a course administration page, navigate through report page, test for
     And I should see "Course report"
     And I should see "Test quiz"
 
-  @javascript
   Scenario: For a student the feedback tracker report should be available in the profile.
-    Given I am on the "Course 1" "course" page logged in as "student1"
-    And I follow "Profile" in the user menu
+    Given I am on the "student1" "user > profile" page logged in as "student1"
     And I follow "Feedback tracker"
     Then I should see "Feedback tracker"
+    And I follow "All"
     And I should see "Due"
     And I should see "Test quiz"
+    And I should see "Test assignment"

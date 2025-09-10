@@ -38,6 +38,7 @@ Feature: In the student's report ensure quiz grades are shown in accordance with
     And I follow "Profile" in the user menu
     And I follow "Feedback tracker"
     Then I should see "Feedback tracker"
+    And I follow "All"
     And I should see "Quiz 1"
     And I should see "100/100"
 
@@ -55,5 +56,6 @@ Feature: In the student's report ensure quiz grades are shown in accordance with
     And I follow "Profile" in the user menu
     And I follow "Feedback tracker"
     Then I should see "Feedback tracker"
+    And I follow "All"
     And I should see "Quiz 1"
     But I should see "Not released"

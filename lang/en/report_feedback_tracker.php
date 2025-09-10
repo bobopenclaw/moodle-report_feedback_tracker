@@ -191,14 +191,14 @@ $string['submitted'] = 'submitted';
 $string['summative'] = 'Summative';
 $string['summativekey'] = 'assessments contribute to your course mark.';
 $string['summativekeyadmin'] = 'assessments contribute to a student course mark.';
-$string['task:amalgamate_files'] = 'Amalgamate yearly JSON files';
 
 $string['t1'] = 'Autumn';
 $string['t2'] = 'Spring';
 $string['t3'] = 'Summer';
 $string['t4'] = 'Other';
-$string['term'] = 'Term';
 
+$string['task:amalgamate_files'] = 'Amalgamate yearly JSON files';
+$string['term'] = 'Term';
 $string['title:name'] = 'Feedback tracker';
 $string['title:site_subtext'] = 'Assessments with due dates, feedback dates, and marking progress from your courses in UCL Moodle.';
 $string['title:subtext'] = 'Assessments with due dates, feedback dates, and marks from your courses in Moodle.';

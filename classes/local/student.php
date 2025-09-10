@@ -52,6 +52,10 @@ class student {
         $data->courses = [];
         self::$studentroles = self::get_student_role_ids();
 
+        // Year and assessment type menus.
+        $menus = helper::menu('student');
+        $data->menus = $menus->menus;
+
         // Get the user information.
         $user = get_complete_user_data('id', $userid);
         $data->userfirstname = $user->firstname;
@@ -64,22 +68,7 @@ class student {
             $courses = enrol_get_all_users_courses($userid, false, null, 'fullname');
 
             // Show academic year options when showing all courses.
-            // Get the academic years of courses the user is enrolled into.
-            $data->hasyears = true;
-            $academicyears = helper::get_academic_years_from_courses($courses);
-            if ($academicyears) {
-                $data->academicyearoptions = $academicyears;
-            }
-
-            $year = optional_param('year', self::get_default_academicyear($academicyears), PARAM_INT);
-
-            // Remove the key of the academic year to show.
-            // This is used by the template to identify the year selected.
-            foreach ($academicyears as $academicyear) {
-                if ($academicyear->key === $year) {
-                    unset($academicyear->key);
-                }
-            }
+            $year = $menus->year;
 
             foreach ($courses as $course) {
                 // Show courses where the user is a student from the selected academic year.
@@ -124,6 +113,12 @@ class student {
         }
 
         $modinfo = get_fast_modinfo($course->id);
+        if (PHPUNIT_TEST) {
+            $selectedassesstype = 2; // Select all assessment types for PHPUnit tests.
+        } else {
+            $selectedassesstype = optional_param('type', 2, PARAM_INT) - 1;
+        }
+
         helper::$assesstypes = helper::get_assessment_types($course->id);
 
         $courseitem = new stdClass();
@@ -136,6 +131,15 @@ class student {
             if (((($gradeitem->itemtype === 'mod') && helper::is_supported_module($gradeitem->itemmodule)) ||
                     (($gradeitem->itemtype === 'manual') && helper::is_supported_module($gradeitem->itemtype))) &&
                     $item = self::build_gradeitem($modinfo, $gradeitem, $userid)) {
+
+                // Get course module ID for the grade item where it exists.
+                $cmid = helper::get_cmid($gradeitem->id);
+
+                // Show selected assessment type(s) only.
+                $assesstype = helper::get_assesstype($gradeitem->id, $cmid);
+                if (($selectedassesstype !== helper::ASSESS_TYPE_ALL) && ($assesstype->type != $selectedassesstype)) {
+                    continue;
+                }
 
                 // Skip hidden items.
                 if ($item->hiddenfromreport) {
@@ -220,7 +224,6 @@ class student {
             } else {
                 // Use a custom method to get custom due date for a student.
                 $duedate = self::get_user_duedate($gradeitem, $userid) ?: admin::get_duedate($module);
-
             }
 
             if ($duedate) {
@@ -423,22 +426,6 @@ class student {
             return "$CFG->wwwroot/grade/report/student/index.php?id=$module->course&userid=$USER->id";
         }
         return "$CFG->wwwroot/mod/$module->modname/view.php?id=$module->id";
-    }
-
-    /**
-     * Get the academic year to show to the student by default.
-     *
-     * @param array $academicyears
-     * @return int
-     */
-    private static function get_default_academicyear(array $academicyears): int {
-        if ($academicyears) {
-            // Return the last academic year the user has been enrolled into a course.
-            return $academicyears[0]->key;
-        } else {
-            // The user has not been enrolled into any course yet so return the current academic year.
-            return helper::get_current_academic_year();
-        }
     }
 
     /**
