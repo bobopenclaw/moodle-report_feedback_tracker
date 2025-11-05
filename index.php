@@ -80,7 +80,7 @@ helper::$assesstypes = helper::get_assessment_types($course->id);
 
 
 // Set the header and print it.
-$PAGE->set_title($course->shortname .': ' . get_string('pluginname', 'report_feedback_tracker'));
+$PAGE->set_title($course->shortname . ': ' . get_string('pluginname', 'report_feedback_tracker'));
 $PAGE->set_heading($course->fullname);
 echo $OUTPUT->header();
 

@@ -52,5 +52,3 @@ $capabilities = [
         'clonepermissionsfrom' => 'report/feedback_tracker:view',
     ],
 ];
-
-

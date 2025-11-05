@@ -26,11 +26,15 @@ use stdClass;
 use cm_info;
 use mod_coursework\services\submission_figures as coursework_submission_figures;
 
+defined('MOODLE_INTERNAL') || die;
+
+require_once($CFG->dirroot . '/mod/assign/locallib.php');
+
 /**
  * This file contains the admin functions used by the feedback tracker report.
  *
  * @package    report_feedback_tracker
- * @copyright  2024 UCL <m.opitz@ucl.ac.uk>
+ * @copyright  2024 onwards UCL <m.opitz@ucl.ac.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class admin {
@@ -196,7 +200,7 @@ class admin {
     private static function get_overrides_url(cm_info $module): string {
         $supportedmodules = ['assign', 'lesson', 'quiz'];
         if (in_array($module->modname, $supportedmodules)) {
-            return new moodle_url("/mod/".$module->modname."/overrides.php" , ["cmid" => $module->id]);
+            return new moodle_url("/mod/" . $module->modname . "/overrides.php", ["cmid" => $module->id]);
         }
         return "#";
     }
@@ -223,7 +227,7 @@ class admin {
         $teamsubmission = false;
 
         switch ($module->modname) {
-            case 'assign' :
+            case 'assign':
                 $teamsubmission = $DB->get_field('assign', 'teamsubmission', ['id' => $module->instance]);
                 if ($teamsubmission && $countgroups) {
                     // Get group submissions.
@@ -243,7 +247,7 @@ class admin {
                         AND latest = 1";
                 }
                 break;
-            case 'coursework' :
+            case 'coursework':
                 // If option is set show only submissions from students assigned to the current user as assessor.
                 if (get_config('report_feedback_tracker', 'showusermarkings')) {
                     return coursework_submission_figures::get_submissions_for_assessor($module->instance);
@@ -254,22 +258,22 @@ class admin {
                         WHERE courseworkid = $module->instance
                         AND finalised = 1";
                 break;
-            case 'lesson' :
+            case 'lesson':
                 $sql = "SELECT id, userid, timeseen AS submissiondatetime
                         FROM {lesson_attempts}
                         WHERE lessonid = $module->instance";
                 break;
-            case 'quiz' :
+            case 'quiz':
                 $sql = "SELECT id, userid, timefinish AS submissiondatetime
                         FROM {quiz_attempts}
                         WHERE quiz = $module->instance AND preview = 0";
                 break;
-            case 'turnitintooltwo' :
+            case 'turnitintooltwo':
                 $sql = "SELECT id, userid, submission_modified AS submissiondatetime
                         FROM {turnitintooltwo_submissions}
                         WHERE turnitintooltwoid = $module->instance";
                 break;
-            case 'workshop' :
+            case 'workshop':
                 $sql = "SELECT id, authorid AS userid, timemodified AS submissiondatetime
                         FROM {workshop_submissions}
                         WHERE workshopid = $module->instance";
@@ -316,15 +320,20 @@ class admin {
             return 0;
         }
 
-        // Coursework has its own method to only return missing grades for a marker.
-        if ($cm->modname === 'coursework' && ($markeronly || get_config('report_feedback_tracker', 'showusermarkings'))) {
-            $needsgrading = coursework_submission_figures::calculate_needsgrading_for_assessor($cm->instance);
-            return $needsgrading;
+        if ($markeronly || get_config('report_feedback_tracker', 'showusermarkings')) {
+            if ($cm->modname === 'assign') {
+                return self::count_assign_marker_submissions($cm->instance);
+            } else if ($cm->modname === 'coursework') {
+                // Coursework has its own method to only return missing grades for a marker.
+                return coursework_submission_figures::calculate_needsgrading_for_assessor($cm->instance);
+            }
         }
 
         // Assignments provide a method to count user - not team! - submissions that need grading.
-        if ($cm->modname === 'assign' &&
-                $DB->get_field('assign', 'teamsubmission', ['id' => $cm->instance]) == 0) {
+        if (
+            $cm->modname === 'assign' &&
+            $DB->get_field('assign', 'teamsubmission', ['id' => $cm->instance]) == 0
+        ) {
             $context = context_module::instance($cm->id);
             $assignment = new assign($context, $cm, $cm->course);
             return $assignment->count_submissions_need_grading();
@@ -366,6 +375,50 @@ class admin {
             // Count and return all student IDs in submission that are not (yet) to be found in gradings.
             return count(array_diff($submitterids, $gradedids));
         }
+    }
+
+    /**
+     * Count the assignment submissions for the current marker user.
+     *
+     * @param int $assignid The assignment id.
+     * @return int Number of markers submissions.
+     */
+    private static function count_assign_marker_submissions(int $assignid): int {
+        global $DB, $USER;
+
+        // First, get all submissions the user is allowed to see.
+        $params = ['assignid' => $assignid];
+        $sql = "SELECT id, userid, timemodified AS submissiondatetime
+                        FROM {assign_submission}
+                        WHERE assignment = :assignid
+                        AND userid > 0
+                        AND status = 'submitted'
+                        AND latest = 1";
+        $submissions = $DB->get_records_sql($sql, $params);
+
+        $assign = $DB->get_record('assign', ['id' => $assignid]);
+        $filtered = [];
+
+        foreach ($submissions as $submission) {
+            // Ignore submissions that have been graded.
+            if (assign_get_user_grades($assign, $submission->userid)) {
+                continue;
+            }
+            // Look up the user flag for this student.
+            $allocatedmarker = $DB->get_field('assign_user_flags', 'allocatedmarker', [
+                'assignment' => $assignid,
+                'userid' => $submission->userid,
+            ]);
+
+            // Include submission if:
+            // - No marker assigned, or
+            // - Current user is the assigned marker.
+            if ($allocatedmarker === false || $allocatedmarker == $USER->id) {
+                $filtered[] = $submission;
+            }
+        }
+
+        return count($filtered);
     }
 
     /**
@@ -473,7 +526,8 @@ class admin {
         }
 
         // If the reason or the date has changed log it.
-        if ($reason &&
+        if (
+            $reason &&
                 (($feedbackduedate !== $previousfeedbackduedate) ||
                 ($reason !== $prevreason))
         ) {
@@ -500,5 +554,4 @@ class admin {
             }
         }
     }
-
 }

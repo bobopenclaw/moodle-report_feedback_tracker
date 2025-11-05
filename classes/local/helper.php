@@ -42,7 +42,6 @@ require_once($CFG->dirroot . '/mod/assign/locallib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class helper {
-
     /**
      * Autumn academic term.
      */
@@ -163,8 +162,12 @@ class helper {
     public static function get_turnitin_parts($cmid) {
         global $DB;
 
-        return $DB->get_records('turnitintooltwo_parts', ['turnitintooltwoid' => $cmid], '',
-        'id, partname, dtdue');
+        return $DB->get_records(
+            'turnitintooltwo_parts',
+            ['turnitintooltwoid' => $cmid],
+            '',
+            'id, partname, dtdue'
+        );
     }
 
     /**
@@ -187,10 +190,9 @@ class helper {
                 }
             }
             return false;
-
         } else {
             // Check if user has editingteacher role on any courses.
-            list($roles, $params) = $DB->get_in_or_equal($roles, SQL_PARAMS_NAMED);
+            [$roles, $params] = $DB->get_in_or_equal($roles, SQL_PARAMS_NAMED);
             $params['userid'] = $USER->id;
             $sql = "SELECT id
                 FROM {role_assignments}
@@ -324,14 +326,22 @@ class helper {
                 continue;
             }
             // Get the start and end dates for xmas and easter closures from the config.
-            $xstart = get_config('report_feedback_tracker',
-                "closure_xmas_start_{$year}");
-            $xend = get_config('report_feedback_tracker',
-                "closure_xmas_end_{$year}");
-            $estart = get_config('report_feedback_tracker',
-                "closure_easter_start_{$year}");
-            $eend = get_config('report_feedback_tracker',
-                "closure_easter_end_{$year}");
+            $xstart = get_config(
+                'report_feedback_tracker',
+                "closure_xmas_start_{$year}"
+            );
+            $xend = get_config(
+                'report_feedback_tracker',
+                "closure_xmas_end_{$year}"
+            );
+            $estart = get_config(
+                'report_feedback_tracker',
+                "closure_easter_start_{$year}"
+            );
+            $eend = get_config(
+                'report_feedback_tracker',
+                "closure_easter_end_{$year}"
+            );
 
             // Add the closure days for the year.
             self::get_year_closuredays($closuredays, $xstart, $xend, $estart, $eend);
@@ -351,7 +361,12 @@ class helper {
      * @return void
      */
     private static function get_year_closuredays(
-        array &$closuredays, string $xstart, string $xend, string $estart, string $eend): void {
+        array &$closuredays,
+        string $xstart,
+        string $xend,
+        string $estart,
+        string $eend
+    ): void {
         // Do the Xmas closure 1st.
         $date = date('Y-m-d', ($xstart == '' ? 0 : strtotime($xstart)));
         $enddate = date('Y-m-d', ($xend == '' ? 0 : strtotime($xend)));
@@ -440,8 +455,10 @@ class helper {
         foreach ($submissionplugins as $plugin) {
             // Check if the submission plugin is enabled and visible for this assignment.
 
-            if ($plugin->is_enabled() && $plugin->is_visible()
-                && $plugin->allow_submissions()) {
+            if (
+                $plugin->is_enabled() && $plugin->is_visible()
+                && $plugin->allow_submissions()
+            ) {
                 $enabledsubmissiontypes[] = get_class($plugin);
             }
         }
@@ -462,7 +479,8 @@ class helper {
         $students = [];
         foreach ($users as $user) {
             // Check if the user has no managerial or supervising capabilities (e.g. is a student).
-            if (!has_capability('gradereport/grader:view', $context, $user) &&
+            if (
+                !has_capability('gradereport/grader:view', $context, $user) &&
                 !has_capability('moodle/course:manageactivities', $context, $user) &&
                 !has_capability('enrol/category:synchronised', $context, $user) &&
                 !has_capability('moodle/course:view', $context, $user)
@@ -512,8 +530,10 @@ class helper {
             $itemid = required_param('itemid', PARAM_INT);
             $partid = required_param('partid', PARAM_INT);
 
-            if (($itemid === (int) $item->gradeitemid) &&
-                    ($partid === (int) $item->partid)) {
+            if (
+                ($itemid === (int) $item->gradeitemid) &&
+                    ($partid === (int) $item->partid)
+            ) {
                 $item->updated = true;
             }
         }
@@ -527,8 +547,10 @@ class helper {
             if ($record->feedbackduedate) {
                 $item->customfeedbackduedate = date('Y-m-d', $record->feedbackduedate);
                 $item->feedbackduedateraw = $record->feedbackduedate;
-                $item->feedbackduedate = userdate($record->feedbackduedate,
-                    get_string('strftimedatemonthabbr', 'langconfig'));
+                $item->feedbackduedate = userdate(
+                    $record->feedbackduedate,
+                    get_string('strftimedatemonthabbr', 'langconfig')
+                );
 
                 // Get a custom feedback due date reason entry for the grade item where available.
                 $item->feedbackduedatereason = s(self::get_reason($item->gradeitemid, $item->partid, $item->feedbackduedate));
@@ -766,7 +788,7 @@ class helper {
 
         for ($params['term'] = 1; $params['term'] <= 4; $params['term']++) {
             $template = new stdClass();
-            $template->value = get_string('t'.$params['term'], 'report_feedback_tracker');
+            $template->value = get_string('t' . $params['term'], 'report_feedback_tracker');
             $template->url = new moodle_url($reporturl, $params);
             $template->selected = ($selected === $params['term']);
             $terms[] = $template;
@@ -908,5 +930,4 @@ class helper {
         }
         fwrite($handle, $data);
     }
-
 }

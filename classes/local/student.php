@@ -31,7 +31,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class student {
-
     /**
      * @var array array of roles a student may have.
      */
@@ -82,7 +81,7 @@ class student {
             }
 
             // Sort the courses by name.
-            usort($data->courses, function($a, $b) {
+            usort($data->courses, function ($a, $b) {
                 return strcmp($a->fullname, $b->fullname);
             });
         } else {
@@ -128,10 +127,11 @@ class student {
 
         foreach ($gradeitems as $gradeitem) {
             // Process modules and manual grade items only.
-            if (((($gradeitem->itemtype === 'mod') && helper::is_supported_module($gradeitem->itemmodule)) ||
+            if (
+                ((($gradeitem->itemtype === 'mod') && helper::is_supported_module($gradeitem->itemmodule)) ||
                     (($gradeitem->itemtype === 'manual') && helper::is_supported_module($gradeitem->itemtype))) &&
-                    $item = self::build_gradeitem($modinfo, $gradeitem, $userid)) {
-
+                    $item = self::build_gradeitem($modinfo, $gradeitem, $userid)
+            ) {
                 // Get course module ID for the grade item where it exists.
                 $cmid = helper::get_cmid($gradeitem->id);
 
@@ -156,7 +156,7 @@ class student {
 
         // Sort assessments by feedback due date.
         if (isset($courseitem->items)) {
-            usort($courseitem->items, function($a, $b) {
+            usort($courseitem->items, function ($a, $b) {
                 return $a->feedbackduedateraw <=> $b->feedbackduedateraw;
             });
         }
@@ -183,8 +183,10 @@ class student {
             }
 
             // Manual grade items have no module and therefore no direct link.
-            $data->url = new moodle_url('/course/user.php',
-                ['mode' => 'grade', 'id' => $gradeitem->courseid, 'user' => $userid]);
+            $data->url = new moodle_url(
+                '/course/user.php',
+                ['mode' => 'grade', 'id' => $gradeitem->courseid, 'user' => $userid]
+            );
             $duedate = 0;
             $data->cmid = 0;
             $data->submissiondate = 0;
@@ -216,10 +218,12 @@ class student {
 
             // Due to a core bug $customdata will always contain data for $USER->id, regardless of $userid given.
             // See MDL-83121.
-            if (is_array($customdata)
+            if (
+                is_array($customdata)
                     && array_key_exists($module->modname, $duedates)
                     && isset($customdata[$duedates[$module->modname]])
-                    && $USER->id === $userid) {
+                    && $USER->id === $userid
+            ) {
                 $duedate = $customdata[$duedates[$module->modname]];
             } else {
                 // Use a custom method to get custom due date for a student.
@@ -382,7 +386,7 @@ class student {
         }
 
         // NO submission and the due date has passed.
-        if ($duedate && !$submissiondate && time() > $duedate ) {
+        if ($duedate && !$submissiondate && time() > $duedate) {
             return ['overdue' => 'overdue'];
         }
 
@@ -454,7 +458,9 @@ class student {
     private static function get_student_role_ids(): array {
         global $DB;
 
-        return $DB->get_fieldset_select('role', 'id',
+        return $DB->get_fieldset_select(
+            'role',
+            'id',
             'archetype IN (:role1)',
             [
                 'role1' => 'student',
@@ -541,5 +547,4 @@ class student {
         }
         return  $overridedate ?: false;
     }
-
 }

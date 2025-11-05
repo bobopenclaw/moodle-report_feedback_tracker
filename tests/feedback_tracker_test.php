@@ -31,7 +31,6 @@ use stdClass;
  * @covers \report_feedback_tracker
  */
 final class feedback_tracker_test extends advanced_testcase {
-
     public static function setUpBeforeClass(): void {
         parent::setUpBeforeClass();
         require_once(__DIR__ . '/../lib.php');
@@ -69,7 +68,7 @@ final class feedback_tracker_test extends advanced_testcase {
 
         // Get the user data.
         $studentdata = student::get_feedback_tracker_student_data($student->id, $course->id);
-        list($submissionlate, $feedbacklate, $feedbackextended, $feedbackreleased) = $studentdata->items;
+        [$submissionlate, $feedbacklate, $feedbackextended, $feedbackreleased] = $studentdata->items;
 
         $this->assertEquals($student->username, $studentdata->student, "Assert submission is by student 1");
         $this->assertTrue(isset($feedbackreleased->submissionstatus['success']), "Assert submission is in time");
@@ -176,27 +175,33 @@ final class feedback_tracker_test extends advanced_testcase {
             // Create for turnitintooltwo only if a data generator is present.
             if ($dmodule['modulename'] == 'turnitintooltwo') {
                 if (file_exists($CFG->dirroot . '/mod/turnitintooltwo/tests/generator/lib.php')) {
-                    $module = $this->getDataGenerator()->create_module($dmodule['modulename'],
-                        ['course' => $courseid, 'name' => $dmodule['name']]);
+                    $module = $this->getDataGenerator()->create_module(
+                        $dmodule['modulename'],
+                        ['course' => $courseid, 'name' => $dmodule['name']]
+                    );
                 } else {
                     continue;
                 }
             } else {
                 if (isset($dmodule['duedate'])) {
-                    $module = $this->getDataGenerator()->create_module($dmodule['modulename'],
+                    $module = $this->getDataGenerator()->create_module(
+                        $dmodule['modulename'],
                         [
                             'course' => $courseid,
                             'name' => $dmodule['name'],
                             'duedate' => $dmodule['duedate'],
                             'assignsubmission_onlinetext_enabled' => true,
-                        ]);
+                        ]
+                    );
                 } else {
-                    $module = $this->getDataGenerator()->create_module($dmodule['modulename'],
+                    $module = $this->getDataGenerator()->create_module(
+                        $dmodule['modulename'],
                         [
                             'course' => $courseid,
                             'name' => $dmodule['name'],
                             'assignsubmission_onlinetext_enabled' => true,
-                        ]);
+                        ]
+                    );
                 }
             }
 
@@ -225,7 +230,6 @@ final class feedback_tracker_test extends advanced_testcase {
             }
             // Update the submission record.
             $this->update_submission($coursemodule, $dmodule['user'], $dmodule['timesubmitted']);
-
         }
     }
 
@@ -242,10 +246,12 @@ final class feedback_tracker_test extends advanced_testcase {
 
         switch ($module->modname) {
             case 'assign':
-                if ($submissiondata = $DB->get_record('assign_submission', [
+                if (
+                    $submissiondata = $DB->get_record('assign_submission', [
                     'assignment' => $module->instance,
                     'userid' => $studentid,
-                ])) {
+                    ])
+                ) {
                     $submissiondata->timemodified = $submissiondate;
                     $submissiondata->status = 'submitted';
 
@@ -257,9 +263,6 @@ final class feedback_tracker_test extends advanced_testcase {
             case 'quiz':
                 // Coming...
                 break;
-
         }
     }
-
 }
-

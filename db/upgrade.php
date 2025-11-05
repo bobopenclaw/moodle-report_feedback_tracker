@@ -33,7 +33,6 @@ function xmldb_report_feedback_tracker_upgrade($oldversion) {
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2024052400) {
-
         // Define table report_feedback_tracker to be created.
         $table = new xmldb_table('report_feedback_tracker');
 
@@ -77,7 +76,6 @@ function xmldb_report_feedback_tracker_upgrade($oldversion) {
     }
 
     if ($oldversion < 2024070100) {
-
         // Define table report_feedback_tracker to be created.
         $table = new xmldb_table('report_feedback_tracker_duedates');
 
@@ -169,7 +167,6 @@ function xmldb_report_feedback_tracker_upgrade($oldversion) {
 
     // Replacing partname with partid to identify turnitintooltwo parts.
     if ($oldversion < 2024101000) {
-
         // Define table report_feedback_tracker.
         $table = new xmldb_table('report_feedback_tracker');
 
@@ -257,7 +254,6 @@ function xmldb_report_feedback_tracker_upgrade($oldversion) {
 
     // For partid convert existing 0 into NULL value and remove duplicate records.
     if ($oldversion < 2025011400) {
-
         // Update table report_feedback_tracker.
         // Update 0 into null.
         $sql = "UPDATE {report_feedback_tracker}

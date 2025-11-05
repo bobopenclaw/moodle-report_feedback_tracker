@@ -63,7 +63,8 @@ final class feedback_tracker_site_test extends advanced_testcase {
         int $currentyear,
         int $expectedyear,
         int $expectedterm,
-        int $expectedtype): void {
+        int $expectedtype
+    ): void {
 
         // Mock the clock.
         $this->mock_clock_with_frozen(strtotime("$currentyear-$currentmonth"));

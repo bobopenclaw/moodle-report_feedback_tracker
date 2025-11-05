@@ -84,5 +84,4 @@ class get_assessment_types extends external_api {
                 'isselected' => (assess_type::ASSESS_TYPE_DUMMY === $selection)],
         ];
     }
-
 }

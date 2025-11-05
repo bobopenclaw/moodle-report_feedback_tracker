@@ -33,7 +33,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class site {
-
     /**
      * Autumn academic term.
      */
@@ -75,7 +74,7 @@ class site {
 
         // Years.
         $data->year = $menus->year;
-        $data->yearname = substr($menus->year, -2). "/" . substr($menus->year + 1, -2);
+        $data->yearname = substr($menus->year, -2) . "/" . substr($menus->year + 1, -2);
 
         // Terms.
         $data->term = $menus->term;
@@ -94,10 +93,12 @@ class site {
             // Only show courses for the selected year.
             if (helper::get_academic_year($course->id) === $data->year) {
                 // Only show courses for the selected academic year and term and where the user is a teacher.
-                list($courseacademicyears, $courseterms) = self::get_course_academic_years_and_terms($course);
-                if (in_array($data->year, $courseacademicyears) &&
+                [$courseacademicyears, $courseterms] = self::get_course_academic_years_and_terms($course);
+                if (
+                    in_array($data->year, $courseacademicyears) &&
                         in_array($data->termcode, $courseterms[$data->year]) &&
-                        helper::is_teacher($course)) {
+                        helper::is_teacher($course)
+                ) {
                     $courseitem = self::build_courseitem($course);
 
                     // Show only courses with assessments to show.
@@ -170,11 +171,13 @@ class site {
             }
 
             // Process only modules that are supported and visible.
-            if ((($gradeitem->itemtype === 'manual') && helper::is_supported_module($gradeitem->itemtype)) ||
+            if (
+                (($gradeitem->itemtype === 'manual') && helper::is_supported_module($gradeitem->itemtype)) ||
                     ((($gradeitem->itemtype === 'mod')) &&
                     helper::is_supported_module($gradeitem->itemmodule) &&
                     ($item = admin::get_module_data($modinfo, $gradeitem)) &&
-                    !$item->hiddenfromstudents)) {
+                    !$item->hiddenfromstudents)
+            ) {
                 if ($gradeitem->itemmodule === 'turnitintooltwo') {
                     // Add separate data for each summative Turnitin part.
                     helper::add_ttt_data($courseitem, $gradeitem, $item);
@@ -187,7 +190,7 @@ class site {
 
         // Sort assessments by feedback due date.
         if (isset($courseitem->items)) {
-            usort($courseitem->items, function($a, $b) {
+            usort($courseitem->items, function ($a, $b) {
                 return $a->feedbackduedateraw <=> $b->feedbackduedateraw;
             });
         }
@@ -251,7 +254,7 @@ class site {
             // Get the matched numbers as an array of integers.
             $processterms = array_map('intval', $matches[0]);
             foreach ($processterms as $processterm) {
-                $courseterms[$processterm] = 't'.$processterm;
+                $courseterms[$processterm] = 't' . $processterm;
             }
         }
         return $courseterms;

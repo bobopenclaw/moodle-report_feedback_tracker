@@ -38,7 +38,6 @@ use stdClass;
  * Renderer class for feedback tracker report.
  */
 class renderer extends plugin_renderer_base {
-
     /**
      * Render the student report.
      *
@@ -60,8 +59,10 @@ class renderer extends plugin_renderer_base {
             $data->viewasstudent = true;
             $data->dropdownstudents = helper::get_course_students($courseid, $userid);
 
-            return $this->output->render_from_template('report_feedback_tracker/course/course',
-                $data);
+            return $this->output->render_from_template(
+                'report_feedback_tracker/course/course',
+                $data
+            );
         }
     }
 
@@ -118,9 +119,11 @@ class renderer extends plugin_renderer_base {
 
         // If present create records for manual grade items and supported course modules.
         foreach ($gradeitems as $gradeitem) {
-            if (($gradeitem->itemtype === 'mod') &&
+            if (
+                ($gradeitem->itemtype === 'mod') &&
                     helper::is_supported_module($gradeitem->itemmodule) &&
-                    $item = admin::get_module_data($modinfo, $gradeitem)) {
+                    $item = admin::get_module_data($modinfo, $gradeitem)
+            ) {
                 if ($gradeitem->itemmodule === 'turnitintooltwo') {
                     // Add separate data for Turnitin parts.
                     helper::add_ttt_data($data, $gradeitem, $item);
@@ -152,7 +155,7 @@ class renderer extends plugin_renderer_base {
         }
 
         // Sort the data records by feedback due date.
-        usort($data->items, function($a, $b) {
+        usort($data->items, function ($a, $b) {
             return strcmp($a->feedbackduedateraw, $b->feedbackduedateraw);
         });
 
@@ -170,5 +173,4 @@ class renderer extends plugin_renderer_base {
         // And render it.
         return $this->output->render_from_template('report_feedback_tracker/site/site', $data);
     }
-
 }

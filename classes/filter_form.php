@@ -26,7 +26,7 @@ namespace report_feedback_tracker;
 
 defined('MOODLE_INTERNAL') || die();
 global $CFG;
-require_once($CFG->libdir.'/formslib.php');
+require_once($CFG->libdir . '/formslib.php');
 
 /**
  * Class filter_form form to filter the results by date

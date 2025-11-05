@@ -34,8 +34,14 @@ use core\output\inplace_editable;
 function report_feedback_tracker_extend_navigation_course($navigation, $course, $context) {
     if (has_capability('report/feedback_tracker:view', $context)) {
         $url = new moodle_url('/report/feedback_tracker/index.php', ['id' => $course->id]);
-        $navigation->add(get_string('pluginname', 'report_feedback_tracker'),
-            $url, navigation_node::TYPE_SETTING, null, null, new pix_icon('i/report', ''));
+        $navigation->add(
+            get_string('pluginname', 'report_feedback_tracker'),
+            $url,
+            navigation_node::TYPE_SETTING,
+            null,
+            null,
+            new pix_icon('i/report', '')
+        );
     }
 }
 
@@ -60,8 +66,11 @@ function report_feedback_tracker_extend_navigation_user($navigation, $user, $cou
 
     $context = context_course::instance($course->id);
     if (has_capability('report/feedback_tracker:view', $context) || true) {
-        $navigation->add(get_string('navigationlink', 'report_feedback_tracker'),
-            new moodle_url('/report/feedback_tracker/student.php'), $navigation::TYPE_SETTING);
+        $navigation->add(
+            get_string('navigationlink', 'report_feedback_tracker'),
+            new moodle_url('/report/feedback_tracker/student.php'),
+            $navigation::TYPE_SETTING
+        );
     }
 }
 
@@ -93,8 +102,13 @@ function report_feedback_tracker_myprofile_navigation(core_user\output\myprofile
 
     $context = context_course::instance($COURSE->id);
     if (has_capability('report/feedback_tracker:view', $context) || true) {
-        $node = new core_user\output\myprofile\node('reports', 'feedback_tracker',
-            get_string('navigationlink', 'report_feedback_tracker'), null, new moodle_url($url));
+        $node = new core_user\output\myprofile\node(
+            'reports',
+            'feedback_tracker',
+            get_string('navigationlink', 'report_feedback_tracker'),
+            null,
+            new moodle_url($url)
+        );
         $tree->add_node($node);
     }
     return true;

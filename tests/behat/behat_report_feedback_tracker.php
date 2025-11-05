@@ -32,7 +32,6 @@ use Behat\Mink\Exception\ElementNotFoundException;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class behat_report_feedback_tracker extends behat_base {
-
     /**
      * Clicks the edit button for the given module name.
      *
@@ -72,5 +71,4 @@ class behat_report_feedback_tracker extends behat_base {
     public function i_select_from_the_dropdown($option, $dropdown) {
         $this->getSession()->getPage()->selectFieldOption($dropdown, $option);
     }
-
 }
