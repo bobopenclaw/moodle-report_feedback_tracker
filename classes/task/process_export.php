@@ -49,13 +49,13 @@ class process_export extends \core\task\adhoc_task {
     public function execute(): void {
 
         $this->course = get_course($this->get_custom_data()->courseid);
-        $this->path = get_config('report_feedback_tracker', 'export_path') ?: make_temp_directory('report_feedback_tracker');
+        $path = get_config('report_feedback_tracker', 'export_path') ?: make_temp_directory('report_feedback_tracker');
 
         // Make the files to use for this course and year.
         $filenameformative = "feedback_tracker_report_{$this->get_custom_data()->academicyear}_{$this->course->id}_formative.json";
         $filenamesummative = "feedback_tracker_report_{$this->get_custom_data()->academicyear}_{$this->course->id}_summative.json";
-        $formativefile = helper::make_and_open_file($this->path . '/' . $filenameformative);
-        $summativefile = helper::make_and_open_file($this->path . '/' . $filenamesummative);
+        $formativefile = helper::make_and_open_file($path . '/' . $filenameformative);
+        $summativefile = helper::make_and_open_file($path . '/' . $filenamesummative);
 
         $this->counters['formative'] = 0;
         $this->counters['summative'] = 0;
