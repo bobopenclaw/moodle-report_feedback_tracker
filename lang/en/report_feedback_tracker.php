@@ -24,7 +24,12 @@
 
 $string['academicyear'] = 'Academic year';
 $string['additionalinformationhint'] = 'Additional information shown in feedback tracker to all students for this assessment.';
+$string['assessment:allsuccess'] = 'All assessed';
+$string['assessment:due'] = '{$a} due';
 $string['assessment:has_been_updated'] = 'Assessment data has been updated.';
+$string['assessment:late'] = '{$a} assessed late';
+$string['assessment:overdue'] = '{$a} overdue';
+$string['assessment:success'] = '{$a} assessed';
 $string['assesstype:dummy'] = 'Dummy';
 $string['assesstype:formative'] = 'Formative';
 $string['assesstype:notset'] = 'Not set';

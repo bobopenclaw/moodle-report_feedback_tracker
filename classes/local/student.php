@@ -19,7 +19,6 @@ use cm_info;
 use core_course\external\course_summary_exporter;
 use course_modinfo;
 use grade_item;
-use local_assess_type\assess_type;
 use moodle_url;
 use stdClass;
 
@@ -175,6 +174,7 @@ class student {
     private static function build_gradeitem(course_modinfo $modinfo, grade_item $gradeitem, int $userid): false|stdClass {
         global $DB, $USER;
 
+        $dateformat = get_string('strftimedatemonthabbr', 'langconfig');
         $data = new stdClass();
 
         if ($gradeitem->itemtype === "manual") {
@@ -225,13 +225,6 @@ class student {
                 $duedate = self::get_user_duedate($gradeitem, $userid) ?: admin::get_duedate($module);
             }
 
-            if ($duedate) {
-                $dateformat = get_string('strftimedatemonthabbr', 'langconfig');
-                $data->duedate = userdate($duedate, $dateformat);
-                $data->feedbackduedateraw = helper::get_feedbackduedate($gradeitem, $duedate);
-                $data->feedbackduedate = userdate($data->feedbackduedateraw, $dateformat);
-            }
-
             // Add submission and grading for the user.
             self::add_user_data($userid, $data, $gradeitem, $duedate);
         } else { // There is no course module for the grade item.
@@ -247,7 +240,17 @@ class student {
         $assesstype = helper::get_assesstype($gradeitem->id, $data->cmid);
         helper::add_assesstype($data, $assesstype);
 
-        if (!$duedate) {
+        // Show the assessment end date as due date when dealing with the assessment part of workshops.
+        if (self::is_workshop_assessment($gradeitem)) {
+            $params = ['id' => $gradeitem->iteminstance];
+            $duedate = $DB->get_field('workshop', 'assessmentend', $params);
+        }
+
+        if ($duedate) {
+            $data->duedate = userdate($duedate, $dateformat);
+            $data->feedbackduedateraw = helper::get_feedbackduedate($gradeitem, $duedate);
+            $data->feedbackduedate = userdate($data->feedbackduedateraw, $dateformat);
+        } else {
             $data->duedate = ($gradeitem->itemtype === "manual") ? "" : get_string('datenotset', 'report_feedback_tracker');
             $data->feedbackduedateraw = 9999999999;
             $data->feedbackduedate = get_string('datenotset', 'report_feedback_tracker');
@@ -271,6 +274,17 @@ class student {
     }
 
     /**
+     * Check if a gradeitem is a workshop assignment.
+     *
+     * @param grade_item $gradeitem
+     * @return bool
+     */
+    private static function is_workshop_assessment(grade_item $gradeitem): bool {
+        // For workshop grade items itemnumber == 1 points to the assessment part.
+        return ($gradeitem->itemmodule === 'workshop') && ($gradeitem->itemnumber == 1);
+    }
+
+    /**
      * Add submission and grading for the given user to the data.
      *
      * @param int $userid
@@ -282,7 +296,11 @@ class student {
      */
     public static function add_user_data(int $userid, stdClass $data, grade_item $gradeitem, int $duedate, int $part = 0) {
         $data->submissiondate = self::get_submissiondate($userid, $gradeitem->itemmodule, $gradeitem->iteminstance, $part);
-        $data->submissionstatus = self::get_submission_status($duedate, $data->submissiondate);
+        if (self::is_workshop_assessment($gradeitem)) {
+            $data->workshopassessmentstatus = self::get_workshop_assessment_status($userid, $gradeitem->iteminstance);
+        } else {
+            $data->submissionstatus = self::get_submission_status($duedate, $data->submissiondate);
+        }
     }
 
     /**
@@ -387,6 +405,79 @@ class student {
 
         // The submission is not due yet - so return nothing.
         return [];
+    }
+
+    /**
+     * Return a workshop assessment status badge.
+     *
+     * @param int $userid
+     * @param int $instance
+     * @return string[]
+     */
+    private static function get_workshop_assessment_status(int $userid, int $instance): array {
+        global $DB;
+
+        // Get workshop assessments for the user.
+        $params = ['workshopid' => $instance, 'userid' => $userid];
+        $sql = "SELECT wa.*, ws.assessmentstart, ws.assessmentend
+                FROM {workshop_assessments} wa
+                JOIN {workshop_submissions} wsub ON wsub.id = wa.submissionid
+                JOIN {workshop} ws ON ws.id = wsub.workshopid
+                WHERE ws.id = :workshopid
+                AND wa.reviewerid = :userid";
+
+        $assessments = $DB->get_records_sql($sql, $params);
+
+        // No assesments.
+        if (!$assessments) {
+            return [];
+        }
+
+        // At least one assessment w/o a grade.
+        if (in_array(null, array_column($assessments, 'grade'), true)) {
+            $badges = [];
+            $successcount = 0;
+            $latecount = 0;
+            $duecount = 0;
+            $overduecount = 0;
+
+            foreach ($assessments as $assessment) {
+                $assessmentdate = $assessment->timemodified;
+                $duedate = $assessment->assessmentend;
+                $assessmentstart = $assessment->assessmentstart;
+
+                // There is an assessment, and it was in time or there is no due date: success!
+                if ($assessmentdate && ($assessmentdate <= $duedate || !$duedate)) {
+                    $successcount++;
+                } else if ($duedate && $assessmentdate > $duedate) {
+                    // Assessment was late.
+                    $latecount++;
+                } else if ($duedate && !$assessmentdate && time() > $duedate) {
+                    // NO assessment and the due date has passed.
+                    $overduecount++;
+                } else if (!$assessmentstart || ($assessmentstart < time())) {
+                    // No assessment but within time.
+                    // If the assessment start date has passed or there is no assessment start date show a reminder.
+                    $duecount++;
+                }
+            }
+            if ($successcount) {
+                $badges[] = ['success' => $successcount];
+            }
+            if ($latecount) {
+                $badges[] = ['late' => $latecount];
+            }
+            if ($overduecount) {
+                $badges[] = ['overdue' => $overduecount];
+            }
+            if ($duecount) {
+                $badges[] = ['due' => $duecount];
+            }
+            return $badges;
+        }
+
+        // All asssessments submitted.
+        return ['allsuccess' => 'allsuccess'];
     }
 
     /**
