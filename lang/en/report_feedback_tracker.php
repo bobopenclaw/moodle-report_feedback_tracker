@@ -72,6 +72,7 @@ $string['edit:generalfeedback'] = 'Edit general feedback';
 $string['edit:method'] = 'Edit method';
 $string['edit:module'] = 'Edit module';
 $string['edit:responsibility'] = 'Edit responsibility';
+$string['error:unable_to_load_holidays'] = 'Unable to load UK Bank holiday data from gov.uk';
 $string['event:export_data_description'] = 'Feedback tracker data has been exported.';
 $string['event:export_data_name'] = 'Feedback tracker data exported';
 $string['feedback'] = 'Feedback status';

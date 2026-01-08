@@ -545,7 +545,7 @@ class student {
      * @param int $userid
      * @return false|int
      */
-    private static function get_user_duedate(grade_item $gradeitem, int $userid): false|int {
+    public static function get_user_duedate(grade_item $gradeitem, int $userid): false|int {
         global $DB;
 
         switch ($gradeitem->itemmodule) {

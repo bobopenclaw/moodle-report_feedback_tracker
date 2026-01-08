@@ -22,7 +22,9 @@ use context_course;
 use context_module;
 use core\exception\moodle_exception;
 use core_course\customfield\course_handler;
+use curl;
 use dml_exception;
+use Exception;
 use grade_item;
 use html_writer;
 use lang_string;
@@ -293,6 +295,7 @@ class helper {
      * @return array
      */
     public static function get_closuredays() {
+        global $CFG;
 
         $cache = \cache::make('report_feedback_tracker', 'publicholidays');
         $closuredays = $cache->get('england_and_wales');
@@ -304,9 +307,20 @@ class helper {
             $closuredays = [];
 
             // Get the official Bank holidays for England and Wales.
-            // Fetch data from the API and decode it into an array.
-            $jsondata = file_get_contents('https://www.gov.uk/bank-holidays.json');
+            $curl = new curl();
+
+            // When testing make sure to use preserved holiday data from 2019 to 2028 to match test definitions.
+            if (defined('PHPUNIT_TEST') && PHPUNIT_TEST) {
+                $curl->mock_response(file_get_contents($CFG->dirroot . '/report/feedback_tracker/tests/bankholidays2019-28.json'));
+            }
+            // Fetch data from the official API.
+            $jsondata = $curl->get('https://www.gov.uk/bank-holidays.json');
+
+            // Decode into an array and use the dates for England and Wales.
             $bankholidays = json_decode($jsondata, true);
+            if (empty($bankholidays['england-and-wales']['events'])) {
+                throw new moodle_exception('error:unable_to_load_holidays', 'report_feedback_tracker');
+            }
             // Accessing bank holidays for England and Wales.
             $englandwalesholidays = $bankholidays['england-and-wales']['events'];
 
