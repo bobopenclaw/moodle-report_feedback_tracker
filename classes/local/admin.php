@@ -49,11 +49,9 @@ class admin {
         course_modinfo $modinfo,
         grade_item $gradeitem
     ): false|stdClass {
+        $module = helper::get_module_from_gradeitem($gradeitem, $modinfo);
 
-        if ($cm = self::get_cm_from_gradeitem($gradeitem)) {
-            // Get the module.
-            $module = $modinfo->get_cm($cm->cmid);
-        } else {
+        if (!$module) {
             return false;
         }
 
@@ -419,28 +417,6 @@ class admin {
         }
 
         return count($filtered);
-    }
-
-    /**
-     * Get a course module ID from a grade item where available.
-     *
-     * @param grade_item $gradeitem
-     * @return false|mixed
-     */
-    public static function get_cm_from_gradeitem(grade_item $gradeitem) {
-        global $DB;
-
-        // SQL query to get the course module ID from a grade item.
-        $sql = "
-                SELECT cm.id AS cmid
-                FROM {course_modules} cm
-                JOIN {modules} m ON cm.module = m.id
-                JOIN {grade_items} gi ON gi.iteminstance = cm.instance AND gi.itemmodule = m.name
-                WHERE gi.id = :gradeitemid
-            ";
-
-        // Execute the query.
-        return $DB->get_record_sql($sql, ['gradeitemid' => $gradeitem->id]);
     }
 
     /**

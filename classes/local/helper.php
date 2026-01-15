@@ -22,6 +22,7 @@ use context_course;
 use context_module;
 use core\exception\moodle_exception;
 use core_course\customfield\course_handler;
+use course_modinfo;
 use curl;
 use dml_exception;
 use Exception;
@@ -911,5 +912,31 @@ class helper {
             fwrite($handle, ",\n");
         }
         fwrite($handle, $data);
+    }
+
+    /**
+     * Get a course module from a given grade item.
+     *
+     * @param grade_item $gradeitem
+     * @param course_modinfo $modinfo
+     * @return false|mixed
+     */
+    public static function get_module_from_gradeitem(grade_item $gradeitem, course_modinfo $modinfo) {
+        global $DB;
+
+        $sql = "
+                SELECT cm.id AS cmid
+                FROM {course_modules} cm
+                JOIN {modules} m ON cm.module = m.id
+                JOIN {grade_items} gi ON gi.iteminstance = cm.instance AND gi.itemmodule = m.name
+                WHERE gi.id = :gradeitemid
+            ";
+
+        // Verify $modinfo->cms item in case the module data is missing.
+        if (($cmid = $DB->get_field_sql($sql, ['gradeitemid' => $gradeitem->id])) && isset($modinfo->cms[$cmid])) {
+            return $modinfo->get_cm($cmid);
+        } else {
+            return false;
+        }
     }
 }

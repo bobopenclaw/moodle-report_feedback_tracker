@@ -190,16 +190,15 @@ class student {
             $duedate = 0;
             $data->cmid = 0;
             $data->submissiondate = 0;
-        } else if ($cm = admin::get_cm_from_gradeitem($gradeitem)) {
-            // Get the module and check if it is visible.
-            $module = $modinfo->get_cm($cm->cmid);
+        } else if ($module = helper::get_module_from_gradeitem($gradeitem, $modinfo)) {
+            // Check if module is visible.
             if (!$module->uservisible) {
                 return false;
             }
 
             $data->url = self::get_module_url($module);
             $data->moduletypeiconurl = $module->get_icon_url()->out(false);
-            $data->cmid = $cm->cmid;
+            $data->cmid = $module->id;
 
             // Due dates.
             // Different modules use different field names for the due date.

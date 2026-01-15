@@ -115,6 +115,28 @@ final class feedback_tracker_test extends advanced_testcase {
     }
 
     /**
+     * Test that orphaned grade item does not result in fatal error.
+     *
+     * @return void
+     */
+    public function test_get_feedback_tracker_student_data_missing_mod(): void {
+        global $DB;
+
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $teacher = $this->getDataGenerator()->create_user();
+        $this->setup_dummy_data($course->id, $student->id, $teacher->id);
+
+        // Remove a module's record.
+        $DB->delete_records('assign', ['name' => 'Assign 1']);
+
+        rebuild_course_cache($course->id, true);
+        student::get_feedback_tracker_student_data($student->id, $course->id);
+
+        $this->assertTrue(true); // Check no errors occurred.
+    }
+
+    /**
      * Setup some dummy grade data.
      *
      * @param int $courseid
