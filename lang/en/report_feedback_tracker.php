@@ -34,8 +34,10 @@ $string['assesstype:dummy'] = 'Dummy';
 $string['assesstype:formative'] = 'Formative';
 $string['assesstype:notset'] = 'Not set';
 $string['assesstype:summative'] = 'Summative';
+
 $string['badge:hiddenfromreport'] = 'Hidden from report';
 $string['badge:hiddenfromstudents'] = 'Hidden from students';
+
 $string['cachedef_publicholidays'] = 'Public holiday dates';
 $string['classification'] = 'Classification';
 $string['close'] = 'Close';
@@ -58,6 +60,7 @@ $string['course'] = 'Course';
 $string['courseadmin'] = 'Course admin';
 $string['coursereport'] = 'Course report';
 $string['currentpage'] = 'current page';
+
 $string['data:export'] = 'Export feedback data';
 $string['data:export_count'] = ' ==> {$a->count} {$a->assesstype} records exported for academic year {$a->acyear}.';
 $string['data:export_error'] = ' ==> ERROR: Failed writing data to {$a}';
@@ -67,6 +70,7 @@ $string['dateformat:default'] = "d M Y";
 $string['datenotset'] = 'Date not set';
 $string['due'] = 'Due';
 $string['duesubmissiondate'] = 'Due /<br>Submission';
+
 $string['edit'] = 'Edit';
 $string['edit:generalfeedback'] = 'Edit general feedback';
 $string['edit:method'] = 'Edit method';
@@ -75,6 +79,8 @@ $string['edit:responsibility'] = 'Edit responsibility';
 $string['error:unable_to_load_holidays'] = 'Unable to load UK Bank holiday data from gov.uk';
 $string['event:export_data_description'] = 'Feedback tracker data has been exported.';
 $string['event:export_data_name'] = 'Feedback tracker data exported';
+$string['event:student_viewed'] = 'Student viewed';
+
 $string['feedback'] = 'Feedback status';
 $string['feedback:cohort'] = 'Cohort feedback';
 $string['feedback:datenotset'] = 'Date not set';
@@ -96,18 +102,25 @@ Feedback due date now again calculated from assessment due date where available.
 $string['feedbackduedate:updated'] = 'Feedback due date updated';
 $string['feedbackreleaseddate:custom'] = 'Custom released date';
 $string['field_required'] = 'This field is required!';
+
 $string['filter:academicyear'] = 'Filter by academic year';
+$string['filter:apply'] = 'Apply filter';
 $string['filter:by'] = 'Filter by';
 $string['filter:contact'] = 'Filter by contact';
 $string['filter:course'] = 'Filter by course';
+$string['filter:dateend'] = 'To date';
+$string['filter:datestart'] = 'From date';
 $string['filter:feedback'] = 'Filter by feedback';
 $string['filter:generalfeedback'] = 'Filter by general feedback';
+$string['filter:invalidrange'] = 'Invalid range';
 $string['filter:method'] = 'Filter by method';
+$string['filter:reset'] = 'Reset filter';
 $string['filter:summative'] = 'Filter by classification';
 $string['filter:type'] = 'Filter by type';
 $string['filter:typeto'] = 'Type to filter';
 $string['formative'] = 'Formative';
 $string['formativekey'] = 'assessments do not.';
+
 $string['generalfeedback'] = 'General feedback';
 $string['generalfeedback:hint'] = 'General feedback only';
 $string['generalfeedback:text'] = 'Text:';
@@ -116,6 +129,7 @@ $string['generalfeedback:url'] = 'URL:';
 $string['grade'] = 'Grade';
 $string['grade:released'] = 'Marks released';
 $string['grader'] = 'Grader';
+
 $string['header:additionalinformation'] = 'Additional information';
 $string['header:assesstype'] = 'Assessment type';
 $string['header:cohortfeedback'] = 'Cohort feedback provided';
@@ -138,18 +152,24 @@ $string['header:newfeedbackduedate'] = 'New feedback due date';
 $string['header:newfeedbackreleaseddate'] = 'New feedback released date';
 $string['header:submitted'] = 'Submitted';
 $string['header:viewreport'] = 'View report';
+
 $string['jumpto'] = 'Jump to';
+
 $string['method:tooltip'] = 'What feedback students will receive e.g. Written, Audio, Video, In class, Automatic marking, Peer feedback';
+
 $string['navigationlink'] = 'Feedback tracker';
 $string['no_courses_this_year'] = 'You are not yet enrolled in any courses this academic year. To view older assessments and feedback, select an academic year.';
 $string['notsetkey'] = 'An assessment type has not been set (yet).';
 $string['nouser:heading'] = 'Feedback tracker report';
+
 $string['pleasenote'] = 'Please note:';
 $string['pluginname'] = 'Feedback tracker';
 $string['pluginname:bak'] = 'Feedback tracker report';
 $string['privacy:metadata'] = 'The Feedback tracker report plugin does not store any personal data.';
+
 $string['requiremarking'] = '{$a} require marking';
 $string['responsibility'] = 'Responsibility';
+
 $string['settings:closuredatesheading'] = 'Closure dates';
 $string['settings:dateformat'] = 'Date format';
 $string['settings:dateformatinfo'] = 'Date format used in report tables.';
@@ -218,4 +238,16 @@ $string['user'] = 'User';
 $string['user:heading'] = 'Feedback tracker report for {$a}';
 $string['users:extension'] = '1 extension';
 $string['users:extensions'] = '{$a} extensions';
+
+$string['visitslog:download_csv'] = 'Download all records as CSV file';
+$string['visitslog:filename'] = 'Feedback tracker visits log';
+$string['visitslog:heading'] = 'Feedback tracker visits';
+$string['visitslog:no_programme'] = 'No programme';
+$string['visitslog:no_records'] = 'No records found';
+$string['visitslog:programme'] = 'Programme';
+$string['visitslog:show'] = 'Show visits log';
+$string['visitslog:time'] = 'Time';
+$string['visitslog:title'] = 'Feedback tracker visits';
+$string['visitslog:user'] = 'User';
+
 $string['year'] = 'Year';

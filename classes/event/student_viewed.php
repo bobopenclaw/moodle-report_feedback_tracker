@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Export data complete event
+ * Log a student visit event.
  *
  * @package    report_feedback_tracker
  * @copyright  2025 onwards UCL {@link https://www.ucl.ac.uk/}
@@ -26,39 +26,42 @@
 namespace report_feedback_tracker\event;
 
 /**
- * Event class for exporting feedback tracker data.
+ * Student view event.
  *
  * @package    report_feedback_tracker
  * @copyright  2025 onwards UCL {@link https://www.ucl.ac.uk/}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @author     Matthias Opitz <m.opitz@ucl.ac.uk>
  */
-class data_export_completed extends \core\event\base {
+class student_viewed extends \core\event\base {
     /**
-     * Init method.
+     * Initialisation
      *
      * @return void
      */
     protected function init() {
-        $this->data['crud'] = 'r'; // Read event.
-        $this->data['edulevel'] = self::LEVEL_OTHER;
+        global $USER;
+
+        $this->context = \context_user::instance($USER->id);
+        $this->data['crud'] = 'r';
+        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
     }
 
     /**
-     * Returns localised name of the event.
+     * Get the event name
      *
      * @return string
      */
     public static function get_name() {
-        return get_string('event:export_data_name', 'report_feedback_tracker');
+        return get_string('event:student_viewed', 'report_feedback_tracker');
     }
 
     /**
-     * Returns description of what happened.
+     * Get the description
      *
-     * @return string
+     * @return string|null
      */
     public function get_description() {
-        return get_string('event:export_data_description', 'report_feedback_tracker');
+        return "The user with id '$this->userid' viewed the student feedback tracker.";
     }
 }

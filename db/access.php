@@ -25,7 +25,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
-
     'report/feedback_tracker:view' => [
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
@@ -35,10 +34,8 @@ $capabilities = [
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW,
         ],
-
         'clonepermissionsfrom' => 'coursereport/outline:view',
     ],
-
     'report/feedback_tracker:viewuserreport' => [
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
@@ -48,7 +45,6 @@ $capabilities = [
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW,
         ],
-
         'clonepermissionsfrom' => 'report/feedback_tracker:view',
     ],
 ];

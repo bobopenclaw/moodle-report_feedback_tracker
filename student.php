@@ -26,9 +26,24 @@ use core\report_helper;
 use report_feedback_tracker\local\helper;
 
 require_once(__DIR__ . '/../../config.php');
+require_once($CFG->dirroot . '/user/profile/lib.php');
 
 $courseid = optional_param('id', null, PARAM_INT);
 $userid = optional_param('userid', null, PARAM_INT);
+
+// Log a visit.
+// Get a programme name where available.
+$profile = profile_user_record($USER->id, false);
+$data = null;
+
+$programme = $profile->programmename ?? null;
+
+if (property_exists($profile, 'programmename') && $programme = $profile->programmename) {
+    $data = ['other' => ['programme' => $programme]];
+}
+
+$event = \report_feedback_tracker\event\student_viewed::create($data);
+$event->trigger();
 
 if ($courseid) {
     $context = context_course::instance($courseid);
