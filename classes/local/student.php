@@ -200,29 +200,7 @@ class student {
             $data->moduletypeiconurl = $module->get_icon_url()->out(false);
             $data->cmid = $module->id;
 
-            // Due dates.
-            // Different modules use different field names for the due date.
-            // Note: the customdata for a module does not contain any optional assignment extensions
-            // so for assignments we have to use the custom method below.
-            $duedates = [
-                'lesson' => 'deadline',
-                'quiz' => 'timeclose',
-            ];
-            $customdata = $module->customdata;
-
-            // Due to a core bug $customdata will always contain data for $USER->id, regardless of $userid given.
-            // See MDL-83121.
-            if (
-                is_array($customdata)
-                    && array_key_exists($module->modname, $duedates)
-                    && isset($customdata[$duedates[$module->modname]])
-                    && $USER->id === $userid
-            ) {
-                $duedate = $customdata[$duedates[$module->modname]];
-            } else {
-                // Use a custom method to get custom due date for a student.
-                $duedate = self::get_user_duedate($gradeitem, $userid) ?: admin::get_duedate($module);
-            }
+            $duedate = self::get_user_duedate($gradeitem, $userid) ?: admin::get_duedate($module);
 
             // Add submission and grading for the user.
             self::add_user_data($userid, $data, $gradeitem, $duedate);
@@ -308,10 +286,10 @@ class student {
      * @param int $userid
      * @param string $moduletype
      * @param int $instance
-     * @param int $part turnitintooltwo part number
+     * @param ?int $part turnitintooltwo part number
      * @return int
      */
-    private static function get_submissiondate(int $userid, string $moduletype, int $instance, int $part): int {
+    public static function get_submissiondate(int $userid, string $moduletype, int $instance, ?int $part = null): int {
         global $DB;
 
         switch ($moduletype) {
@@ -322,6 +300,13 @@ class student {
                         WHERE userid = :userid
                         AND assignment = :instance
                         AND status = 'submitted'";
+                break;
+            case 'lti':
+                $params = ['userid' => $userid, 'instance' => $instance];
+                $sql = "SELECT MAX(submittedat)
+                        FROM {report_feedback_tracker_lti_usr}
+                        WHERE userid = :userid
+                        AND instanceid = :instance";
                 break;
             case 'coursework':
                 $params = ['userid' => $userid, 'instance' => $instance];

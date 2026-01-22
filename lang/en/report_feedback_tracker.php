@@ -194,6 +194,7 @@ $string['settings:supportassignment'] = 'Assignments';
 $string['settings:supportcoursework'] = 'Coursework';
 $string['settings:supportheading'] = 'Supported modules';
 $string['settings:supportlesson'] = 'Lessons';
+$string['settings:supportlti'] = 'External tools';
 $string['settings:supportmanual'] = 'Manual Feedback';
 $string['settings:supportquiz'] = 'Quizzes';
 $string['settings:supportturnitintooltwo'] = 'Turnitintooltwo';

@@ -282,5 +282,57 @@ function xmldb_report_feedback_tracker_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025011400, 'report', 'feedback_tracker');
     }
 
+    if ($oldversion < 2025121600) {
+        $table = new xmldb_table('report_feedback_tracker_duedates');
+        $index = new xmldb_index('repofeedtracdued_use_ix', XMLDB_INDEX_NOTUNIQUE, ['userid']);
+
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Savepoint reached.
+        upgrade_plugin_savepoint(true, 2025121600, 'report', 'feedback_tracker');
+    }
+
+    if ($oldversion < 2025121601) {
+        $table = new xmldb_table('report_feedback_tracker_lti');
+
+        // Adding fields to table report_feedback_tracker_duedates.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('instanceid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('enddatetime', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('gradesreleased', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+
+        // Adding keys to table report_feedback_tracker.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('instanceid', XMLDB_KEY_FOREIGN, ['instanceid']);
+
+        // Conditionally launch create table for report_feedback_tracker_duedates.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $table = new xmldb_table('report_feedback_tracker_lti_usr');
+
+        // Adding fields to table report_feedback_tracker_duedates.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('instanceid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('submittedat', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+
+        // Adding keys to table report_feedback_tracker.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('instanceid', XMLDB_KEY_FOREIGN, ['instanceid']);
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid']);
+
+        // Conditionally launch create table for report_feedback_tracker_duedates.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Savepoint reached.
+        upgrade_plugin_savepoint(true, 2025121601, 'report', 'feedback_tracker');
+    }
+
     return true;
 }

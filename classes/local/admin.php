@@ -111,16 +111,6 @@ class admin {
     public static function get_duedate(cm_info $cm): int {
         global $DB;
 
-        // Coursework does not support customdata, so get the deadline directly.
-        if ($cm->modname === 'coursework') {
-            return $DB->get_field('coursework', 'deadline', ['id' => $cm->instance]);
-        }
-
-        // Check mod has custom data.
-        if (!$cm->customdata) {
-            return 0;
-        }
-
         switch ($cm->modname) {
             case 'assign':
                 // Check customdata has duedate.
@@ -134,6 +124,10 @@ class admin {
             case 'workshop':
                 // Check customdata has submissionend.
                 return isset($cm->customdata['submissionend']) ? $cm->customdata['submissionend'] : 0;
+            case 'lti':
+                return $DB->get_field('report_feedback_tracker_lti', 'enddatetime', ['instanceid' => $cm->instance]);
+            case 'coursework':
+                return $DB->get_field('coursework', 'deadline', ['id' => $cm->instance]);
             default:
                 return 0;
         }
@@ -270,6 +264,11 @@ class admin {
                 $sql = "SELECT id, userid, submission_modified AS submissiondatetime
                         FROM {turnitintooltwo_submissions}
                         WHERE turnitintooltwoid = $module->instance";
+                break;
+            case 'lti':
+                $sql = "SELECT id, userid, submittedat AS submissiondatetime
+                        FROM {report_feedback_tracker_lti_usr}
+                        WHERE instanceid = $module->instance";
                 break;
             case 'workshop':
                 $sql = "SELECT id, authorid AS userid, timemodified AS submissiondatetime

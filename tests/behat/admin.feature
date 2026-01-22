@@ -48,7 +48,7 @@ Feature: As an admin I want to be able to hide a grade item from the report, I w
     Then I should see "Edit Test quiz"
 
     When I click on "Hide from student report" "checkbox"
-    And I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
     Then I should see "Hidden from report"
 
     And I log out
@@ -73,7 +73,7 @@ Feature: As an admin I want to be able to hide a grade item from the report, I w
     Then I should see "Edit Test quiz"
 
     When I click on "Hide from student report" "checkbox"
-    And I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
     Then I should not see "Hidden from report"
 
     And I log out
@@ -104,7 +104,7 @@ Feature: As an admin I want to be able to hide a grade item from the report, I w
       | Contact                 | Contact test                  |
       | Additional information  | Addtitional information test  |
 
-    And I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
 
     Then I should see "Method test"
     And I should see "Contact test"

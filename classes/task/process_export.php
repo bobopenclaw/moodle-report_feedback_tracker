@@ -43,12 +43,23 @@ class process_export extends \core\task\adhoc_task {
     protected array $counters = [];
 
     /**
+     * Setter for $customdata.
+     * @param mixed $customdata (anything that can be handled by json_encode)
+     */
+    public function set_custom_data($customdata) {
+        parent::set_custom_data($customdata);
+
+        $customdata = $this->get_custom_data();
+        if (isset($customdata->courseid)) {
+            $this->course = get_course($customdata->courseid);
+        }
+    }
+
+    /**
      * Execute the adhoc task
      * @return void
      */
     public function execute(): void {
-
-        $this->course = get_course($this->get_custom_data()->courseid);
         $path = get_config('report_feedback_tracker', 'export_path') ?: make_temp_directory('report_feedback_tracker');
 
         // Make the files to use for this course and year.
@@ -67,7 +78,16 @@ class process_export extends \core\task\adhoc_task {
             $submissions = admin::get_module_submissions($coursemodule);
             mtrace('Found ' . count($submissions) . ' submissions for course module ' . $coursemodule->id);
             foreach ($submissions as $submission) {
-                $this->process_submission($submission, $coursemodule, $formativefile, $summativefile);
+                $record = $this->process_submission($submission, $coursemodule);
+
+                // JSON encode and write immediately.
+                if ($record->assessmenttype === get_string('summative', 'local_assess_type')) {
+                    helper::write_json_record($summativefile, json_encode($record), $this->counters['summative']);
+                    $this->counters['summative']++;
+                } else {
+                    helper::write_json_record($formativefile, json_encode($record), $this->counters['formative']);
+                    $this->counters['formative']++;
+                }
             }
         }
 
@@ -85,15 +105,9 @@ class process_export extends \core\task\adhoc_task {
      * Process a submission and write it to the relevant file.
      * @param stdClass $submission
      * @param stdClass $coursemodule
-     * @param resource $formativefile
-     * @param resource $summativefile
      * @return void
      */
-    protected function process_submission(stdClass $submission, stdClass $coursemodule, $formativefile, $summativefile): void {
-
-        $formative = get_string('formative', 'local_assess_type');
-        $summative = get_string('summative', 'local_assess_type');
-
+    public function process_submission(stdClass $submission, stdClass $coursemodule): stdClass {
         // Build record.
         $record = new stdClass();
         $record->submissionid = $submission->id;
@@ -106,7 +120,7 @@ class process_export extends \core\task\adhoc_task {
         $record->courseid = $this->course->id;
         $record->categoryid = $this->course->category;
         $record->assessmentname = $coursemodule->assessname;
-        $record->academicyear = $this->get_custom_data()->academicyear;
+        $record->academicyear = $this->get_custom_data()->academicyear ?? '';
         $record->coursename = $this->course->fullname;
         $record->assessmentmod = $coursemodule->modname;
         $record->assessmenttype = $coursemodule->assesstype;
@@ -116,37 +130,22 @@ class process_export extends \core\task\adhoc_task {
             $tttparts = helper::get_turnitin_parts($coursemodule->instance);
             foreach ($tttparts as $tttpart) {
                 // Make a clone of the record and fill in the part details.
-                $tttrecord = clone $record;
-                $tttrecord->assessmentname .= ' ' . $tttpart->partname;
-                $tttrecord->duedatetime = $tttpart->dtdue;
-                self::amend_record_data($tttrecord);
-                // JSON encode and write immediately.
-                if ($tttrecord->assessmenttype === $summative) {
-                    helper::write_json_record($summativefile, json_encode($tttrecord), $this->counters['summative']);
-                    $this->counters['summative']++;
-                } else {
-                    helper::write_json_record($formativefile, json_encode($tttrecord), $this->counters['formative']);
-                    $this->counters['formative']++;
-                }
-            }
-        } else {
-            self::amend_record_data($record);
-            // JSON encode and write immediately.
-            if ($record->assessmenttype === $summative) {
-                helper::write_json_record($summativefile, json_encode($record), $this->counters['summative']);
-                $this->counters['summative']++;
-            } else {
-                helper::write_json_record($formativefile, json_encode($record), $this->counters['formative']);
-                $this->counters['formative']++;
+                $record = clone $record;
+                $record->assessmentname .= ' ' . $tttpart->partname;
+                $record->duedatetime = $tttpart->dtdue;
             }
         }
+
+        self::amend_record_data($record);
+
+        return $record;
     }
 
     /**
      * Get all assessment-type course modules for the given course.
      * @return moodle_recordset
      */
-    protected function get_course_modules(): moodle_recordset {
+    public function get_course_modules(): moodle_recordset {
 
         global $DB;
 
@@ -168,6 +167,7 @@ class process_export extends \core\task\adhoc_task {
                 WHEN mo.name = 'quiz' THEN qmod.name
                 WHEN mo.name = 'turnitintooltwo' THEN tmod.name
                 WHEN mo.name = 'workshop' THEN wmod.name
+                WHEN mo.name = 'lti' THEN ltimod.name
                 ELSE ''
             END AS assessname,
             CASE
@@ -177,6 +177,7 @@ class process_export extends \core\task\adhoc_task {
                 WHEN mo.name = 'quiz' THEN qmod.timeclose
                 WHEN mo.name = 'turnitintooltwo' THEN 0
                 WHEN mo.name = 'workshop' THEN wmod.submissionend
+                WHEN mo.name = 'lti' THEN rftlti.enddatetime
                 ELSE 0
             END AS duedatetime
             FROM {course_modules} cm
@@ -188,6 +189,8 @@ class process_export extends \core\task\adhoc_task {
             LEFT JOIN {quiz} qmod ON mo.name = 'quiz' AND qmod.id = cm.instance
             LEFT JOIN {turnitintooltwo} tmod ON mo.name = 'turnitintooltwo' AND tmod.id = cm.instance
             LEFT JOIN {workshop} wmod ON mo.name = 'workshop' AND wmod.id = cm.instance
+            LEFT JOIN {lti} ltimod ON mo.name = 'lti' AND ltimod.id = cm.instance
+            LEFT JOIN {report_feedback_tracker_lti} rftlti ON mo.name = 'lti' AND rftlti.instanceid = cm.instance
             WHERE cm.course = :courseid";
 
         $params = ['courseid' => $this->course->id];
@@ -389,7 +392,7 @@ class process_export extends \core\task\adhoc_task {
      * @param stdClass $record a submission record
      * @return void
      */
-    private static function set_grading_data(stdClass $record): void {
+    public static function set_grading_data(stdClass $record): void {
 
         // Feedback release.
         // If there is a custom feedback released date it will take precedence over an individual feedback date.
@@ -429,7 +432,7 @@ class process_export extends \core\task\adhoc_task {
                     $record->releasestatus = 'in marking';
                 }
             } else {
-                $record->feedbackdatetime = $graderecord->timemodified;
+                $record->feedbackdatetime = $graderecord->gradesreleased;
                 $record->marked = "marked";
                 // If there is no due date or the due date has not yet passed, feedback was released in time.
                 if (!$record->feedbackduedatetime || $record->feedbackduedatetime >= $record->feedbackdatetime) {
@@ -464,10 +467,12 @@ class process_export extends \core\task\adhoc_task {
                     gi.itemtype,
                     rft.partid,
                     rft.feedbackduedate,
-                    rft.gfdate
+                    rft.gfdate,
+                    coalesce(rftlti.gradesreleased, gg.timemodified) as gradesreleased
                 FROM {grade_items} gi
                 JOIN {grade_grades} gg ON gg.itemid = gi.id AND gg.userid = :userid
                 LEFT JOIN {report_feedback_tracker} rft ON rft.gradeitem = gi.id
+                LEFT JOIN {report_feedback_tracker_lti} rftlti ON rftlti.instanceid = gi.iteminstance AND gi.itemmodule = 'lti'
                 WHERE gi.itemmodule = :itemmodule AND gi.iteminstance = :iteminstance
                 ";
 

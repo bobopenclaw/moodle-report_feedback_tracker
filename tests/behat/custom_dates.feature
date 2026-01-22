@@ -38,19 +38,19 @@ Feature: As an admin I want to be able to set a custom dates to a grade item
     Then I should see "Please give a reason for the change in feedback due date"
 
     # Saving w/o a reason should not work.
-    When I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
     Then I should not see "Set manually"
     And I should see "Please give a reason for the change in feedback due date"
 
     # Saving w/o a date entry should not work.
     When I set the field "Please give a reason for the change in feedback due date." to "A test reason"
-    And I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
     Then I should not see "Set manually"
     And I should see "Please give a reason for the change in feedback due date"
 
     # Saving with a reason and a date should work.
     When I set the field "New feedback due date" to "2024-12-24"
-    And I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
     Then I should see "Set manually"
 
     # Custom feedback due data should be maintained in editing form.
@@ -70,5 +70,5 @@ Feature: As an admin I want to be able to set a custom dates to a grade item
     When I click on "Add custom feedback due date" "checkbox"
     Then I should not see "Please give a reason for the change in feedback due date"
 
-    And I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
     Then I should not see "Set manually"

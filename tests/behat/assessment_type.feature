@@ -37,14 +37,14 @@ Feature: As an admin I want to be able to set an assessment type for a grade ite
     When I click on the "Edit" button in the "Test quiz" module
     Then I should see "Formative - does not contribute to course mark"
     When I click on "Hide from student report" "checkbox"
-    And I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
     Then I should see "Hidden from report"
 
     # Test unhiding formative.
     When I click on the "Edit" button in the "Test quiz" module
     Then I should see "Formative - does not contribute to course mark"
     When I click on "Hide from student report" "checkbox"
-    And I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
     Then I should not see "Hidden from report"
 
     # Test set as summative and hide it.
@@ -54,7 +54,7 @@ Feature: As an admin I want to be able to set an assessment type for a grade ite
     # Setting an assessment type other than Dummy will unhide the assessment from student report - so hide again.
     And I click on "Hide from student report" "checkbox"
 #    Then the "hidden" checkbox should be checked
-    And I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
     Then I should see "Summative"
     And I should see "Hidden from report"
 
@@ -63,7 +63,7 @@ Feature: As an admin I want to be able to set an assessment type for a grade ite
     Then I should see "Summative - counts towards the final module mark"
 #    And the "hidden" checkbox should be checked
     When I click on "Hide from student report" "checkbox"
-    And I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
     Then I should not see "Hidden from report"
 
     # Test Dummy. It should hide and the checkbox should be disabled.
@@ -72,7 +72,7 @@ Feature: As an admin I want to be able to set an assessment type for a grade ite
     When I set the field "assesstype" to "Dummy activity - neither formative or summative"
 #    Then the "hidden" checkbox should be checked
     Then the "hidden" "checkbox" should be disabled
-    And I press "Save"
+    And I click on "Save" "button" in the "Edit Test quiz" "dialogue"
     Then I should not see "Summative"
     And I should see "Dummy"
     And I should see "Hidden from report"

@@ -126,6 +126,13 @@ if ($ADMIN->fulltree) {
     ));
 
     $settings->add(new admin_setting_configcheckbox(
+        'report_feedback_tracker/supportlti',
+        get_string('settings:supportlti', 'report_feedback_tracker'),
+        '',
+        false
+    ));
+
+    $settings->add(new admin_setting_configcheckbox(
         'report_feedback_tracker/supportmanual',
         get_string('settings:supportmanual', 'report_feedback_tracker'),
         '',
