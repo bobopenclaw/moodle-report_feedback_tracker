@@ -43,16 +43,15 @@ class process_export extends \core\task\adhoc_task {
     protected array $counters = [];
 
     /**
-     * Setter for $customdata.
-     * @param mixed $customdata (anything that can be handled by json_encode)
+     * Setter for $courseid.
+     * @param int $courseid
      */
-    public function set_custom_data($customdata) {
-        parent::set_custom_data($customdata);
-
-        $customdata = $this->get_custom_data();
-        if (isset($customdata->courseid)) {
-            $this->course = get_course($customdata->courseid);
+    public function phpu_set_courseid(int $courseid) {
+        if (!defined('PHPUNIT_TEST') || !PHPUNIT_TEST) {
+            throw new \coding_exception('phpu_set_courseid() is only for use with PHPUnit tests.');
         }
+
+        $this->course = get_course($courseid);
     }
 
     /**
@@ -60,11 +59,14 @@ class process_export extends \core\task\adhoc_task {
      * @return void
      */
     public function execute(): void {
+        $this->course = get_course($this->get_custom_data()->courseid);
         $path = get_config('report_feedback_tracker', 'export_path') ?: make_temp_directory('report_feedback_tracker');
 
         // Make the files to use for this course and year.
-        $filenameformative = "feedback_tracker_report_{$this->get_custom_data()->academicyear}_{$this->course->id}_formative.json";
-        $filenamesummative = "feedback_tracker_report_{$this->get_custom_data()->academicyear}_{$this->course->id}_summative.json";
+        $filenameformative = "feedback_tracker_report_{$this->get_custom_data()->academicyear}_" .
+            "{$this->course->id}_formative.json";
+        $filenamesummative = "feedback_tracker_report_{$this->get_custom_data()->academicyear}_" .
+            "{$this->course->id}_summative.json";
         $formativefile = helper::make_and_open_file($path . '/' . $filenameformative);
         $summativefile = helper::make_and_open_file($path . '/' . $filenamesummative);
 

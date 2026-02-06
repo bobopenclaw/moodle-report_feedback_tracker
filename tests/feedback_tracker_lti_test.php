@@ -164,7 +164,7 @@ final class feedback_tracker_lti_test extends advanced_testcase {
         $this->assertEquals('1828915200', student::get_submissiondate($user->id, 'lti', $cminfo->instance));
 
         $task = new process_export();
-        $task->set_custom_data(['courseid' => $course->id]);
+        $task->phpu_set_courseid($course->id);
 
         $module = $task->get_course_modules()->current();
         $mods = [];
