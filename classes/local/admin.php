@@ -103,7 +103,7 @@ class admin {
     }
 
     /**
-     * Get the due date of a course module of type assign, lesson, quiz or workshop.
+     * Get the due date of a course module.
      *
      * @param cm_info $cm
      * @return int
@@ -111,26 +111,43 @@ class admin {
     public static function get_duedate(cm_info $cm): int {
         global $DB;
 
+        // Ensure customdata is an array.
+        $customdata = (array) $cm->customdata;
+
         switch ($cm->modname) {
             case 'assign':
-                // Check customdata has duedate.
-                return isset($cm->customdata['duedate']) ? $cm->customdata['duedate'] : 0;
+                $index = 'duedate';
+                break;
             case 'lesson':
-                // Check customdata has deadline.
-                return isset($cm->customdata['deadline']) ? $cm->customdata['deadline'] : 0;
+                $index = 'deadline';
+                break;
             case 'quiz':
-                // Check customdata has timeclose.
-                return isset($cm->customdata['timeclose']) ? $cm->customdata['timeclose'] : 0;
+                $index = 'timeclose';
+                break;
             case 'workshop':
-                // Check customdata has submissionend.
-                return isset($cm->customdata['submissionend']) ? $cm->customdata['submissionend'] : 0;
+                $index = 'submissionend';
+                break;
             case 'lti':
-                return $DB->get_field('report_feedback_tracker_lti', 'enddatetime', ['instanceid' => $cm->instance]);
+                // Check LTI record has enddatetime.
+                $enddatetime = $DB->get_field(
+                    'report_feedback_tracker_lti',
+                    'enddatetime',
+                    ['instanceid' => $cm->instance]
+                );
+                return !empty($enddatetime) ? (int) $enddatetime : 0;
             case 'coursework':
-                return $DB->get_field('coursework', 'deadline', ['id' => $cm->instance]);
+                // Check Coursework record has deadline.
+                $deadline = $DB->get_field(
+                    'coursework',
+                    'deadline',
+                    ['id' => $cm->instance]
+                );
+                return !empty($deadline) ? (int) $deadline : 0;
             default:
                 return 0;
         }
+        // Return custom data where available.
+        return (int) ($customdata[$index] ?? 0);
     }
 
     /**

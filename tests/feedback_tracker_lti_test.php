@@ -186,6 +186,72 @@ final class feedback_tracker_lti_test extends advanced_testcase {
     }
 
     /**
+     * Test admin::get_duedate() returns 0 when no LTI record exists,
+     * returns 0 when enddatetime is missing,
+     * and returns the expected timestamp when present.
+     *
+     * @covers \report_feedback_tracker\local\admin::get_duedate
+     * @return void
+     */
+    public function test_admin_get_duedate_missing_and_present(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        // Create a course + LTI activity.
+        $course = $this->getDataGenerator()->create_course();
+        $lti = $this->getDataGenerator()->create_module('lti', [
+            'course' => $course->id,
+            'name'   => 'LTI Due Date Test',
+        ]);
+
+        $cminfo = \cm_info::create(
+            get_coursemodule_from_instance('lti', $lti->id)
+        );
+
+        // Case 1: No record exists in report_feedback_tracker_lti.
+        $this->assertFalse(
+            $DB->record_exists('report_feedback_tracker_lti', ['instanceid' => $lti->id])
+        );
+
+        $this->assertEquals(
+            0,
+            admin::get_duedate($cminfo),
+            'Expected duedate to be 0 when no LTI tracking record exists'
+        );
+
+        // Case 2: Record exists but enddatetime is NULL.
+        $DB->insert_record('report_feedback_tracker_lti', (object)[
+            'instanceid'     => $lti->id,
+            'enddatetime'    => null,
+            'gradesreleased' => null,
+        ]);
+
+        $this->assertEquals(
+            0,
+            admin::get_duedate($cminfo),
+            'Expected duedate to be 0 when enddatetime is missing'
+        );
+
+        // Case 3: Record exists and enddatetime is set.
+        $expected = 1829001600;
+
+        $DB->set_field(
+            'report_feedback_tracker_lti',
+            'enddatetime',
+            $expected,
+            ['instanceid' => $lti->id]
+        );
+
+        $this->assertEquals(
+            $expected,
+            admin::get_duedate($cminfo),
+            'Expected duedate to match enddatetime when present'
+        );
+    }
+
+    /**
      * Sets the server info and get to be configured for a PUT operation,
      * including having a proper auth token attached.
      *
