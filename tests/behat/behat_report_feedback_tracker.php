@@ -71,4 +71,15 @@ class behat_report_feedback_tracker extends behat_base {
     public function i_select_from_the_dropdown($option, $dropdown) {
         $this->getSession()->getPage()->selectFieldOption($dropdown, $option);
     }
+
+    /**
+     * Open an absolute plugin path.
+     *
+     * @When /^I am on "([^"]+)"$/
+     * @param string $path
+     * @return void
+     */
+    public function i_am_on_path(string $path): void {
+        $this->getSession()->visit($this->locate_path($path));
+    }
 }
