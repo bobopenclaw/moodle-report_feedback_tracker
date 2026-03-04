@@ -31,24 +31,24 @@ require_once(__DIR__ . '/../../config.php');
 $courseid = optional_param('id', null, PARAM_INT);
 $userid = optional_param('userid', null, PARAM_INT);
 
+// Login is required to do anything here.
+require_login($courseid);
+
 // If there is no course ID given redirect to the user report.
 if (!$courseid) {
-    // A user with a teacher role will see the site report if it is enabled in the settigs.
+    // If enabled in the settings a user with a teacher role will be redirected to the site report .
     if (helper::is_teacher() && get_config('report_feedback_tracker', 'sitereport')) {
         redirect(new moodle_url('/report/feedback_tracker/site.php'));
     }
     redirect(new moodle_url('/report/feedback_tracker/student.php'));
 }
-// If there is a userid or the logged-in user has no rights redirect to the user report.
+// If there is a userid or the logged-in user has no editor rights then redirect to the user report.
 if ($userid || !helper::is_course_editor($courseid, $USER->id)) {
     redirect(new moodle_url(
         '/report/feedback_tracker/student.php',
         ['id' => $courseid, 'userid' => $userid, 'type' => helper::ASSESS_TYPE_ALL + 1]
     ));
 }
-
-$course = isset($courseid) ? get_course($courseid) : $COURSE;
-require_login($course);
 
 // If this was called from a form take care of the form data.
 if (data_submitted() && confirm_sesskey()) {
@@ -71,20 +71,17 @@ if (data_submitted() && confirm_sesskey()) {
     admin::save_module_data($params);
 }
 
-$pageparams = ['id' => $course->id];
+$pageparams = ['id' => $courseid];
 
 $PAGE->set_url('/report/feedback_tracker/index.php', $pageparams);
 $PAGE->set_pagelayout('base'); // No drawers.
 
-$context = context_course::instance($course->id);
-
 // Setup array of course assessment types.
-helper::$assesstypes = helper::get_assessment_types($course->id);
-
+helper::$assesstypes = helper::get_assessment_types($courseid);
 
 // Set the header and print it.
-$PAGE->set_title($course->shortname . ': ' . get_string('pluginname', 'report_feedback_tracker'));
-$PAGE->set_heading($course->fullname);
+$PAGE->set_title($COURSE->shortname . ': ' . get_string('pluginname', 'report_feedback_tracker'));
+$PAGE->set_heading($COURSE->fullname);
 echo $OUTPUT->header();
 
 // Print selector drop down.

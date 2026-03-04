@@ -31,14 +31,14 @@ require_once($CFG->dirroot . '/user/profile/lib.php');
 $courseid = optional_param('id', null, PARAM_INT);
 $userid = optional_param('userid', null, PARAM_INT);
 
+// Login is required to do anything here.
+require_login($courseid);
+
 // Log a visit.
-// Get a programme name where available.
 $profile = profile_user_record($USER->id, false);
 $data = null;
 
-// Log a report view.
-$programme = $profile->programmename ?? null;
-
+// Get a programme name where available.
 if (property_exists($profile, 'programmename') && $programme = $profile->programmename) {
     $data = ['other' => ['programme' => $programme]];
 }
@@ -46,9 +46,6 @@ if (property_exists($profile, 'programmename') && $programme = $profile->program
 $event = \report_feedback_tracker\event\report_viewed::create($data);
 $event->trigger();
 
-if ($courseid) {
-    $context = context_course::instance($courseid);
-}
 // If optional course and user ID are given and the user has sufficient rights
 // the user report will be shown in a course context.
 if ($courseid && $userid && has_capability('moodle/grade:edit', $context)) {
