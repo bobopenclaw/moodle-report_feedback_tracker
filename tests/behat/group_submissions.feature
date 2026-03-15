@@ -37,7 +37,7 @@ Feature: Course admin sees correct missing grades count for assignment group sub
       | name                                | Team assignment |
       | course                              | C1              |
       | assignsubmission_onlinetext_enabled | 1               |
-      | assignfeedback_comments_enabled     | 1               |
+      | assignfeedback_comments_enabled     | 0               |
       | submissiondrafts                    | 0               |
       | teamsubmission                      | 1               |
       | requireallteammemberssubmit         | 0               |
