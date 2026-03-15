@@ -25,13 +25,13 @@ Feature: Course admin sees correct missing grades count for assignment group sub
       | student1 | C1     | student        |
       | student2 | C1     | student        |
     And the following "groups" exist:
-      | course | name    | idnumber |
-      | C1     | Group A | GA       |
-      | C1     | Group B | GB       |
+      | name    | course | idnumber |
+      | Group A | C1     | GA       |
+      | Group B | C1     | GB       |
     And the following "group members" exist:
-      | group   | user     |
-      | Group A | student1 |
-      | Group B | student2 |
+      | user     | group |
+      | student1 | GA    |
+      | student2 | GB    |
     And the following "activity" exists:
       | activity                            | assign          |
       | name                                | Team assignment |
