@@ -22,6 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use Behat\Gherkin\Node\TableNode;
 use Behat\Mink\Exception\ElementNotFoundException;
 
 /**
@@ -70,5 +71,83 @@ class behat_report_feedback_tracker extends behat_base {
      */
     public function i_select_from_the_dropdown($option, $dropdown) {
         $this->getSession()->getPage()->selectFieldOption($dropdown, $option);
+    }
+
+    /**
+     * Create assignment team submissions for given groups.
+     *
+     * @Given /^the following team submissions exist for assignment "([^"]+)":$/
+     * @param string $assignmentname
+     * @param TableNode $table
+     * @return void
+     */
+    public function the_following_team_submissions_exist_for_assignment(string $assignmentname, TableNode $table): void {
+        global $DB;
+
+        $assignid = $DB->get_field('assign', 'id', ['name' => $assignmentname], MUST_EXIST);
+
+        foreach ($table->getHash() as $row) {
+            $groupid = $DB->get_field('groups', 'id', ['name' => $row['group']], MUST_EXIST);
+            $userid = $DB->get_field('user', 'id', ['username' => $row['submittedby']], MUST_EXIST);
+
+            $record = new \stdClass();
+            $record->assignment = $assignid;
+            $record->userid = 0;
+            $record->groupid = $groupid;
+            $record->attemptnumber = 0;
+            $record->latest = 1;
+            $record->status = 'submitted';
+            $record->timecreated = time();
+            $record->timemodified = time();
+            $record->submissionstatement = 0;
+
+            $submissionid = $DB->insert_record('assign_submission', $record);
+
+            // Track who submitted on behalf of the group.
+            $DB->insert_record('assign_submission_group_members', (object) [
+                'submission' => $submissionid,
+                'userid' => $userid,
+            ]);
+        }
+    }
+
+    /**
+     * Set a grade for an assignment submission user.
+     *
+     * @Given /^I grade assignment "([^"]+)" for user "([^"]+)" with "([^"]+)"$/
+     * @param string $assignmentname
+     * @param string $username
+     * @param string $grade
+     * @return void
+     */
+    public function i_grade_assignment_for_user_with(string $assignmentname, string $username, string $grade): void {
+        global $DB;
+
+        $assignid = $DB->get_field('assign', 'id', ['name' => $assignmentname], MUST_EXIST);
+        $userid = $DB->get_field('user', 'id', ['username' => $username], MUST_EXIST);
+        $gradeitemid = $DB->get_field('grade_items', 'id', [
+            'itemmodule' => 'assign',
+            'iteminstance' => $assignid,
+            'itemtype' => 'mod',
+            'itemnumber' => 0,
+        ], MUST_EXIST);
+
+        $record = $DB->get_record('grade_grades', ['itemid' => $gradeitemid, 'userid' => $userid]);
+        if (!$record) {
+            $record = (object) [
+                'itemid' => $gradeitemid,
+                'userid' => $userid,
+            ];
+            $record->rawgrade = (float) $grade;
+            $record->finalgrade = (float) $grade;
+            $record->timecreated = time();
+            $record->timemodified = time();
+            $DB->insert_record('grade_grades', $record);
+        } else {
+            $record->rawgrade = (float) $grade;
+            $record->finalgrade = (float) $grade;
+            $record->timemodified = time();
+            $DB->update_record('grade_grades', $record);
+        }
     }
 }
